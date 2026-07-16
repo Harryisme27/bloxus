@@ -396,7 +396,10 @@ language plpgsql security definer
 set search_path = public
 as $$
 begin
+  -- Chỉ chặn NGƯỜI DÙNG ĐANG ĐĂNG NHẬP tự đổi vai trò. Thao tác không có phiên
+  -- (SQL editor / service key khi bootstrap admin) có auth.uid() = null → cho phép.
   if old.role is distinct from new.role
+     and auth.uid() is not null
      and not public.is_admin()
      and coalesce(current_setting('app.bypass_role_guard', true), '') is distinct from '1'
   then
