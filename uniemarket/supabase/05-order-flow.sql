@@ -194,7 +194,7 @@ begin
           jsonb_build_object('status', 'completed'));
 
   -- Tự tạo minh chứng công khai từ đơn đã hoàn thành.
-  select * into v_item from public.order_items where order_id = p_order_id order by created_at limit 1;
+  select * into v_item from public.order_items where order_id = p_order_id limit 1;
   select * into v_buyer from public.profiles where id = v_order.user_id;
   select coalesce(display_name, username) into v_staff_name from public.profiles where id = v_order.assigned_ctv;
   v_img := case when array_length(v_order.delivery_proof_images,1) >= 1
