@@ -8,8 +8,6 @@ import { ItemDetail } from "@/routes/ItemDetail";
 import { Cart } from "@/routes/Cart";
 import { Checkout } from "@/routes/Checkout";
 import { OrderSuccess } from "@/routes/OrderSuccess";
-import { PaymentFailed } from "@/routes/PaymentFailed";
-import { PaymentCancelled } from "@/routes/PaymentCancelled";
 import { Login } from "@/routes/Login";
 import { Register } from "@/routes/Register";
 import { Profile } from "@/routes/Profile";
@@ -55,8 +53,6 @@ export const router = createBrowserRouter([
       { path: "cart", element: <Cart /> },
       { path: "checkout", element: <Checkout /> },
       { path: "order-success", element: <OrderSuccess /> },
-      { path: "payment-failed", element: <PaymentFailed /> },
-      { path: "payment-cancelled", element: <PaymentCancelled /> },
       { path: "login", element: <Login /> },
       { path: "register", element: <Register /> },
       { path: "profile", element: <Profile /> },

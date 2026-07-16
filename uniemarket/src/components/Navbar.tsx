@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, NavLink } from "react-router-dom";
-import { ShoppingCart, Search, Menu, X, User as UserIcon } from "lucide-react";
+import { ShoppingCart, Search, Menu, X, User as UserIcon, Briefcase } from "lucide-react";
 import { PageContainer } from "@/components/PageContainer";
 import { Button } from "@/components/ui/button";
 import { useCartStore } from "@/store/cartStore";
@@ -11,14 +11,15 @@ import { cn } from "@/lib/utils";
 const NAV_LINKS: { to: string; label: string }[] = [
   { to: "/games", label: t.nav.games },
   { to: "/proofs", label: t.nav.proofs },
+  { to: "/ctv", label: "Tuyển CTV" },
   { to: "/faq", label: t.nav.faq },
-  { to: "/about", label: t.nav.about },
 ];
 
 export function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const cartCount = useCartStore((state) => state.items.reduce((sum, line) => sum + line.quantity, 0));
   const user = useAuthStore((state) => state.user);
+  const isStaff = user?.role === "admin" || user?.role === "ctv";
 
   return (
     <header
@@ -70,6 +71,15 @@ export function Navbar() {
             ) : null}
           </Link>
 
+          {isStaff ? (
+            <Link to="/work" className="hidden sm:block">
+              <Button variant="gold" size="sm">
+                <Briefcase className="h-4 w-4" aria-hidden="true" />
+                Khu làm việc
+              </Button>
+            </Link>
+          ) : null}
+
           {user ? (
             <Link to="/profile" className="hidden items-center gap-2 sm:flex">
               <Button variant="secondary" size="sm">
@@ -115,7 +125,15 @@ export function Navbar() {
                 {link.label}
               </NavLink>
             ))}
-            <div className="mt-2 border-t border-border pt-3">
+            <div className="mt-2 flex flex-col gap-2 border-t border-border pt-3">
+              {isStaff ? (
+                <Link to="/work" onClick={() => setMobileOpen(false)}>
+                  <Button variant="gold" size="sm" className="w-full">
+                    <Briefcase className="h-4 w-4" aria-hidden="true" />
+                    Khu làm việc
+                  </Button>
+                </Link>
+              ) : null}
               {user ? (
                 <Link to="/profile" onClick={() => setMobileOpen(false)}>
                   <Button variant="secondary" size="sm" className="w-full">

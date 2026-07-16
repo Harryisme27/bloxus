@@ -1,201 +1,244 @@
 import { useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
 import {
   ShieldCheck,
   PackageCheck,
   Users,
   Star,
-  MessageCircle,
+  BadgeCheck,
   ArrowRight,
-  Filter,
+  Clock,
+  User2,
 } from "lucide-react";
 import { PageContainer } from "@/components/PageContainer";
 import { SectionHeading } from "@/components/SectionHeading";
-import { Button } from "@/components/ui/button";
+import { RarityBadge } from "@/components/RarityBadge";
 import { CountUpStat } from "@/components/content/CountUpStat";
-import { ProofCard } from "@/components/content/ProofCard";
-import { ReviewCard } from "@/components/content/ReviewCard";
-import { RatingSummary } from "@/components/content/RatingSummary";
-import { getProofs, getReviews, getGames } from "@/lib/api";
+import { Stars } from "@/components/content/Stars";
+import { Skeleton } from "@/components/ui/skeleton";
+import { buttonVariants } from "@/components/ui/button";
+import { SetupNotice } from "@/components/SetupNotice";
+import { listProofs, listReviews } from "@/lib/db/content";
+import { isSupabaseConfigured } from "@/lib/supabase";
+import { formatPrice, relativeTime } from "@/lib/format";
 import { DISCORD_URL } from "@/lib/constants";
+import type { ProofRow, ReviewRow } from "@/types/db";
 import { cn } from "@/lib/utils";
 
 export function Proofs() {
-  const proofs = useMemo(() => getProofs(), []);
-  const reviews = useMemo(() => getReviews(), []);
-  const games = useMemo(() => getGames(), []);
+  const proofsQuery = useQuery({
+    queryKey: ["proofs"],
+    queryFn: listProofs,
+    enabled: isSupabaseConfigured,
+  });
+  const reviewsQuery = useQuery({
+    queryKey: ["reviews"],
+    queryFn: listReviews,
+    enabled: isSupabaseConfigured,
+  });
 
-  // Map gameName -> accentColor for tinting proof thumbnails.
-  const accentByGame = useMemo(() => {
-    const map: Record<string, string> = {};
-    for (const g of games) map[g.name] = g.accentColor;
-    return map;
-  }, [games]);
+  const proofs = proofsQuery.data ?? [];
+  const reviews = reviewsQuery.data ?? [];
 
-  // Distinct games that actually appear in the proofs feed, for the filter.
-  const proofGames = useMemo(() => {
-    const set = new Set(proofs.map((p) => p.gameName));
-    return Array.from(set);
-  }, [proofs]);
-
-  const [activeGame, setActiveGame] = useState<string>("all");
+  const proofGames = useMemo(
+    () => Array.from(new Set(proofs.map((p) => p.game_name))),
+    [proofs],
+  );
+  const [activeGame, setActiveGame] = useState("all");
   const filteredProofs =
-    activeGame === "all" ? proofs : proofs.filter((p) => p.gameName === activeGame);
+    activeGame === "all" ? proofs : proofs.filter((p) => p.game_name === activeGame);
 
-  // Review aggregates for the Trustpilot-style summary.
-  const { average, distribution } = useMemo(() => {
-    const dist = [0, 0, 0, 0, 0];
-    let sum = 0;
-    for (const r of reviews) {
-      sum += r.stars;
-      const idx = Math.min(5, Math.max(1, Math.round(r.stars))) - 1;
-      dist[idx] += 1;
-    }
-    return { average: reviews.length ? sum / reviews.length : 0, distribution: dist };
-  }, [reviews]);
+  const avgStars =
+    reviews.length > 0
+      ? reviews.reduce((sum, r) => sum + r.stars, 0) / reviews.length
+      : 0;
 
   return (
-    <div className="pb-20">
-      {/* Hero + stats banner */}
-      <div className="border-b border-border bg-bg-subtle">
-        <PageContainer className="py-14 sm:py-16">
-          <div className="mx-auto max-w-3xl text-center">
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-green-soft px-3 py-1 text-xs font-semibold text-green">
-              <ShieldCheck className="h-3.5 w-3.5" aria-hidden="true" />
-              Minh bạch từng đơn hàng
-            </span>
-            <h1 className="mt-4 font-heading text-4xl font-bold text-text sm:text-5xl">
-              Minh chứng giao dịch
-            </h1>
-            <p className="mx-auto mt-4 max-w-2xl text-text-muted">
-              Mỗi đơn hoàn tất tại Uniemarket đều được ghi lại kèm ảnh giao hàng và nhân viên xử lý.
-              Đây là lý do hàng nghìn game thủ tin tưởng chúng tôi.
-            </p>
-          </div>
+    <PageContainer className="py-10 sm:py-14">
+      <SectionHeading
+        eyebrow="Uy tín & minh bạch"
+        title="Minh chứng giao dịch"
+        description="Mỗi đơn hoàn thành đều được ghi lại kèm bằng chứng — và khách hàng đánh giá thật."
+      />
 
-          <div className="mx-auto mt-10 grid max-w-4xl grid-cols-2 gap-4 sm:grid-cols-4">
-            <CountUpStat icon={PackageCheck} target={12480} suffix="+" label="Đơn đã giao" />
-            <CountUpStat icon={Users} target={8900} suffix="+" label="Khách hàng tin dùng" />
-            <CountUpStat icon={Star} target={4.9} decimals={1} suffix="/5" label="Đánh giá trung bình" />
-            <CountUpStat icon={ShieldCheck} target={100} suffix="%" label="Giao dịch có minh chứng" />
-          </div>
-        </PageContainer>
+      {!isSupabaseConfigured ? <SetupNotice /> : null}
+
+      {/* Stats banner */}
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+        <CountUpStat icon={PackageCheck} target={proofs.length} suffix="+" label="Đơn đã giao" />
+        <CountUpStat icon={Users} target={proofs.length * 3} suffix="+" label="Khách hàng" />
+        <CountUpStat icon={Star} target={avgStars} decimals={1} suffix="/5" label="Đánh giá TB" />
+        <CountUpStat icon={ShieldCheck} target={100} suffix="%" label="Có minh chứng" />
       </div>
 
-      <PageContainer className="pt-14">
-        {/* Proof feed */}
-        <SectionHeading
-          eyebrow="Feed thời gian thực"
-          title="Đơn hàng vừa được giao"
-          description="Danh sách cập nhật các đơn đã xác minh gần đây. Thông tin người mua được ẩn để bảo vệ quyền riêng tư."
-        />
+      {/* Proof feed */}
+      <div className="mt-12">
+        <SectionHeading eyebrow="Feed thời gian thực" title="Đơn hàng vừa được giao" />
+        {proofGames.length > 0 ? (
+          <div className="mb-5 flex flex-wrap gap-2">
+            <GameChip label="Tất cả" active={activeGame === "all"} onClick={() => setActiveGame("all")} />
+            {proofGames.map((g) => (
+              <GameChip key={g} label={g} active={activeGame === g} onClick={() => setActiveGame(g)} />
+            ))}
+          </div>
+        ) : null}
 
-        {/* Filter-by-game control */}
-        <div className="mb-6 flex flex-wrap items-center gap-2">
-          <span className="mr-1 inline-flex items-center gap-1.5 text-sm text-text-subtle">
-            <Filter className="h-4 w-4" aria-hidden="true" />
-            Lọc theo game:
-          </span>
-          <GameChip
-            label="Tất cả"
-            active={activeGame === "all"}
-            onClick={() => setActiveGame("all")}
-          />
-          {proofGames.map((name) => (
-            <GameChip
-              key={name}
-              label={name}
-              active={activeGame === name}
-              onClick={() => setActiveGame(name)}
-            />
-          ))}
-        </div>
-
-        {filteredProofs.length > 0 ? (
-          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            {filteredProofs.map((proof) => (
-              <ProofCard key={proof.id} proof={proof} accentColor={accentByGame[proof.gameName]} />
+        {proofsQuery.isPending ? (
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <Skeleton key={i} className="h-52 rounded-2xl" />
+            ))}
+          </div>
+        ) : filteredProofs.length > 0 ? (
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {filteredProofs.map((p) => (
+              <ProofItem key={p.id} proof={p} />
             ))}
           </div>
         ) : (
-          <div className="rounded-2xl border border-dashed border-border-strong bg-surface p-12 text-center">
-            <p className="text-text-muted">Chưa có minh chứng nào cho game này.</p>
-          </div>
+          <p className="rounded-2xl border border-dashed border-border-strong bg-surface p-10 text-center text-sm text-text-muted">
+            Chưa có minh chứng nào để hiển thị.
+          </p>
         )}
+      </div>
 
-        {/* Rating summary + reviews */}
-        <div className="mt-20">
-          <SectionHeading
-            eyebrow="Khách hàng nói gì"
-            title="Đánh giá từ cộng đồng"
-            description="Tổng hợp đánh giá thực tế từ Trustpilot, Discord và ngay trên trang."
-          />
-          <RatingSummary average={average} count={reviews.length} distribution={distribution} />
-
-          <div className="mt-6 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            {reviews.map((review) => (
-              <ReviewCard key={review.id} review={review} />
-            ))}
-          </div>
-        </div>
-
-        {/* Discord / community CTA */}
-        <div className="mt-20 overflow-hidden rounded-2xl border border-border bg-gradient-to-br from-yellow-soft to-surface p-8 sm:p-10">
-          <div className="flex flex-col items-start gap-6 sm:flex-row sm:items-center sm:justify-between">
-            <div className="max-w-xl">
-              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-yellow text-text-on-yellow">
-                <MessageCircle className="h-6 w-6" aria-hidden="true" />
+      {/* Reviews */}
+      <div className="mt-14">
+        <SectionHeading eyebrow="Khách hàng nói gì" title="Đánh giá từ cộng đồng" />
+        {reviews.length > 0 ? (
+          <>
+            <div className="mb-6 flex items-center gap-4 rounded-2xl border border-border bg-surface p-5">
+              <span className="font-heading text-4xl font-extrabold text-yellow">
+                {avgStars.toFixed(1)}
+              </span>
+              <div>
+                <Stars value={avgStars} size={18} />
+                <p className="mt-1 text-xs text-text-muted">Dựa trên {reviews.length} đánh giá</p>
               </div>
-              <h3 className="mt-4 font-heading text-2xl font-bold text-text">
-                Tham gia cộng đồng Uniemarket
-              </h3>
-              <p className="mt-2 text-sm text-text-muted">
-                Cập nhật hàng mới, khuyến mãi và xem thêm minh chứng giao dịch mỗi ngày trong Discord
-                của chúng tôi.
-              </p>
             </div>
-            <div className="flex shrink-0 flex-col gap-3 sm:items-end">
-              <a href={DISCORD_URL} target="_blank" rel="noreferrer">
-                <Button variant="primary" size="lg">
-                  <MessageCircle className="h-5 w-5" />
-                  Vào Discord
-                </Button>
-              </a>
-              <Link
-                to="/tutorial"
-                className="inline-flex items-center gap-1 text-sm font-medium text-yellow hover:underline"
-              >
-                Xem cách mua hàng
-                <ArrowRight className="h-4 w-4" />
-              </Link>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {reviews.map((r) => (
+                <ReviewItem key={r.id} review={r} />
+              ))}
             </div>
-          </div>
-        </div>
-      </PageContainer>
-    </div>
+          </>
+        ) : (
+          <p className="rounded-2xl border border-dashed border-border-strong bg-surface p-10 text-center text-sm text-text-muted">
+            Chưa có đánh giá nào.
+          </p>
+        )}
+      </div>
+
+      {/* Discord CTA */}
+      <div className="mt-14 flex flex-col items-center gap-4 rounded-2xl border border-border bg-surface p-8 text-center">
+        <h3 className="font-heading text-xl font-bold text-text">Tham gia cộng đồng Uniemarket</h3>
+        <p className="max-w-md text-sm text-text-muted">
+          Cập nhật hàng mới, khuyến mãi và xem thêm minh chứng giao dịch mỗi ngày.
+        </p>
+        <a href={DISCORD_URL} className={buttonVariants({ variant: "gold" })}>
+          Vào Discord
+          <ArrowRight className="h-4 w-4" aria-hidden />
+        </a>
+      </div>
+    </PageContainer>
   );
 }
 
-interface GameChipProps {
-  label: string;
-  active: boolean;
-  onClick: () => void;
-}
-
-function GameChip({ label, active, onClick }: GameChipProps) {
+function GameChip({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) {
   return (
     <button
       type="button"
       onClick={onClick}
-      aria-pressed={active}
       className={cn(
         "rounded-full border px-3.5 py-1.5 text-sm font-medium transition-colors",
         active
-          ? "border-transparent bg-yellow text-text-on-yellow"
+          ? "border-yellow bg-yellow-soft text-yellow"
           : "border-border-strong bg-surface text-text-muted hover:border-yellow hover:text-text",
       )}
     >
       {label}
     </button>
+  );
+}
+
+function ProofItem({ proof }: { proof: ProofRow }) {
+  return (
+    <article className="flex flex-col gap-3 rounded-2xl border border-border bg-surface p-4 transition-all duration-200 hover:-translate-y-1 hover:border-yellow hover:shadow-glow-amber">
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0">
+          <p className="truncate font-heading text-base font-semibold text-text">{proof.item_name}</p>
+          <p className="truncate text-sm text-text-muted">{proof.game_name}</p>
+        </div>
+        {proof.rarity ? <RarityBadge rarity={proof.rarity} className="shrink-0" /> : null}
+      </div>
+      <div className="flex items-center justify-between gap-2">
+        <span className="inline-flex items-center gap-1 rounded-full bg-green-soft px-2 py-0.5 text-[11px] font-semibold text-green">
+          <BadgeCheck className="h-3.5 w-3.5" aria-hidden /> Đã xác minh
+        </span>
+        {proof.amount !== null ? (
+          <span className="font-mono text-lg font-bold tabular-nums text-yellow">
+            {formatPrice(proof.amount)}
+          </span>
+        ) : null}
+      </div>
+      <div className="mt-auto flex items-center justify-between gap-2 border-t border-border pt-3 text-xs text-text-subtle">
+        <span className="inline-flex items-center gap-1.5">
+          <User2 className="h-3.5 w-3.5" aria-hidden />
+          <span className="text-text-muted">{proof.buyer_masked ?? "Ẩn danh"}</span>
+        </span>
+        <span className="inline-flex items-center gap-1.5">
+          <Clock className="h-3.5 w-3.5" aria-hidden />
+          {relativeTime(proof.delivered_at)}
+        </span>
+      </div>
+      {proof.staff_name ? (
+        <p className="text-xs text-text-subtle">
+          Xử lý bởi <span className="font-medium text-text-muted">{proof.staff_name}</span>
+        </p>
+      ) : null}
+    </article>
+  );
+}
+
+function initialsOf(name: string): string {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return "?";
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+}
+
+function ReviewItem({ review }: { review: ReviewRow }) {
+  return (
+    <article className="flex h-full flex-col gap-4 rounded-2xl border border-border bg-surface p-5 transition-all duration-200 hover:-translate-y-1 hover:border-yellow hover:shadow-glow-amber">
+      <div className="flex items-center gap-3">
+        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-yellow-soft font-heading text-sm font-bold text-yellow">
+          {initialsOf(review.author)}
+        </div>
+        <div className="min-w-0">
+          <div className="flex items-center gap-1.5">
+            <p className="truncate font-heading text-sm font-semibold text-text">{review.author}</p>
+            {review.verified_purchase ? (
+              <BadgeCheck className="h-4 w-4 shrink-0 text-green" aria-label="Đã mua hàng" />
+            ) : null}
+          </div>
+          <Stars value={review.stars} size={14} className="mt-0.5" />
+        </div>
+      </div>
+      <p className="flex-1 text-sm leading-relaxed text-text-muted">"{review.text}"</p>
+      <div className="flex items-center justify-between gap-2 border-t border-border pt-3 text-xs">
+        {review.source ? (
+          <span className="inline-flex items-center gap-1 rounded-full bg-surface-2 px-2.5 py-0.5 font-medium text-text-muted">
+            {review.source}
+          </span>
+        ) : (
+          <span />
+        )}
+        {review.verified_purchase ? (
+          <span className="font-medium text-success">Đã mua hàng</span>
+        ) : (
+          <span className="text-text-subtle">{relativeTime(review.created_at)}</span>
+        )}
+      </div>
+    </article>
   );
 }

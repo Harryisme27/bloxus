@@ -1,5 +1,5 @@
-import { useState } from "react";
 import { Link } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
 import {
   ShoppingBag,
   Receipt,
@@ -7,27 +7,23 @@ import {
   LifeBuoy,
   Package,
   Wallet,
-  Truck,
+  Loader,
   ArrowRight,
-  Gamepad2,
   Sparkles,
+  Briefcase,
   type LucideIcon,
 } from "lucide-react";
 import { PageContainer } from "@/components/PageContainer";
 import { SectionHeading } from "@/components/SectionHeading";
 import { buttonVariants } from "@/components/ui/button";
-import { StatCard } from "@/components/account/StatCard";
-import { DeliveryTracker } from "@/components/account/DeliveryTracker";
-import { OrdersTable } from "@/components/account/OrdersTable";
-import { OrderDetailDialog } from "@/components/account/OrderDetailDialog";
+import { Skeleton } from "@/components/ui/skeleton";
 import { RequireAuth } from "@/components/account/RequireAuth";
-import { useReorder } from "@/components/account/useReorder";
+import { WorkOrderStatusBadge } from "@/components/work/orderStatusMeta";
 import { useAuthStore } from "@/store/authStore";
-import { useOrdersStore } from "@/store/ordersStore";
-import type { Order } from "@/types";
-import { formatPrice } from "@/lib/format";
-
-const SUCCESSFUL: Order["status"][] = ["paid", "delivered"];
+import { listMyOrders } from "@/lib/db/orders";
+import { isSupabaseConfigured } from "@/lib/supabase";
+import { formatPrice, relativeTime } from "@/lib/format";
+import { SetupNotice } from "@/components/SetupNotice";
 
 export function Dashboard() {
   return (
@@ -39,30 +35,22 @@ export function Dashboard() {
 
 function DashboardContent() {
   const user = useAuthStore((state) => state.user)!;
-  const orders = useOrdersStore((state) => state.orders);
-  const reorder = useReorder();
+  const isStaff = user.role === "admin" || user.role === "ctv";
 
-  const [selected, setSelected] = useState<Order | null>(null);
-  const [open, setOpen] = useState(false);
+  const ordersQuery = useQuery({
+    queryKey: ["my-orders"],
+    queryFn: listMyOrders,
+    enabled: isSupabaseConfigured,
+  });
+  const orders = ordersQuery.data ?? [];
 
-  // Đơn "guest" là đơn đặt trước khi đăng nhập trên cùng trình duyệt này —
-  // trong bản demo local chúng vẫn thuộc về người dùng hiện tại.
-  const myOrders = orders.filter(
-    (order) => order.userId === user.id || order.userId === "guest",
-  );
-  const totalSpent = myOrders
-    .filter((order) => SUCCESSFUL.includes(order.status))
-    .reduce((sum, order) => sum + order.totalUSD, 0);
-  const activeOrders = myOrders.filter(
-    (order) => SUCCESSFUL.includes(order.status) && order.deliveryStatus !== "delivered",
-  );
-  const activeOrder = activeOrders[0];
-  const recentOrders = myOrders.slice(0, 5);
-
-  function handleSelect(order: Order) {
-    setSelected(order);
-    setOpen(true);
-  }
+  const totalSpent = orders
+    .filter((o) => o.status === "completed" || o.status === "in_progress" || o.status === "paid")
+    .reduce((sum, o) => sum + o.total, 0);
+  const activeCount = orders.filter(
+    (o) => o.status === "paid" || o.status === "in_progress",
+  ).length;
+  const recent = orders.slice(0, 5);
 
   return (
     <PageContainer className="py-10 sm:py-14">
@@ -80,52 +68,36 @@ function DashboardContent() {
               Bảng điều khiển
             </p>
             <h1 className="mt-2 font-heading text-3xl font-bold text-text sm:text-4xl">
-              Chào mừng, {user.display_name ?? user.username}!
+              Chào mừng, {user.display_name || user.username}!
             </h1>
-            <p className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-text-muted">
-              <Gamepad2 className="h-4 w-4 text-text-subtle" aria-hidden />
-              Tên tài khoản:
-              <span className="font-medium text-text">@{user.username}</span>
-            </p>
           </div>
-          <Link to="/games" className={buttonVariants({ variant: "primary", size: "lg" }) + " shrink-0"}>
-            <ShoppingBag className="h-4 w-4" aria-hidden />
-            Tiếp tục mua sắm
-          </Link>
+          <div className="flex shrink-0 gap-2">
+            {isStaff ? (
+              <Link to="/work" className={buttonVariants({ variant: "gold", size: "lg" })}>
+                <Briefcase className="h-4 w-4" aria-hidden />
+                Khu vực làm việc
+              </Link>
+            ) : null}
+            <Link to="/games" className={buttonVariants({ variant: "primary", size: "lg" })}>
+              <ShoppingBag className="h-4 w-4" aria-hidden />
+              Mua sắm
+            </Link>
+          </div>
         </div>
       </div>
+
+      {!isSupabaseConfigured ? (
+        <div className="mt-6">
+          <SetupNotice />
+        </div>
+      ) : null}
 
       {/* Stats */}
       <div className="mt-6 grid gap-4 sm:grid-cols-3">
-        <StatCard
-          label="Tổng số đơn"
-          value={myOrders.length}
-          icon={Package}
-          tone="green"
-          hint="Đơn đã đặt trên tài khoản"
-        />
-        <StatCard
-          label="Tổng chi tiêu"
-          value={formatPrice(totalSpent)}
-          icon={Wallet}
-          tone="gold"
-          hint="Từ các đơn thành công (demo)"
-        />
-        <StatCard
-          label="Đơn đang giao"
-          value={activeOrders.length}
-          icon={Truck}
-          tone="neutral"
-          hint="Đang chờ giao vào Roblox"
-        />
+        <StatCard label="Tổng số đơn" value={String(orders.length)} icon={Package} tone="green" />
+        <StatCard label="Tổng chi tiêu" value={formatPrice(totalSpent)} icon={Wallet} tone="gold" />
+        <StatCard label="Đơn đang xử lý" value={String(activeCount)} icon={Loader} tone="neutral" />
       </div>
-
-      {/* Active delivery tracker */}
-      {activeOrder ? (
-        <div className="mt-6">
-          <DeliveryTracker order={activeOrder} />
-        </div>
-      ) : null}
 
       {/* Recent orders */}
       <div className="mt-10">
@@ -133,7 +105,7 @@ function DashboardContent() {
           title="Đơn hàng gần đây"
           description="5 giao dịch mới nhất của bạn."
           action={
-            myOrders.length > 0 ? (
+            orders.length > 0 ? (
               <Link
                 to="/orders"
                 className="inline-flex items-center gap-1 text-sm font-semibold text-yellow hover:text-yellow-hover"
@@ -144,8 +116,29 @@ function DashboardContent() {
             ) : undefined
           }
         />
-        {recentOrders.length > 0 ? (
-          <OrdersTable orders={recentOrders} onSelect={handleSelect} onReorder={reorder} />
+        {ordersQuery.isPending ? (
+          <Skeleton className="h-40 rounded-2xl" />
+        ) : recent.length > 0 ? (
+          <div className="overflow-hidden rounded-2xl border border-border">
+            {recent.map((o) => (
+              <Link
+                key={o.id}
+                to={`/orders/${o.id}`}
+                className="flex items-center justify-between gap-3 border-b border-border bg-surface px-4 py-3 transition-colors last:border-b-0 hover:bg-surface-2"
+              >
+                <div className="min-w-0">
+                  <span className="tabular-nums-mono font-semibold text-text">{o.order_code}</span>
+                  <span className="ml-2 text-xs text-text-subtle">{relativeTime(o.created_at)}</span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className="tabular-nums-mono text-sm font-medium text-yellow">
+                    {formatPrice(o.total)}
+                  </span>
+                  <WorkOrderStatusBadge status={o.status} />
+                </div>
+              </Link>
+            ))}
+          </div>
         ) : (
           <div className="rounded-2xl border border-dashed border-border-strong bg-surface p-10 text-center">
             <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-surface-2 text-text-subtle">
@@ -153,14 +146,11 @@ function DashboardContent() {
             </div>
             <h3 className="mt-4 font-heading text-lg font-semibold text-text">Chưa có đơn hàng nào</h3>
             <p className="mx-auto mt-1 max-w-sm text-sm text-text-muted">
-              Bắt đầu mua sắm để thấy đơn hàng và tiến trình giao vật phẩm tại đây.
+              Bắt đầu mua sắm để thấy đơn hàng và tiến trình xử lý tại đây.
             </p>
-            <Link
-              to="/games"
-              className={buttonVariants({ variant: "primary", size: "md" }) + " mt-5"}
-            >
+            <Link to="/games" className={buttonVariants({ variant: "primary", size: "md" }) + " mt-5"}>
               <ShoppingBag className="h-4 w-4" aria-hidden />
-              Khám phá vật phẩm
+              Khám phá cửa hàng
             </Link>
           </div>
         )}
@@ -170,15 +160,43 @@ function DashboardContent() {
       <div className="mt-10">
         <SectionHeading title="Lối tắt" />
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <QuickLink to="/games" icon={ShoppingBag} title="Mua sắm" description="Duyệt vật phẩm theo game" />
-          <QuickLink to="/orders" icon={Receipt} title="Đơn hàng" description="Lịch sử & trạng thái giao" />
+          <QuickLink to="/games" icon={ShoppingBag} title="Mua sắm" description="Duyệt danh mục" />
+          <QuickLink to="/orders" icon={Receipt} title="Đơn hàng" description="Lịch sử & trạng thái" />
           <QuickLink to="/proofs" icon={ShieldCheck} title="Minh chứng" description="Bằng chứng giao dịch" />
-          <QuickLink to="/contact" icon={LifeBuoy} title="Hỗ trợ" description="Liên hệ đội ngũ Uniemarket" />
+          <QuickLink to="/contact" icon={LifeBuoy} title="Hỗ trợ" description="Liên hệ đội ngũ" />
         </div>
       </div>
-
-      <OrderDetailDialog order={selected} open={open} onOpenChange={setOpen} onReorder={reorder} />
     </PageContainer>
+  );
+}
+
+function StatCard({
+  label,
+  value,
+  icon: Icon,
+  tone,
+}: {
+  label: string;
+  value: string;
+  icon: LucideIcon;
+  tone: "green" | "gold" | "neutral";
+}) {
+  const toneClass =
+    tone === "gold"
+      ? "bg-yellow-soft text-yellow"
+      : tone === "green"
+        ? "bg-green-soft text-green"
+        : "bg-surface-2 text-text-muted";
+  return (
+    <div className="flex items-center gap-4 rounded-2xl border border-border bg-surface p-5">
+      <span className={"flex h-11 w-11 items-center justify-center rounded-xl " + toneClass}>
+        <Icon className="h-5 w-5" aria-hidden />
+      </span>
+      <div>
+        <p className="tabular-nums-mono font-heading text-xl font-bold text-text">{value}</p>
+        <p className="text-xs text-text-muted">{label}</p>
+      </div>
+    </div>
   );
 }
 
@@ -202,8 +220,8 @@ function QuickLink({
         <Icon className="h-5 w-5" aria-hidden />
       </span>
       <div>
-        <h3 className="font-heading text-base font-semibold text-text group-hover:text-yellow">{title}</h3>
-        <p className="mt-0.5 text-xs text-text-muted">{description}</p>
+        <p className="font-heading font-semibold text-text">{title}</p>
+        <p className="text-xs text-text-muted">{description}</p>
       </div>
     </Link>
   );

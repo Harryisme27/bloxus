@@ -1,29 +1,25 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
 import { ShoppingBag, Receipt, Package } from "lucide-react";
 import { PageContainer } from "@/components/PageContainer";
 import { SectionHeading } from "@/components/SectionHeading";
 import { buttonVariants } from "@/components/ui/button";
-import { OrdersTable } from "@/components/account/OrdersTable";
-import { OrderDetailDialog } from "@/components/account/OrderDetailDialog";
-import { ORDER_STATUS_META } from "@/components/account/orderMeta";
+import { Skeleton } from "@/components/ui/skeleton";
 import { RequireAuth } from "@/components/account/RequireAuth";
-import { useReorder } from "@/components/account/useReorder";
-import { useAuthStore } from "@/store/authStore";
-import { useOrdersStore } from "@/store/ordersStore";
-import type { Order, OrderStatus } from "@/types";
+import { SetupNotice } from "@/components/SetupNotice";
+import {
+  WorkOrderStatusBadge,
+  WORK_STATUS_META,
+  WORK_STATUS_ORDER,
+} from "@/components/work/orderStatusMeta";
+import { listMyOrders } from "@/lib/db/orders";
+import { isSupabaseConfigured } from "@/lib/supabase";
+import { formatPrice, relativeTime } from "@/lib/format";
+import type { DbOrderStatus } from "@/types/db";
 import { cn } from "@/lib/utils";
 
-type Filter = "all" | OrderStatus;
-
-// Only statuses actually reachable in the demo checkout flow are offered.
-const FILTERS: { value: Filter; label: string }[] = [
-  { value: "all", label: "Tất cả" },
-  { value: "paid", label: ORDER_STATUS_META.paid.label },
-  { value: "delivered", label: ORDER_STATUS_META.delivered.label },
-  { value: "failed", label: ORDER_STATUS_META.failed.label },
-  { value: "cancelled", label: ORDER_STATUS_META.cancelled.label },
-];
+type Filter = "all" | DbOrderStatus;
 
 export function OrderHistory() {
   return (
@@ -34,35 +30,50 @@ export function OrderHistory() {
 }
 
 function OrderHistoryContent() {
-  const user = useAuthStore((state) => state.user)!;
-  const orders = useOrdersStore((state) => state.orders);
-  const reorder = useReorder();
-
   const [filter, setFilter] = useState<Filter>("all");
-  const [selected, setSelected] = useState<Order | null>(null);
-  const [open, setOpen] = useState(false);
 
-  // Đơn "guest" là đơn đặt trước khi đăng nhập trên cùng trình duyệt này —
-  // trong bản demo local chúng vẫn thuộc về người dùng hiện tại.
-  const myOrders = orders.filter(
-    (order) => order.userId === user.id || order.userId === "guest",
+  const ordersQuery = useQuery({
+    queryKey: ["my-orders"],
+    queryFn: listMyOrders,
+    enabled: isSupabaseConfigured,
+  });
+  const orders = ordersQuery.data ?? [];
+
+  const filtered = useMemo(
+    () => (filter === "all" ? orders : orders.filter((o) => o.status === filter)),
+    [orders, filter],
   );
-  const filtered =
-    filter === "all" ? myOrders : myOrders.filter((order) => order.status === filter);
+
+  const filters: { value: Filter; label: string }[] = [
+    { value: "all", label: "Tất cả" },
+    ...WORK_STATUS_ORDER.map((s) => ({ value: s, label: WORK_STATUS_META[s].label })),
+  ];
 
   function countFor(value: Filter): number {
-    return value === "all"
-      ? myOrders.length
-      : myOrders.filter((order) => order.status === value).length;
+    return value === "all" ? orders.length : orders.filter((o) => o.status === value).length;
   }
 
-  function handleSelect(order: Order) {
-    setSelected(order);
-    setOpen(true);
+  if (!isSupabaseConfigured) {
+    return (
+      <PageContainer className="py-10 sm:py-14">
+        <SectionHeading eyebrow="Tài khoản" title="Lịch sử đơn hàng" />
+        <div className="mt-6">
+          <SetupNotice />
+        </div>
+      </PageContainer>
+    );
   }
 
-  // No orders at all → full empty state.
-  if (myOrders.length === 0) {
+  if (ordersQuery.isPending) {
+    return (
+      <PageContainer className="py-10 sm:py-14">
+        <SectionHeading eyebrow="Tài khoản" title="Lịch sử đơn hàng" />
+        <Skeleton className="h-64 rounded-2xl" />
+      </PageContainer>
+    );
+  }
+
+  if (orders.length === 0) {
     return (
       <PageContainer className="py-10 sm:py-14">
         <SectionHeading eyebrow="Tài khoản" title="Lịch sử đơn hàng" />
@@ -72,12 +83,9 @@ function OrderHistoryContent() {
           </div>
           <h3 className="mt-4 font-heading text-xl font-semibold text-text">Bạn chưa có đơn hàng nào</h3>
           <p className="mx-auto mt-2 max-w-md text-sm text-text-muted">
-            Khi bạn đặt mua vật phẩm, toàn bộ đơn hàng và tiến trình giao sẽ được lưu tại đây để tra cứu.
+            Khi bạn đặt hàng, toàn bộ đơn và tiến trình xử lý sẽ được lưu tại đây để tra cứu.
           </p>
-          <Link
-            to="/games"
-            className={cn(buttonVariants({ variant: "primary", size: "lg" }), "mt-6")}
-          >
+          <Link to="/games" className={cn(buttonVariants({ variant: "primary", size: "lg" }), "mt-6")}>
             <ShoppingBag className="h-4 w-4" aria-hidden />
             Bắt đầu mua sắm
           </Link>
@@ -91,12 +99,12 @@ function OrderHistoryContent() {
       <SectionHeading
         eyebrow="Tài khoản"
         title="Lịch sử đơn hàng"
-        description="Theo dõi trạng thái, xem chi tiết và mua lại các đơn đã đặt. Bản demo — không có thanh toán thật."
+        description="Theo dõi trạng thái và xem chi tiết các đơn đã đặt."
       />
 
       {/* Status filter */}
       <div className="mb-6 flex flex-wrap gap-2">
-        {FILTERS.map((option) => {
+        {filters.map((option) => {
           const isActive = filter === option.value;
           const count = countFor(option.value);
           return (
@@ -126,7 +134,26 @@ function OrderHistoryContent() {
       </div>
 
       {filtered.length > 0 ? (
-        <OrdersTable orders={filtered} onSelect={handleSelect} onReorder={reorder} />
+        <div className="overflow-hidden rounded-2xl border border-border">
+          {filtered.map((o) => (
+            <Link
+              key={o.id}
+              to={`/orders/${o.id}`}
+              className="flex flex-wrap items-center justify-between gap-3 border-b border-border bg-surface px-4 py-3.5 transition-colors last:border-b-0 hover:bg-surface-2"
+            >
+              <div className="min-w-0">
+                <span className="tabular-nums-mono font-semibold text-text">{o.order_code}</span>
+                <span className="ml-2 text-xs text-text-subtle">{relativeTime(o.created_at)}</span>
+              </div>
+              <div className="flex items-center gap-3">
+                <span className="tabular-nums-mono text-sm font-medium text-yellow">
+                  {formatPrice(o.total)}
+                </span>
+                <WorkOrderStatusBadge status={o.status} />
+              </div>
+            </Link>
+          ))}
+        </div>
       ) : (
         <div className="rounded-2xl border border-dashed border-border-strong bg-surface p-10 text-center">
           <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-surface-2 text-text-subtle">
@@ -140,8 +167,6 @@ function OrderHistoryContent() {
           </p>
         </div>
       )}
-
-      <OrderDetailDialog order={selected} open={open} onOpenChange={setOpen} onReorder={reorder} />
     </PageContainer>
   );
 }
