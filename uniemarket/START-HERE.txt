@@ -1,0 +1,5 @@
+UNIEMARKET - BẢN DEMO CỬA HÀNG VẬT PHẨM ROBLOX (KHÔNG THANH TOÁN THẬT)
+Đây là một website mẫu chạy ngay trên máy bạn, không cần Internet sau khi đã cài đặt xong.
+Cách chạy: nháy đúp (double-click) vào file "start.bat" trong thư mục này và chờ trình duyệt tự mở.
+Lần đầu chạy sẽ mất vài phút để máy tự tải các thư viện cần thiết, các lần sau sẽ nhanh hơn nhiều.
+Muốn dừng demo, chỉ cần đóng cửa sổ đen (command prompt) hiện ra khi chạy start.bat.

@@ -1,0 +1,94 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Uniemarket brand palette — warm CITRUS identity (lemon-amber primary,
+   fresh leaf-green secondary) on a warm near-black. Dark theme is the
+   only/default theme. These CSS variables are the single source of truth;
+   they are wired into Tailwind's color scale in tailwind.config.ts, so
+   components should use Tailwind classes (bg-surface, text-muted,
+   border-strong, etc.) rather than referencing these variables directly. */
+:root {
+  --color-bg: #100e09;
+  --color-bg-subtle: #141109;
+  --color-surface: #1a1710;
+  --color-surface-2: #241f14;
+  --color-surface-3: #2d2718;
+
+  --color-border: #2f2a1b;
+  --color-border-strong: #423a26;
+
+  /* Secondary accent: fresh leaf green (success / verified / eco touches). */
+  --color-green: #6fbf44;
+  --color-green-hover: #7ecc53;
+  --color-green-press: #5ca838;
+  --color-green-soft: #16240e;
+
+  /* Primary brand accent: bright lemon-amber from the UNIE logo. */
+  --color-yellow: #f5b01e;
+  --color-yellow-hover: #ffc23d;
+  --color-yellow-soft: #2a2310;
+  --color-gold-deep: #db9a12;
+
+  --color-text: #f7f5ec;
+  --color-text-muted: #b3ae9c;
+  --color-text-subtle: #857f6c;
+  --color-text-disabled: #5c574a;
+
+  --color-text-on-green: #0a1404;
+  --color-text-on-yellow: #1a1405;
+
+  --color-success: #58c464;
+  --color-danger: #e5484d;
+  --color-danger-soft: #2a1416;
+  --color-warning: #f5a020;
+
+  color-scheme: dark;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  html {
+    @apply scroll-smooth;
+  }
+
+  body {
+    @apply bg-bg text-text antialiased;
+    font-family: "Be Vietnam Pro", system-ui, sans-serif;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    @apply font-heading font-bold text-text;
+  }
+
+  /* Numbers, order ids, prices in tables etc. should use JetBrains Mono with
+     tabular figures so digits align. Apply `font-mono` (Tailwind utility,
+     already mapped to JetBrains Mono) plus this class where needed. */
+  .tabular-nums-mono {
+    font-family: "JetBrains Mono", ui-monospace, monospace;
+    font-variant-numeric: tabular-nums;
+  }
+
+  ::selection {
+    background-color: var(--color-yellow-soft);
+    color: var(--color-text);
+  }
+}
+
+@layer utilities {
+  .scrollbar-none {
+    scrollbar-width: none;
+  }
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
+  }
+}

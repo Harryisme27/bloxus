@@ -1,0 +1,60 @@
+// English strings — kept in sync with vi.ts's shape so a future language
+// toggle is a drop-in swap. Not wired up to the UI yet (Vietnamese is the
+// default and only active language for this demo); see src/i18n/index.ts.
+import type { Strings } from "./vi";
+
+export const en: Strings = {
+  nav: {
+    home: "Home",
+    games: "Games",
+    proofs: "Proofs",
+    faq: "FAQ",
+    about: "About",
+    contact: "Contact",
+    cart: "Cart",
+    login: "Log in",
+    register: "Sign up",
+    profile: "Profile",
+    dashboard: "Dashboard",
+    orders: "Orders",
+    messages: "Messages",
+    logout: "Log out",
+    searchPlaceholder: "Search items, games...",
+  },
+  common: {
+    addToCart: "Add to cart",
+    buyNow: "Buy now",
+    checkout: "Checkout",
+    viewDetails: "View details",
+    viewAll: "View all",
+    continueShopping: "Continue shopping",
+    placeOrder: "Place order",
+    remove: "Remove",
+    quantity: "Quantity",
+    subtotal: "Subtotal",
+    discount: "Discount",
+    total: "Total",
+    inStock: "In stock",
+    outOfStock: "Out of stock",
+    loading: "Loading...",
+    save: "Save",
+    cancel: "Cancel",
+    confirm: "Confirm",
+    resetDemo: "Reset demo",
+    backToHome: "Back to home",
+  },
+  sections: {
+    featuredGames: "Featured games",
+    featuredItems: "Featured items",
+    trustedByThousands: "Trusted by thousands of gamers",
+    recentDeliveries: "Recent deliveries",
+    customerReviews: "What our customers say",
+    howItWorks: "How it works",
+  },
+  emptyStates: {
+    cartEmpty: "Your cart is empty.",
+    noOrders: "You have no orders yet.",
+    notFoundTitle: "Page not found",
+    notFoundBody: "The page you're looking for doesn't exist or was moved.",
+  },
+};

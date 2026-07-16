@@ -1,0 +1,60 @@
+// Vietnamese strings (default language). Components import `t` from
+// `@/i18n` (see index.ts) so that swapping languages later is a one-line
+// change instead of a full rewrite.
+export const vi = {
+  nav: {
+    home: "Trang chủ",
+    games: "Trò chơi",
+    proofs: "Minh chứng",
+    faq: "Câu hỏi thường gặp",
+    about: "Giới thiệu",
+    contact: "Liên hệ",
+    cart: "Giỏ hàng",
+    login: "Đăng nhập",
+    register: "Đăng ký",
+    profile: "Tài khoản",
+    dashboard: "Bảng điều khiển",
+    orders: "Đơn hàng",
+    messages: "Tin nhắn",
+    logout: "Đăng xuất",
+    searchPlaceholder: "Tìm vật phẩm, game...",
+  },
+  common: {
+    addToCart: "Thêm vào giỏ",
+    buyNow: "Mua ngay",
+    checkout: "Thanh toán",
+    viewDetails: "Xem chi tiết",
+    viewAll: "Xem tất cả",
+    continueShopping: "Tiếp tục mua sắm",
+    placeOrder: "Đặt hàng",
+    remove: "Xoá",
+    quantity: "Số lượng",
+    subtotal: "Tạm tính",
+    discount: "Giảm giá",
+    total: "Tổng cộng",
+    inStock: "Còn hàng",
+    outOfStock: "Hết hàng",
+    loading: "Đang tải...",
+    save: "Lưu",
+    cancel: "Huỷ",
+    confirm: "Xác nhận",
+    resetDemo: "Reset demo",
+    backToHome: "Về trang chủ",
+  },
+  sections: {
+    featuredGames: "Trò chơi nổi bật",
+    featuredItems: "Vật phẩm nổi bật",
+    trustedByThousands: "Được hàng nghìn game thủ tin tưởng",
+    recentDeliveries: "Đơn hàng vừa giao gần đây",
+    customerReviews: "Khách hàng nói gì về chúng tôi",
+    howItWorks: "Cách thức hoạt động",
+  },
+  emptyStates: {
+    cartEmpty: "Giỏ hàng của bạn đang trống.",
+    noOrders: "Bạn chưa có đơn hàng nào.",
+    notFoundTitle: "Không tìm thấy trang",
+    notFoundBody: "Trang bạn tìm không tồn tại hoặc đã được di chuyển.",
+  },
+};
+
+export type Strings = typeof vi;
