@@ -1,6 +1,14 @@
 // Data layer — Hồ sơ người dùng.
 import { requireSupabase } from "@/lib/supabase";
-import type { ProfileRow, PublicProfileRow } from "@/types/db";
+import type { ProfileRow, PublicProfileRow, UserRole } from "@/types/db";
+
+/** Admin cấp quyền cho một tài khoản theo email (customer | ctv | admin). */
+export async function setUserRole(email: string, role: UserRole): Promise<ProfileRow> {
+  const sb = requireSupabase();
+  const { data, error } = await sb.rpc("set_user_role", { p_email: email, p_role: role });
+  if (error) throw new Error(error.message);
+  return data as ProfileRow;
+}
 
 /** Hồ sơ của tôi (null khi chưa đăng nhập). */
 export async function getMyProfile(): Promise<ProfileRow | null> {

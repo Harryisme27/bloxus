@@ -8,10 +8,11 @@ import {
   Clock,
   Loader,
   RotateCcw,
+  Truck,
   type LucideIcon,
 } from "lucide-react";
 import { Badge, type BadgeProps } from "@/components/ui/badge";
-import type { DbOrderStatus } from "@/types/db";
+import type { DbOrderStatus, OrderDisplayStatus } from "@/types/db";
 import { cn } from "@/lib/utils";
 
 export interface WorkStatusMeta {
@@ -20,16 +21,17 @@ export interface WorkStatusMeta {
   icon: LucideIcon;
 }
 
-export const WORK_STATUS_META: Record<DbOrderStatus, WorkStatusMeta> = {
+export const WORK_STATUS_META: Record<OrderDisplayStatus, WorkStatusMeta> = {
   pending_payment: { label: "Chờ thanh toán", variant: "gold", icon: Clock },
   paid: { label: "Đã thanh toán", variant: "green", icon: CircleDollarSign },
   in_progress: { label: "Đang thực hiện", variant: "outline", icon: Loader },
+  delivered: { label: "Đã giao — chờ xác nhận", variant: "gold", icon: Truck },
   completed: { label: "Hoàn thành", variant: "success", icon: BadgeCheck },
   cancelled: { label: "Đã hủy", variant: "danger", icon: Ban },
   refunded: { label: "Đã hoàn tiền", variant: "default", icon: RotateCcw },
 };
 
-/** Thứ tự hiển thị các pill lọc trạng thái. */
+/** Thứ tự hiển thị các pill lọc trạng thái (theo DbOrderStatus thật). */
 export const WORK_STATUS_ORDER: DbOrderStatus[] = [
   "pending_payment",
   "paid",
@@ -43,7 +45,7 @@ export function WorkOrderStatusBadge({
   status,
   className,
 }: {
-  status: DbOrderStatus;
+  status: OrderDisplayStatus;
   className?: string;
 }) {
   const meta = WORK_STATUS_META[status];

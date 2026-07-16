@@ -146,8 +146,35 @@ export interface OrderRow {
   completed_at: string | null;
   cancelled_at: string | null;
   cancel_reason: string | null;
+  // Luồng giao hàng online (05-order-flow.sql):
+  cancel_requested_at: string | null;
+  cancel_request_reason: string | null;
+  delivered_at: string | null;
+  delivery_note: string | null;
+  delivery_proof_images: string[];
+  buyer_confirmed_at: string | null;
   created_at: string;
   updated_at: string;
+}
+
+/** Trạng thái hiển thị cho khách (gồm cả bước "đã giao, chờ xác nhận"). */
+export type OrderDisplayStatus =
+  | "pending_payment"
+  | "paid"
+  | "in_progress"
+  | "delivered"
+  | "completed"
+  | "cancelled"
+  | "refunded";
+
+/** Suy ra trạng thái hiển thị từ 1 đơn (delivered = in_progress + đã có delivered_at). */
+export function orderDisplayStatus(o: {
+  status: DbOrderStatus;
+  delivered_at: string | null;
+  buyer_confirmed_at: string | null;
+}): OrderDisplayStatus {
+  if (o.status === "in_progress" && o.delivered_at && !o.buyer_confirmed_at) return "delivered";
+  return o.status;
 }
 
 export interface OrderItemRow {

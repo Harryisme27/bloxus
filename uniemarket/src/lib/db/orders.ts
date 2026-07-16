@@ -120,6 +120,63 @@ export async function cancelOrder(orderId: string, reason?: string): Promise<Ord
   return data as OrderRow;
 }
 
+/** Khách yêu cầu hủy đơn (kèm lý do). pending_payment → hủy ngay; paid/in_progress → tạo yêu cầu. */
+export async function requestCancel(orderId: string, reason: string): Promise<OrderRow> {
+  const sb = requireSupabase();
+  const { data, error } = await sb.rpc("request_cancel", { p_order_id: orderId, p_reason: reason });
+  if (error) throw new Error(error.message);
+  return data as OrderRow;
+}
+
+/** Admin duyệt/từ chối yêu cầu hủy. */
+export async function resolveCancel(orderId: string, approve: boolean, note?: string): Promise<OrderRow> {
+  const sb = requireSupabase();
+  const { data, error } = await sb.rpc("resolve_cancel", {
+    p_order_id: orderId, p_approve: approve, p_note: note ?? null,
+  });
+  if (error) throw new Error(error.message);
+  return data as OrderRow;
+}
+
+/** Khách tự chốt hủy sau 24h nếu admin chưa xử lý. */
+export async function finalizeCancel(orderId: string): Promise<OrderRow> {
+  const sb = requireSupabase();
+  const { data, error } = await sb.rpc("finalize_cancel", { p_order_id: orderId });
+  if (error) throw new Error(error.message);
+  return data as OrderRow;
+}
+
+/** CTV/Admin đánh dấu đã giao kèm ảnh proof (paths trong bucket proof-images). */
+export async function markDelivered(orderId: string, proofImages: string[], note?: string): Promise<OrderRow> {
+  const sb = requireSupabase();
+  const { data, error } = await sb.rpc("mark_delivered", {
+    p_order_id: orderId, p_proof_images: proofImages, p_note: note ?? null,
+  });
+  if (error) throw new Error(error.message);
+  return data as OrderRow;
+}
+
+/** Khách xác nhận đã nhận hàng → hoàn thành + tự lên Minh chứng. */
+export async function confirmReceived(orderId: string): Promise<OrderRow> {
+  const sb = requireSupabase();
+  const { data, error } = await sb.rpc("confirm_received", { p_order_id: orderId });
+  if (error) throw new Error(error.message);
+  return data as OrderRow;
+}
+
+/** Upload 1 ảnh bằng chứng giao hàng vào bucket proof-images. Trả về public URL. */
+export async function uploadDeliveryProof(orderId: string, file: File): Promise<string> {
+  const sb = requireSupabase();
+  const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
+  const path = `${orderId}/${crypto.randomUUID()}.${ext}`;
+  const { error } = await sb.storage.from("proof-images").upload(path, file, {
+    cacheControl: "3600", upsert: false,
+  });
+  if (error) throw new Error(error.message);
+  const { data } = sb.storage.from("proof-images").getPublicUrl(path);
+  return data.publicUrl;
+}
+
 /** Nhật ký đơn hàng (nuôi timeline trạng thái). */
 export async function listOrderEvents(orderId: string): Promise<OrderEventRow[]> {
   const sb = requireSupabase();
