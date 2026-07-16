@@ -17,6 +17,7 @@ import {
   RefreshCw,
   RotateCcw,
   StickyNote,
+  Truck,
   UserCheck,
   UserPlus,
   type LucideIcon,
@@ -39,12 +40,16 @@ import { CancelOrderDialog } from "@/components/work/CancelOrderDialog";
 import { CopyButton, ContactChip } from "@/components/work/CopyChip";
 import { WorkOrderStatusBadge, WORK_STATUS_META } from "@/components/work/orderStatusMeta";
 import { describeSelectedOptions, paymentMethodLabel } from "@/components/work/workData";
+import { CancelRequestBanner } from "@/components/work-deliver/CancelRequestBanner";
+import { DeliverDialog } from "@/components/work-deliver/DeliverDialog";
+import { DeliveredPanel } from "@/components/work-deliver/DeliveredPanel";
 import { confirmPayment, getOrder, listOrderEvents, updateOrderStatus } from "@/lib/db/orders";
 import { listMyThreads, postMessage } from "@/lib/db/chat";
 import { formatPrice, relativeTime } from "@/lib/format";
 import { isSupabaseConfigured } from "@/lib/supabase";
 import { useAuthStore } from "@/store/authStore";
-import type { DbOrderStatus, OrderEventRow, OrderWithItems } from "@/types/db";
+import { orderDisplayStatus } from "@/types/db";
+import type { DbOrderStatus, OrderDisplayStatus, OrderEventRow, OrderWithItems } from "@/types/db";
 import { cn } from "@/lib/utils";
 
 /** /work/orders/:id — workview 2 cột: chi tiết đơn + điều khiển | chat đơn. */
@@ -81,6 +86,7 @@ function OrderDetailView({
   const [paymentRef, setPaymentRef] = useState("");
   const [assignOpen, setAssignOpen] = useState(false);
   const [cancelOpen, setCancelOpen] = useState(false);
+  const [deliverOpen, setDeliverOpen] = useState(false);
   const [confirmAction, setConfirmAction] = useState<"complete" | "refund" | null>(null);
 
   const orderQuery = useQuery({
@@ -181,6 +187,11 @@ function OrderDetailView({
   }
 
   const isMyCtvOrder = role === "ctv" && order.assigned_ctv === userId;
+  const displayStatus = orderDisplayStatus(order);
+  const hasPendingCancel =
+    order.cancel_requested_at != null &&
+    order.status !== "cancelled" &&
+    order.status !== "completed";
 
   return (
     <div className="space-y-6">
@@ -195,13 +206,18 @@ function OrderDetailView({
       <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_380px]">
         {/* ------------------------------ CỘT TRÁI ------------------------------ */}
         <div className="min-w-0 space-y-5">
+          {/* Cảnh báo khách yêu cầu hủy — tạm dừng giao hàng */}
+          {hasPendingCancel ? (
+            <CancelRequestBanner order={order} isAdmin={isAdmin} />
+          ) : null}
+
           {/* Header đơn */}
           <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border bg-surface p-5">
             <div>
               <div className="flex items-center gap-2">
                 <h1 className="font-mono text-2xl font-bold text-text">{order.order_code}</h1>
                 <CopyButton value={order.order_code} label="mã đơn" />
-                <WorkOrderStatusBadge status={order.status} />
+                <WorkOrderStatusBadge status={displayStatus} />
               </div>
               <p className="mt-1 text-xs text-text-subtle">
                 Tạo {relativeTime(order.created_at)} · Thanh toán:{" "}
@@ -217,6 +233,8 @@ function OrderDetailView({
           {/* Điều khiển theo vai trò/trạng thái */}
           <OrderControls
             order={order}
+            displayStatus={displayStatus}
+            hasPendingCancel={hasPendingCancel}
             isAdmin={isAdmin}
             isMyCtvOrder={isMyCtvOrder}
             paymentRef={paymentRef}
@@ -225,11 +243,20 @@ function OrderDetailView({
             confirmPaymentPending={confirmPaymentMutation.isPending}
             onOpenAssign={() => setAssignOpen(true)}
             onOpenCancel={() => setCancelOpen(true)}
-            onOpenComplete={() => setConfirmAction("complete")}
+            onOpenDeliver={() => setDeliverOpen(true)}
             onOpenRefund={() => setConfirmAction("refund")}
             onHelp={() => helpMutation.mutate(order)}
             helpPending={helpMutation.isPending}
           />
+
+          {/* Đã giao — chờ khách xác nhận (gallery minh chứng, không có thao tác NV) */}
+          {displayStatus === "delivered" ? (
+            <DeliveredPanel
+              proofImages={order.delivery_proof_images}
+              note={order.delivery_note}
+              deliveredAt={order.delivered_at}
+            />
+          ) : null}
 
           {/* Thẻ khách hàng */}
           <section className="rounded-2xl border border-border bg-surface p-5">
@@ -356,6 +383,10 @@ function OrderDetailView({
         order={cancelOpen ? { id: order.id, order_code: order.order_code } : null}
         onClose={() => setCancelOpen(false)}
       />
+      <DeliverDialog
+        order={deliverOpen ? { id: order.id, order_code: order.order_code } : null}
+        onClose={() => setDeliverOpen(false)}
+      />
       <ConfirmStatusDialog
         key={confirmAction ?? "closed"}
         open={confirmAction !== null}
@@ -380,6 +411,8 @@ function OrderDetailView({
 
 function OrderControls({
   order,
+  displayStatus,
+  hasPendingCancel,
   isAdmin,
   isMyCtvOrder,
   paymentRef,
@@ -388,12 +421,14 @@ function OrderControls({
   confirmPaymentPending,
   onOpenAssign,
   onOpenCancel,
-  onOpenComplete,
+  onOpenDeliver,
   onOpenRefund,
   onHelp,
   helpPending,
 }: {
   order: OrderWithItems;
+  displayStatus: OrderDisplayStatus;
+  hasPendingCancel: boolean;
   isAdmin: boolean;
   isMyCtvOrder: boolean;
   paymentRef: string;
@@ -402,27 +437,33 @@ function OrderControls({
   confirmPaymentPending: boolean;
   onOpenAssign: () => void;
   onOpenCancel: () => void;
-  onOpenComplete: () => void;
+  onOpenDeliver: () => void;
   onOpenRefund: () => void;
   onHelp: () => void;
   helpPending: boolean;
 }) {
   const status = order.status;
+
+  // Giao hàng: chỉ khi đang thực hiện (chưa giao) và KHÔNG có yêu cầu hủy treo.
+  const canDeliver =
+    displayStatus === "in_progress" && !hasPendingCancel && (isAdmin || isMyCtvOrder);
+  const adminConfirmPay = isAdmin && status === "pending_payment";
+  const adminAssign = isAdmin && status === "paid";
+  const adminRefund = isAdmin && status === "completed";
   const adminCanCancel =
     isAdmin && (status === "pending_payment" || status === "paid" || status === "in_progress");
+  // CTV luôn thấy nút hỗ trợ khi đơn đang thực hiện (kể cả lúc đang chờ giao/duyệt hủy).
+  const ctvHelp = isMyCtvOrder && status === "in_progress";
 
-  const hasAdminActions =
-    isAdmin &&
-    (status === "pending_payment" || status === "paid" || status === "in_progress" || status === "completed");
-  const hasCtvActions = isMyCtvOrder && status === "in_progress";
-
-  if (!hasAdminActions && !hasCtvActions) return null;
+  const showSection =
+    adminConfirmPay || adminAssign || adminRefund || adminCanCancel || canDeliver || ctvHelp;
+  if (!showSection) return null;
 
   return (
     <section className="rounded-2xl border border-yellow bg-surface p-5 shadow-glow-amber">
       <h2 className="font-heading text-lg font-semibold text-text">Thao tác</h2>
 
-      {isAdmin && status === "pending_payment" ? (
+      {adminConfirmPay ? (
         <div className="mt-3 space-y-3">
           <div>
             <Label htmlFor="payment-ref">Mã giao dịch / ghi chú (tùy chọn)</Label>
@@ -443,7 +484,7 @@ function OrderControls({
         </div>
       ) : null}
 
-      {isAdmin && status === "paid" ? (
+      {adminAssign ? (
         <div className="mt-3">
           <Button variant="primary" onClick={onOpenAssign}>
             <UserPlus className="h-4 w-4" aria-hidden />
@@ -452,33 +493,29 @@ function OrderControls({
         </div>
       ) : null}
 
-      {isAdmin && status === "in_progress" ? (
-        <div className="mt-3">
-          <Button variant="gold" onClick={onOpenComplete}>
-            <BadgeCheck className="h-4 w-4" aria-hidden />
-            Hoàn thành đơn
-          </Button>
+      {/* Đã giao hàng — CTV được giao hoặc admin, khi chưa có yêu cầu hủy */}
+      {canDeliver || ctvHelp ? (
+        <div className="mt-3 flex flex-wrap gap-2">
+          {canDeliver ? (
+            <Button variant="primary" onClick={onOpenDeliver}>
+              <Truck className="h-4 w-4" aria-hidden />
+              Đã giao hàng
+            </Button>
+          ) : null}
+          {ctvHelp ? (
+            <Button variant="secondary" onClick={onHelp} disabled={helpPending}>
+              <LifeBuoy className="h-4 w-4" aria-hidden />
+              {helpPending ? "Đang gửi..." : "Cần hỗ trợ"}
+            </Button>
+          ) : null}
         </div>
       ) : null}
 
-      {isAdmin && status === "completed" ? (
+      {adminRefund ? (
         <div className="mt-3">
           <Button variant="secondary" onClick={onOpenRefund}>
             <RotateCcw className="h-4 w-4" aria-hidden />
             Hoàn tiền
-          </Button>
-        </div>
-      ) : null}
-
-      {hasCtvActions ? (
-        <div className="mt-3 flex flex-wrap gap-2">
-          <Button variant="gold" onClick={onOpenComplete}>
-            <BadgeCheck className="h-4 w-4" aria-hidden />
-            Hoàn thành đơn
-          </Button>
-          <Button variant="secondary" onClick={onHelp} disabled={helpPending}>
-            <LifeBuoy className="h-4 w-4" aria-hidden />
-            {helpPending ? "Đang gửi..." : "Cần hỗ trợ"}
           </Button>
         </div>
       ) : null}

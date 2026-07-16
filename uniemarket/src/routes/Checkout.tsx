@@ -7,7 +7,6 @@ import { PageContainer } from "@/components/PageContainer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { RequireAuth } from "@/components/account/RequireAuth";
 import { OrderSummary } from "@/components/commerce/OrderSummary";
@@ -16,13 +15,6 @@ import { useCartStore } from "@/store/cartStore";
 import { useAuthStore } from "@/store/authStore";
 import { placeOrder } from "@/lib/db/orders";
 import type { DbPaymentMethod } from "@/types/db";
-
-const CONTACT_CHANNELS = [
-  { value: "discord", label: "Discord" },
-  { value: "zalo", label: "Zalo" },
-  { value: "phone", label: "Số điện thoại" },
-  { value: "other", label: "Khác" },
-];
 
 export function Checkout() {
   return (
@@ -37,12 +29,9 @@ function CheckoutContent() {
   const items = useCartStore((state) => state.items);
   const subtotal = useCartStore((state) => state.subtotal);
   const clear = useCartStore((state) => state.clear);
-  const user = useAuthStore((state) => state.user);
   const session = useAuthStore((state) => state.session);
 
   const [gameUsername, setGameUsername] = useState("");
-  const [contactChannel, setContactChannel] = useState("discord");
-  const [contactValue, setContactValue] = useState(user?.discord ?? "");
   const [note, setNote] = useState("");
   const [method, setMethod] = useState<DbPaymentMethod>("bank_transfer");
   const placedRef = useRef(false);
@@ -66,8 +55,9 @@ function CheckoutContent() {
         items: orderItems,
         paymentMethod: method,
         gameUsername: gameUsername.trim(),
-        contactChannel,
-        contactValue: contactValue.trim(),
+        // Trao đổi qua chat trên trang đơn hàng — không cần kênh liên hệ ngoài.
+        contactChannel: "",
+        contactValue: "",
         note: note.trim() || undefined,
       }),
     onSuccess: (order) => {
@@ -87,14 +77,6 @@ function CheckoutContent() {
   }
 
   function handleSubmit() {
-    if (!gameUsername.trim()) {
-      toast.error("Vui lòng nhập tên tài khoản trong game để giao hàng.");
-      return;
-    }
-    if (!contactValue.trim()) {
-      toast.error("Vui lòng nhập thông tin liên hệ để shop trao đổi với bạn.");
-      return;
-    }
     mutation.mutate();
   }
 
@@ -103,7 +85,8 @@ function CheckoutContent() {
       <div className="mb-8">
         <h1 className="font-heading text-3xl font-bold text-text sm:text-4xl">Thanh toán</h1>
         <p className="mt-2 text-text-muted">
-          Hoàn tất đơn hàng — shop sẽ xác nhận và liên hệ giao dịch với bạn.
+          Hoàn tất đơn hàng — sau khi đặt, bạn trao đổi trực tiếp với người bán ngay trong trang đơn
+          hàng.
         </p>
       </div>
 
@@ -114,7 +97,7 @@ function CheckoutContent() {
             <CardHeader className="border-b border-border">
               <CardTitle className="flex items-center gap-2 text-base">
                 <Gamepad2 className="h-4 w-4 text-yellow" aria-hidden="true" />
-                Thông tin liên hệ
+                Thông tin nhận hàng
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4 pt-5">
@@ -130,7 +113,10 @@ function CheckoutContent() {
               </div>
 
               <div>
-                <Label htmlFor="game-username">Tên tài khoản trong game</Label>
+                <Label htmlFor="game-username">
+                  Tên tài khoản trong game{" "}
+                  <span className="font-normal text-text-subtle">(không bắt buộc)</span>
+                </Label>
                 <div className="relative">
                   <Gamepad2
                     className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-subtle"
@@ -145,41 +131,9 @@ function CheckoutContent() {
                   />
                 </div>
                 <p className="mt-1.5 text-xs text-text-subtle">
-                  Người xử lý đơn sẽ giao hàng hoặc thực hiện dịch vụ trên tài khoản này.
+                  Người xử lý đơn sẽ giao hàng hoặc thực hiện dịch vụ trên tài khoản này. Bạn có thể
+                  bổ sung sau qua khung chat của đơn.
                 </p>
-              </div>
-
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-[140px_1fr]">
-                <div>
-                  <Label htmlFor="contact-channel">Kênh liên hệ</Label>
-                  <Select
-                    id="contact-channel"
-                    value={contactChannel}
-                    onChange={(e) => setContactChannel(e.target.value)}
-                  >
-                    {CONTACT_CHANNELS.map((c) => (
-                      <option key={c.value} value={c.value}>
-                        {c.label}
-                      </option>
-                    ))}
-                  </Select>
-                </div>
-                <div>
-                  <Label htmlFor="contact-value">Thông tin liên hệ</Label>
-                  <div className="relative">
-                    <MessageSquare
-                      className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-subtle"
-                      aria-hidden="true"
-                    />
-                    <Input
-                      id="contact-value"
-                      className="pl-9"
-                      placeholder="Discord / Zalo / SĐT để shop liên hệ"
-                      value={contactValue}
-                      onChange={(e) => setContactValue(e.target.value)}
-                    />
-                  </div>
-                </div>
               </div>
 
               <div>
@@ -194,6 +148,14 @@ function CheckoutContent() {
                   placeholder="Yêu cầu thêm cho đơn hàng..."
                   className="mt-1.5 w-full rounded-lg border border-border bg-surface-3 px-3 py-2 text-sm text-text placeholder:text-text-subtle focus-visible:border-yellow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-yellow"
                 />
+              </div>
+
+              <div className="flex items-start gap-2.5 rounded-xl border border-dashed border-border-strong bg-surface-2 p-3.5 text-sm text-text-muted">
+                <MessageSquare className="mt-0.5 h-4 w-4 shrink-0 text-green" aria-hidden="true" />
+                <p>
+                  Sau khi đặt, bạn trao đổi trực tiếp với người bán ngay trong trang đơn hàng — không
+                  cần cung cấp liên hệ bên ngoài.
+                </p>
               </div>
             </CardContent>
           </Card>

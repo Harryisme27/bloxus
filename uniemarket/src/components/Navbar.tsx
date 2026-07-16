@@ -3,23 +3,24 @@ import { Link, NavLink } from "react-router-dom";
 import { ShoppingCart, Search, Menu, X, User as UserIcon, Briefcase } from "lucide-react";
 import { PageContainer } from "@/components/PageContainer";
 import { Button } from "@/components/ui/button";
+import { LanguageToggle } from "@/components/LanguageToggle";
 import { useCartStore } from "@/store/cartStore";
 import { useAuthStore } from "@/store/authStore";
-import { t } from "@/i18n";
+import { useT } from "@/i18n";
 import { cn } from "@/lib/utils";
 
-const NAV_LINKS: { to: string; label: string }[] = [
-  { to: "/games", label: t.nav.games },
-  { to: "/proofs", label: t.nav.proofs },
-  { to: "/ctv", label: "Tuyển CTV" },
-  { to: "/faq", label: t.nav.faq },
-];
-
 export function Navbar() {
+  const s = useT();
   const [mobileOpen, setMobileOpen] = useState(false);
   const cartCount = useCartStore((state) => state.items.reduce((sum, line) => sum + line.quantity, 0));
   const user = useAuthStore((state) => state.user);
   const isStaff = user?.role === "admin" || user?.role === "ctv";
+
+  const navLinks: { to: string; label: string }[] = [
+    { to: "/games", label: s.nav.games },
+    { to: "/proofs", label: s.nav.proofs },
+    { to: "/faq", label: s.nav.faq },
+  ];
 
   return (
     <header
@@ -33,7 +34,7 @@ export function Navbar() {
           </Link>
 
           <nav className="hidden items-center gap-1 lg:flex">
-            {NAV_LINKS.map((link) => (
+            {navLinks.map((link) => (
               <NavLink
                 key={link.to}
                 to={link.to}
@@ -53,7 +54,7 @@ export function Navbar() {
         <div className="hidden max-w-sm flex-1 items-center lg:flex">
           <div className="flex w-full items-center gap-2 rounded-full border border-border-strong bg-surface-2 px-3.5 py-2 text-sm text-text-subtle">
             <Search className="h-4 w-4 shrink-0" aria-hidden="true" />
-            <span className="truncate">{t.nav.searchPlaceholder}</span>
+            <span className="truncate">{s.nav.searchPlaceholder}</span>
           </div>
         </div>
 
@@ -61,7 +62,7 @@ export function Navbar() {
           <Link
             to="/cart"
             className="relative flex h-10 w-10 items-center justify-center rounded-lg text-text-muted transition-colors hover:bg-surface-2 hover:text-text"
-            aria-label={t.nav.cart}
+            aria-label={s.nav.cart}
           >
             <ShoppingCart className="h-5 w-5" aria-hidden="true" />
             {cartCount > 0 ? (
@@ -75,7 +76,7 @@ export function Navbar() {
             <Link to="/work" className="hidden sm:block">
               <Button variant="gold" size="sm">
                 <Briefcase className="h-4 w-4" aria-hidden="true" />
-                Khu làm việc
+                {s.nav.work}
               </Button>
             </Link>
           ) : null}
@@ -90,10 +91,12 @@ export function Navbar() {
           ) : (
             <Link to="/login" className="hidden sm:block">
               <Button variant="primary" size="sm">
-                {t.nav.login}
+                {s.nav.login}
               </Button>
             </Link>
           )}
+
+          <LanguageToggle className="hidden sm:inline-flex" />
 
           <button
             type="button"
@@ -110,7 +113,7 @@ export function Navbar() {
       {mobileOpen ? (
         <div className="border-t border-border bg-surface lg:hidden">
           <PageContainer className="flex flex-col gap-1 py-3">
-            {NAV_LINKS.map((link) => (
+            {navLinks.map((link) => (
               <NavLink
                 key={link.to}
                 to={link.to}
@@ -130,7 +133,7 @@ export function Navbar() {
                 <Link to="/work" onClick={() => setMobileOpen(false)}>
                   <Button variant="gold" size="sm" className="w-full">
                     <Briefcase className="h-4 w-4" aria-hidden="true" />
-                    Khu làm việc
+                    {s.nav.work}
                   </Button>
                 </Link>
               ) : null}
@@ -144,10 +147,14 @@ export function Navbar() {
               ) : (
                 <Link to="/login" onClick={() => setMobileOpen(false)}>
                   <Button variant="primary" size="sm" className="w-full">
-                    {t.nav.login}
+                    {s.nav.login}
                   </Button>
                 </Link>
               )}
+              <div className="flex items-center justify-between pt-1">
+                <span className="text-sm font-medium text-text-muted">Ngôn ngữ / Language</span>
+                <LanguageToggle />
+              </div>
             </div>
           </PageContainer>
         </div>

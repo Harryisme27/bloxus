@@ -16,6 +16,7 @@ import {
 import { listMyOrders } from "@/lib/db/orders";
 import { isSupabaseConfigured } from "@/lib/supabase";
 import { formatPrice, relativeTime } from "@/lib/format";
+import { orderDisplayStatus } from "@/types/db";
 import type { DbOrderStatus } from "@/types/db";
 import { cn } from "@/lib/utils";
 
@@ -149,7 +150,7 @@ function OrderHistoryContent() {
                 <span className="tabular-nums-mono text-sm font-medium text-yellow">
                   {formatPrice(o.total)}
                 </span>
-                <WorkOrderStatusBadge status={o.status} />
+                <WorkOrderStatusBadge status={orderDisplayStatus(o)} />
               </div>
             </Link>
           ))}

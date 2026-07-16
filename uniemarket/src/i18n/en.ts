@@ -1,6 +1,6 @@
-// English strings — kept in sync with vi.ts's shape so a future language
-// toggle is a drop-in swap. Not wired up to the UI yet (Vietnamese is the
-// default and only active language for this demo); see src/i18n/index.ts.
+// English strings — kept in sync with vi.ts's shape (typed as `Strings`) so the
+// VI/EN toggle is a drop-in swap. The active copy is chosen by the language
+// store; see src/i18n/store.ts and src/i18n/index.ts.
 import type { Strings } from "./vi";
 
 export const en: Strings = {
@@ -12,6 +12,7 @@ export const en: Strings = {
     about: "About",
     contact: "Contact",
     cart: "Cart",
+    work: "Work area",
     login: "Log in",
     register: "Sign up",
     profile: "Profile",
@@ -56,5 +57,14 @@ export const en: Strings = {
     noOrders: "You have no orders yet.",
     notFoundTitle: "Page not found",
     notFoundBody: "The page you're looking for doesn't exist or was moved.",
+  },
+  status: {
+    pending_payment: "Awaiting payment",
+    paid: "Paid",
+    in_progress: "In progress",
+    delivered: "Delivered — awaiting confirmation",
+    completed: "Completed",
+    cancelled: "Cancelled",
+    refunded: "Refunded",
   },
 };

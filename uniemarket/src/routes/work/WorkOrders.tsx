@@ -19,6 +19,7 @@ import { listCtvs } from "@/lib/db/profiles";
 import { formatPrice, relativeTime } from "@/lib/format";
 import { isSupabaseConfigured } from "@/lib/supabase";
 import { useAuthStore } from "@/store/authStore";
+import { orderDisplayStatus } from "@/types/db";
 import type { DbOrderStatus } from "@/types/db";
 import { cn } from "@/lib/utils";
 
@@ -217,7 +218,7 @@ function OrdersTable({ isAdmin, userId }: { isAdmin: boolean; userId: string }) 
                     {formatPrice(order.total)}
                   </td>
                   <td className="px-4 py-3">
-                    <WorkOrderStatusBadge status={order.status} />
+                    <WorkOrderStatusBadge status={orderDisplayStatus(order)} />
                   </td>
                   {isAdmin ? (
                     <td className="max-w-[140px] truncate px-4 py-3 text-text-muted">

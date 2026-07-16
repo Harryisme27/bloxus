@@ -23,6 +23,7 @@ import { useAuthStore } from "@/store/authStore";
 import { listMyOrders } from "@/lib/db/orders";
 import { isSupabaseConfigured } from "@/lib/supabase";
 import { formatPrice, relativeTime } from "@/lib/format";
+import { orderDisplayStatus } from "@/types/db";
 import { SetupNotice } from "@/components/SetupNotice";
 
 export function Dashboard() {
@@ -134,7 +135,7 @@ function DashboardContent() {
                   <span className="tabular-nums-mono text-sm font-medium text-yellow">
                     {formatPrice(o.total)}
                   </span>
-                  <WorkOrderStatusBadge status={o.status} />
+                  <WorkOrderStatusBadge status={orderDisplayStatus(o)} />
                 </div>
               </Link>
             ))}

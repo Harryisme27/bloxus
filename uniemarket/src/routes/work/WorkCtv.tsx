@@ -1,15 +1,25 @@
+import { useState, type FormEvent } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { BadgeCheck, Check, UserRound, X } from "lucide-react";
+import { BadgeCheck, Check, KeyRound, UserRound, X } from "lucide-react";
 import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { listApplications, approveCtv } from "@/lib/db/applications";
-import { listCtvs } from "@/lib/db/profiles";
+import { listCtvs, setUserRole } from "@/lib/db/profiles";
 import { relativeTime } from "@/lib/format";
-import type { CtvApplicationRow } from "@/types/db";
+import type { CtvApplicationRow, UserRole } from "@/types/db";
+
+const ROLE_LABELS: Record<UserRole, string> = {
+  ctv: "Cộng tác viên",
+  admin: "Quản trị",
+  customer: "Khách",
+};
 
 /** /work/ctv (admin) — duyệt đơn ứng tuyển + danh sách CTV. */
 export function WorkCtv() {
@@ -18,22 +28,92 @@ export function WorkCtv() {
       <div className="mb-6">
         <h1 className="font-heading text-2xl font-bold text-text">Cộng tác viên</h1>
         <p className="mt-1 text-sm text-text-muted">
-          Duyệt đơn ứng tuyển và quản lý đội ngũ CTV. Duyệt = cấp quyền vào khu làm việc.
+          Cấp quyền trực tiếp theo email và quản lý đội ngũ CTV. Cấp quyền = mở khu làm việc.
         </p>
       </div>
 
-      <Tabs defaultValue="applications">
+      <Tabs defaultValue="grant">
         <TabsList>
-          <TabsTrigger value="applications">Đơn ứng tuyển</TabsTrigger>
+          <TabsTrigger value="grant">Cấp quyền thủ công</TabsTrigger>
           <TabsTrigger value="list">Danh sách CTV</TabsTrigger>
+          <TabsTrigger value="applications">Đơn ứng tuyển</TabsTrigger>
         </TabsList>
-        <TabsContent value="applications" className="pt-5">
-          <ApplicationsTab />
+        <TabsContent value="grant" className="pt-5">
+          <ManualRoleTab />
         </TabsContent>
         <TabsContent value="list" className="pt-5">
           <CtvListTab />
         </TabsContent>
+        <TabsContent value="applications" className="pt-5">
+          <ApplicationsTab />
+        </TabsContent>
       </Tabs>
+    </div>
+  );
+}
+
+function ManualRoleTab() {
+  const queryClient = useQueryClient();
+  const [email, setEmail] = useState("");
+  const [role, setRole] = useState<UserRole>("ctv");
+
+  const mutation = useMutation({
+    mutationFn: ({ email: e, role: r }: { email: string; role: UserRole }) => setUserRole(e, r),
+    onSuccess: (_data, vars) => {
+      toast.success(`Đã cấp quyền ${ROLE_LABELS[vars.role]} cho ${vars.email}.`);
+      void queryClient.invalidateQueries({ queryKey: ["ctvs"] });
+      setEmail("");
+    },
+    onError: (err) => toast.error(err instanceof Error ? err.message : "Cấp quyền thất bại."),
+  });
+
+  function handleSubmit(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const trimmed = email.trim();
+    if (!trimmed || mutation.isPending) return;
+    mutation.mutate({ email: trimmed, role });
+  }
+
+  return (
+    <div className="max-w-xl space-y-4">
+      <div className="rounded-2xl border border-yellow/40 bg-yellow-soft px-4 py-3 text-sm text-text-muted">
+        Nhập email tài khoản đã đăng ký để cấp quyền ngay, không cần qua đơn ứng tuyển.
+      </div>
+      <Card>
+        <CardContent className="p-5">
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <Label htmlFor="grant-email">Email tài khoản</Label>
+              <Input
+                id="grant-email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="nguoidung@email.com"
+                required
+                disabled={mutation.isPending}
+              />
+            </div>
+            <div>
+              <Label htmlFor="grant-role">Quyền</Label>
+              <Select
+                id="grant-role"
+                value={role}
+                onChange={(e) => setRole(e.target.value as UserRole)}
+                disabled={mutation.isPending}
+              >
+                <option value="ctv">Cộng tác viên</option>
+                <option value="admin">Quản trị</option>
+                <option value="customer">Khách</option>
+              </Select>
+            </div>
+            <Button type="submit" disabled={!email.trim() || mutation.isPending}>
+              <KeyRound className="h-4 w-4" aria-hidden />
+              {mutation.isPending ? "Đang cấp…" : "Cấp quyền"}
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
     </div>
   );
 }
@@ -164,7 +244,7 @@ function CtvListTab() {
   if (ctvs.length === 0)
     return (
       <div className="rounded-2xl border border-dashed border-border-strong bg-surface p-10 text-center text-sm text-text-muted">
-        Chưa có CTV nào. Duyệt đơn ứng tuyển để thêm CTV.
+        Chưa có CTV nào. Dùng tab “Cấp quyền thủ công” để thêm CTV theo email.
       </div>
     );
   return (

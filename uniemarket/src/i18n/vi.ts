@@ -1,6 +1,5 @@
-// Vietnamese strings (default language). Components import `t` from
-// `@/i18n` (see index.ts) so that swapping languages later is a one-line
-// change instead of a full rewrite.
+// Vietnamese strings (default language). Components read the active copy via
+// `useT()` from `@/i18n` so the VI/EN toggle is a store swap, not a rewrite.
 export const vi = {
   nav: {
     home: "Trang chủ",
@@ -10,6 +9,7 @@ export const vi = {
     about: "Giới thiệu",
     contact: "Liên hệ",
     cart: "Giỏ hàng",
+    work: "Khu làm việc",
     login: "Đăng nhập",
     register: "Đăng ký",
     profile: "Tài khoản",
@@ -54,6 +54,17 @@ export const vi = {
     noOrders: "Bạn chưa có đơn hàng nào.",
     notFoundTitle: "Không tìm thấy trang",
     notFoundBody: "Trang bạn tìm không tồn tại hoặc đã được di chuyển.",
+  },
+  // Nhãn trạng thái đơn hàng — key trùng với OrderDisplayStatus (@/types/db)
+  // để dùng chung: strings.status[orderDisplayStatus(order)].
+  status: {
+    pending_payment: "Chờ thanh toán",
+    paid: "Đã thanh toán",
+    in_progress: "Đang thực hiện",
+    delivered: "Đã giao — chờ xác nhận",
+    completed: "Hoàn thành",
+    cancelled: "Đã hủy",
+    refunded: "Đã hoàn tiền",
   },
 };
 

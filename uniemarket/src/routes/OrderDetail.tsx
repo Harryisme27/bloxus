@@ -1,11 +1,17 @@
+import { useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
+  AlertTriangle,
   ArrowLeft,
+  BadgeCheck,
   Check,
+  CheckCircle2,
   Copy,
   Landmark,
+  PackageCheck,
   ReceiptText,
+  ShieldCheck,
   Wallet,
   XCircle,
 } from "lucide-react";
@@ -18,10 +24,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { OrderChatPanel } from "@/components/chat/OrderChatPanel";
 import { WorkOrderStatusBadge } from "@/components/work/orderStatusMeta";
-import { getOrder, listOrderEvents, cancelOrder } from "@/lib/db/orders";
+import { CancelRequestDialog } from "@/components/order/CancelRequestDialog";
+import { DeliveryProofGallery } from "@/components/order/DeliveryProofGallery";
+import { confirmReceived, finalizeCancel, getOrder, listOrderEvents } from "@/lib/db/orders";
 import { getSettings } from "@/lib/db/settings";
 import { isSupabaseConfigured } from "@/lib/supabase";
 import { formatPrice, relativeTime } from "@/lib/format";
+import { orderDisplayStatus } from "@/types/db";
 import type { OrderEventType } from "@/types/db";
 
 export function OrderDetail() {
@@ -45,6 +54,7 @@ const EVENT_LABEL: Record<OrderEventType, string> = {
 function OrderDetailContent() {
   const { id = "" } = useParams<{ id: string }>();
   const queryClient = useQueryClient();
+  const [cancelOpen, setCancelOpen] = useState(false);
 
   const orderQuery = useQuery({
     queryKey: ["order", id],
@@ -62,13 +72,28 @@ function OrderDetailContent() {
     enabled: isSupabaseConfigured,
   });
 
-  const cancelMutation = useMutation({
-    mutationFn: (reason: string) => cancelOrder(id, reason),
+  const invalidateOrder = () => {
+    void queryClient.invalidateQueries({ queryKey: ["order", id] });
+    void queryClient.invalidateQueries({ queryKey: ["order-events", id] });
+    void queryClient.invalidateQueries({ queryKey: ["my-orders"] });
+    void queryClient.invalidateQueries({ queryKey: ["work-orders"] });
+  };
+
+  const confirmReceivedMutation = useMutation({
+    mutationFn: () => confirmReceived(id),
+    onSuccess: () => {
+      toast.success("Đã xác nhận nhận hàng — đơn hoàn thành!");
+      invalidateOrder();
+      void queryClient.invalidateQueries({ queryKey: ["proofs"] });
+    },
+    onError: (err) => toast.error(err instanceof Error ? err.message : "Không xác nhận được."),
+  });
+
+  const finalizeCancelMutation = useMutation({
+    mutationFn: () => finalizeCancel(id),
     onSuccess: () => {
       toast.success("Đã hủy đơn hàng.");
-      void queryClient.invalidateQueries({ queryKey: ["order", id] });
-      void queryClient.invalidateQueries({ queryKey: ["order-events", id] });
-      void queryClient.invalidateQueries({ queryKey: ["my-orders"] });
+      invalidateOrder();
     },
     onError: (err) => toast.error(err instanceof Error ? err.message : "Không hủy được đơn."),
   });
@@ -110,7 +135,25 @@ function OrderDetailContent() {
 
   const settings = settingsQuery.data ?? {};
   const asText = (v: unknown) => (typeof v === "string" ? v : "");
-  const isPending = order.status === "pending_payment";
+  const displayStatus = orderDisplayStatus(order);
+  const isPending = displayStatus === "pending_payment";
+
+  // Yêu cầu hủy đang chờ xử lý (đơn paid/in_progress — không tính đã hủy/hoàn thành).
+  const cancelPending =
+    order.cancel_requested_at != null &&
+    order.status !== "cancelled" &&
+    order.status !== "completed";
+  const hoursSinceCancel = order.cancel_requested_at
+    ? (Date.now() - new Date(order.cancel_requested_at).getTime()) / 3_600_000
+    : 0;
+  const canFinalizeCancel = cancelPending && hoursSinceCancel >= 24;
+
+  // Nút yêu cầu hủy chỉ hiện khi chưa có yêu cầu nào và đơn còn ở giai đoạn hủy được.
+  const showRequestCancel =
+    !cancelPending &&
+    (displayStatus === "pending_payment" ||
+      displayStatus === "paid" ||
+      displayStatus === "in_progress");
 
   function copy(text: string, label: string) {
     void navigator.clipboard?.writeText(text);
@@ -131,7 +174,7 @@ function OrderDetailContent() {
           <h1 className="tabular-nums-mono font-heading text-2xl font-extrabold text-text sm:text-3xl">
             {order.order_code}
           </h1>
-          <WorkOrderStatusBadge status={order.status} />
+          <WorkOrderStatusBadge status={displayStatus} />
         </div>
         <span className="tabular-nums-mono font-heading text-xl font-bold text-yellow">
           {formatPrice(order.total)}
@@ -141,6 +184,100 @@ function OrderDetailContent() {
       <div className="mt-8 grid gap-6 lg:grid-cols-[1fr_380px]">
         {/* LEFT */}
         <div className="space-y-6">
+          {/* Cancel request pending banner */}
+          {cancelPending ? (
+            <div className="rounded-2xl border border-yellow bg-yellow-soft p-5">
+              <div className="flex items-start gap-3">
+                <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-yellow" aria-hidden />
+                <div className="min-w-0 flex-1">
+                  <p className="font-heading text-base font-semibold text-text">
+                    Bạn đã yêu cầu hủy đơn — đang chờ người bán/admin xử lý (tự động hủy sau 24h)
+                  </p>
+                  {order.cancel_request_reason ? (
+                    <p className="mt-1 text-sm text-text-muted">
+                      Lý do: <span className="text-text">{order.cancel_request_reason}</span>
+                    </p>
+                  ) : null}
+                  {canFinalizeCancel ? (
+                    <Button
+                      variant="danger"
+                      className="mt-4"
+                      disabled={finalizeCancelMutation.isPending}
+                      onClick={() => {
+                        if (window.confirm("Xác nhận hủy đơn ngay bây giờ?"))
+                          finalizeCancelMutation.mutate();
+                      }}
+                    >
+                      <XCircle className="h-4 w-4" aria-hidden />
+                      {finalizeCancelMutation.isPending ? "Đang hủy..." : "Xác nhận hủy ngay"}
+                    </Button>
+                  ) : (
+                    <p className="mt-3 text-xs text-text-subtle">
+                      Sau 24h kể từ lúc gửi yêu cầu, bạn có thể tự xác nhận hủy nếu chưa được xử lý.
+                    </p>
+                  )}
+                </div>
+              </div>
+            </div>
+          ) : displayStatus === "delivered" ? (
+            <div className="rounded-2xl border border-green bg-green-soft p-5">
+              <div className="flex items-start gap-3">
+                <PackageCheck className="mt-0.5 h-5 w-5 shrink-0 text-green" aria-hidden />
+                <div className="min-w-0 flex-1">
+                  <p className="font-heading text-base font-semibold text-text">
+                    Người bán đã giao hàng
+                  </p>
+                  <p className="mt-1 text-sm text-text-muted">
+                    Vui lòng kiểm tra và xác nhận bạn đã nhận đúng hàng để hoàn tất đơn.
+                  </p>
+                  {order.delivery_note ? (
+                    <p className="mt-2 rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text">
+                      {order.delivery_note}
+                    </p>
+                  ) : null}
+                  {order.delivery_proof_images.length > 0 ? (
+                    <DeliveryProofGallery
+                      images={order.delivery_proof_images}
+                      className="mt-3"
+                    />
+                  ) : null}
+                  <Button
+                    size="lg"
+                    className="mt-4 w-full sm:w-auto"
+                    disabled={confirmReceivedMutation.isPending}
+                    onClick={() => {
+                      if (window.confirm("Xác nhận bạn đã nhận đúng hàng? Đơn sẽ hoàn thành."))
+                        confirmReceivedMutation.mutate();
+                    }}
+                  >
+                    <Check className="h-4 w-4" aria-hidden />
+                    {confirmReceivedMutation.isPending ? "Đang xác nhận..." : "Đã nhận hàng"}
+                  </Button>
+                </div>
+              </div>
+            </div>
+          ) : displayStatus === "completed" ? (
+            <div className="rounded-2xl border border-green bg-green-soft p-5">
+              <div className="flex items-start gap-3">
+                <BadgeCheck className="mt-0.5 h-5 w-5 shrink-0 text-green" aria-hidden />
+                <div className="min-w-0 flex-1">
+                  <p className="font-heading text-base font-semibold text-text">
+                    Đơn hàng đã hoàn thành
+                  </p>
+                  <p className="mt-1 text-sm text-text-muted">
+                    Cảm ơn bạn! Đơn đã được ghi vào Minh chứng.
+                  </p>
+                  <Link
+                    to="/proofs"
+                    className="mt-3 inline-flex items-center gap-1.5 text-sm font-semibold text-green transition-colors hover:underline"
+                  >
+                    <ShieldCheck className="h-4 w-4" aria-hidden /> Xem Minh chứng
+                  </Link>
+                </div>
+              </div>
+            </div>
+          ) : null}
+
           {/* Payment instructions while pending */}
           {isPending ? (
             <Card className="border-yellow/40" style={{ borderColor: "rgba(245,176,30,0.4)" }}>
@@ -257,17 +394,32 @@ function OrderDetailContent() {
             </CardContent>
           </Card>
 
-          {isPending ? (
-            <Button
-              variant="secondary"
-              onClick={() => {
-                if (window.confirm("Hủy đơn hàng này?")) cancelMutation.mutate("Khách tự hủy");
-              }}
-              disabled={cancelMutation.isPending}
-              className="text-danger hover:border-danger"
-            >
-              <XCircle className="h-4 w-4" aria-hidden /> Hủy đơn hàng
-            </Button>
+          {/* Request-cancel action */}
+          {showRequestCancel ? (
+            <div>
+              <Button
+                variant="secondary"
+                onClick={() => setCancelOpen(true)}
+                className="text-danger hover:border-danger"
+              >
+                {isPending ? (
+                  <>
+                    <XCircle className="h-4 w-4" aria-hidden /> Hủy đơn
+                  </>
+                ) : (
+                  <>
+                    <AlertTriangle className="h-4 w-4" aria-hidden /> Yêu cầu hủy đơn
+                  </>
+                )}
+              </Button>
+              {!isPending ? (
+                <p className="mt-2 flex items-start gap-1.5 text-xs text-text-subtle">
+                  <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden />
+                  Yêu cầu hủy sẽ báo cho người bán và cần admin duyệt, hoặc bạn tự xác nhận hủy sau
+                  24h nếu chưa được xử lý.
+                </p>
+              ) : null}
+            </div>
           ) : null}
         </div>
 
@@ -276,6 +428,12 @@ function OrderDetailContent() {
           <OrderChatPanel orderId={order.id} className="h-[32rem]" />
         </div>
       </div>
+
+      <CancelRequestDialog
+        order={cancelOpen ? { id: order.id, order_code: order.order_code } : null}
+        immediate={isPending}
+        onClose={() => setCancelOpen(false)}
+      />
     </PageContainer>
   );
 }

@@ -27,6 +27,7 @@ import { listWorkOrders } from "@/lib/db/orders";
 import { formatPrice, relativeTime } from "@/lib/format";
 import { isSupabaseConfigured } from "@/lib/supabase";
 import { useAuthStore } from "@/store/authStore";
+import { orderDisplayStatus } from "@/types/db";
 import type { OrderRow } from "@/types/db";
 import { cn } from "@/lib/utils";
 
@@ -160,7 +161,7 @@ function AdminDashboard() {
                     >
                       {order.order_code}
                     </Link>
-                    <WorkOrderStatusBadge status={order.status} />
+                    <WorkOrderStatusBadge status={orderDisplayStatus(order)} />
                     <span className="text-xs text-text-subtle">{relativeTime(order.created_at)}</span>
                   </div>
                   <div className="mt-1.5 flex flex-wrap items-center gap-2">
@@ -359,7 +360,7 @@ function CtvOrderGroup({
             >
               <div className="flex items-center justify-between gap-2">
                 <span className="font-mono text-sm font-bold text-text">{order.order_code}</span>
-                <WorkOrderStatusBadge status={order.status} />
+                <WorkOrderStatusBadge status={orderDisplayStatus(order)} />
               </div>
               <p className="line-clamp-2 text-sm text-text-muted">
                 {summarizeItems(itemsMap[order.id])}
