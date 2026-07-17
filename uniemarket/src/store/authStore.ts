@@ -30,7 +30,7 @@ interface AuthState {
   loading: boolean;
   /** Gọi đúng 1 lần khi app khởi động (main.tsx). */
   init: () => void;
-  login: (email: string, password: string) => Promise<AuthResult>;
+  login: (identifier: string, password: string) => Promise<AuthResult>;
   register: (payload: RegisterPayload) => Promise<AuthResult>;
   logout: () => Promise<void>;
   /** Tải lại profile từ DB (sau khi cập nhật hồ sơ / được duyệt CTV). */
@@ -116,12 +116,25 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
     });
   },
 
-  login: async (email, password) => {
+  login: async (identifier, password) => {
     if (!isSupabaseConfigured || !supabase) {
       return { success: false, error: NOT_CONFIGURED_MESSAGE };
     }
+    // Cho phép đăng nhập bằng username HOẶC email. Nếu không có "@" thì coi là
+    // username -> tra email qua RPC (SECURITY DEFINER). Lỗi trả về chung chung
+    // để tránh dò tên đăng nhập.
+    let email = identifier.trim();
+    if (email && !email.includes("@")) {
+      const { data: resolved, error: lookupError } = await supabase.rpc("email_for_login", {
+        p_login: email,
+      });
+      if (lookupError || !resolved) {
+        return { success: false, error: translateAuthError("Invalid login credentials") };
+      }
+      email = resolved as string;
+    }
     const { data, error } = await supabase.auth.signInWithPassword({
-      email: email.trim(),
+      email,
       password,
     });
     if (error) {

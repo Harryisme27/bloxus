@@ -1,6 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { ImagePlus, Loader2, Trash2 } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -13,10 +14,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { upsertCategory } from "@/lib/db/catalog";
 import type { CategoryRow, CategoryUpsert } from "@/types/db";
-import { usePick } from "@/i18n";
+import { usePick, useLangStore } from "@/i18n";
 import { AdminTextarea } from "./Textarea";
 import { Toggle } from "./Toggle";
 import { slugify } from "./helpers";
+import { prepareImage, uploadSiteAsset } from "./uploads";
 
 const DEFAULT_ACCENT = "#f5b01e";
 
@@ -39,6 +41,13 @@ const STR = {
     accentLabel: "Màu nhấn",
     accentAria: "Chọn màu nhấn",
     accentPlaceholder: "#f5b01e (để trống = mặc định)",
+    imageLabel: "Ảnh danh mục (hiển thị trên thẻ game)",
+    imageHint: "Để trống = dùng chữ viết tắt trên nền màu nhấn.",
+    uploadImage: "Tải ảnh lên",
+    uploadingImage: "Đang tải ảnh…",
+    removeImage: "Xóa ảnh",
+    imageUploaded: "Đã tải ảnh lên",
+    imageFail: "Tải ảnh thất bại.",
     contactLabelLabel: "Nhãn ô liên hệ khi đặt hàng",
     contactLabelPlaceholder: "VD: Tên tài khoản trong game",
     contactPhLabel: "Gợi ý trong ô liên hệ",
@@ -70,6 +79,13 @@ const STR = {
     accentLabel: "Accent color",
     accentAria: "Pick accent color",
     accentPlaceholder: "#f5b01e (leave empty = default)",
+    imageLabel: "Category image (shown on the game card)",
+    imageHint: "Leave empty = use initials on the accent background.",
+    uploadImage: "Upload image",
+    uploadingImage: "Uploading image…",
+    removeImage: "Remove image",
+    imageUploaded: "Image uploaded",
+    imageFail: "Image upload failed.",
     contactLabelLabel: "Contact field label at checkout",
     contactLabelPlaceholder: "e.g. In-game account name",
     contactPhLabel: "Contact field hint",
@@ -91,6 +107,7 @@ interface CategoryFormState {
   tagline: string;
   description: string;
   accent_color: string;
+  icon_url: string;
   contact_field_label: string;
   contact_field_placeholder: string;
   sort_order: number;
@@ -105,6 +122,7 @@ function initForm(category: CategoryRow | null): CategoryFormState {
     tagline: category?.tagline ?? "",
     description: category?.description ?? "",
     accent_color: category?.accent_color ?? "",
+    icon_url: category?.icon_url ?? "",
     contact_field_label: category?.contact_field_label ?? "",
     contact_field_placeholder: category?.contact_field_placeholder ?? "",
     sort_order: category?.sort_order ?? 0,
@@ -124,8 +142,11 @@ export interface CategoryDialogProps {
 export function CategoryDialog({ open, onOpenChange, category }: CategoryDialogProps) {
   const queryClient = useQueryClient();
   const t = usePick(STR);
+  const lang = useLangStore((s) => s.lang);
   const [form, setForm] = useState<CategoryFormState>(() => initForm(category));
   const [slugTouched, setSlugTouched] = useState(Boolean(category));
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (open) {
@@ -133,6 +154,23 @@ export function CategoryDialog({ open, onOpenChange, category }: CategoryDialogP
       setSlugTouched(Boolean(category));
     }
   }, [open, category]);
+
+  async function handleImage(files: FileList | null) {
+    const file = files?.[0];
+    if (!file) return;
+    setUploading(true);
+    try {
+      const prepared = await prepareImage(file, lang);
+      const { publicUrl } = await uploadSiteAsset(prepared);
+      set("icon_url", publicUrl);
+      toast.success(t.imageUploaded);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : t.imageFail);
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  }
 
   const saveMutation = useMutation({
     mutationFn: (input: CategoryUpsert) => upsertCategory(input),
@@ -162,6 +200,7 @@ export function CategoryDialog({ open, onOpenChange, category }: CategoryDialogP
       tagline: form.tagline.trim() || null,
       description: form.description.trim() || null,
       accent_color: form.accent_color.trim() || null,
+      icon_url: form.icon_url.trim() || null,
       contact_field_label: form.contact_field_label.trim() || null,
       contact_field_placeholder: form.contact_field_placeholder.trim() || null,
       sort_order: form.sort_order,
@@ -247,6 +286,57 @@ export function CategoryDialog({ open, onOpenChange, category }: CategoryDialogP
                 className="font-mono"
                 onChange={(e) => set("accent_color", e.target.value)}
               />
+            </div>
+          </div>
+
+          <div>
+            <Label>{t.imageLabel}</Label>
+            <div className="flex items-center gap-3">
+              <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-border-strong bg-surface-2">
+                {form.icon_url ? (
+                  <img src={form.icon_url} alt="" className="h-full w-full object-cover" />
+                ) : (
+                  <ImagePlus className="h-5 w-5 text-text-subtle" aria-hidden />
+                )}
+              </div>
+              <div className="flex flex-col gap-2">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => void handleImage(e.target.files)}
+                />
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="sm"
+                    disabled={uploading}
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    {uploading ? (
+                      <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+                    ) : (
+                      <ImagePlus className="h-4 w-4" aria-hidden />
+                    )}
+                    {uploading ? t.uploadingImage : t.uploadImage}
+                  </Button>
+                  {form.icon_url ? (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      disabled={uploading}
+                      onClick={() => set("icon_url", "")}
+                    >
+                      <Trash2 className="h-4 w-4" aria-hidden />
+                      {t.removeImage}
+                    </Button>
+                  ) : null}
+                </div>
+                <p className="text-xs text-text-subtle">{t.imageHint}</p>
+              </div>
             </div>
           </div>
 

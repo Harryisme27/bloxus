@@ -2,7 +2,7 @@ import { useState } from "react";
 import type { FormEvent } from "react";
 import { Link, Navigate, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
-import { Mail, Lock, Eye, EyeOff, LogIn, Sparkles, AlertCircle } from "lucide-react";
+import { UserRound, Lock, Eye, EyeOff, LogIn, Sparkles, AlertCircle } from "lucide-react";
 import { AuthCard } from "@/components/account/AuthCard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,9 +20,9 @@ const STR = {
     signUpNow: "Đăng ký ngay",
     selfRegistered: "Tài khoản do bạn tự đăng ký",
     selfRegisteredDesc:
-      'Uniemarket dùng tài khoản thật — đăng nhập bằng email và mật khẩu bạn đã đăng ký. Chưa có tài khoản? Bấm "Đăng ký ngay" bên dưới.',
-    email: "Email",
-    emailPlaceholder: "ban@email.com",
+      'Uniemarket dùng tài khoản thật — đăng nhập bằng tên đăng nhập hoặc email cùng mật khẩu bạn đã đăng ký. Chưa có tài khoản? Bấm "Đăng ký ngay" bên dưới.',
+    email: "Tên đăng nhập / Email",
+    emailPlaceholder: "username hoặc ban@email.com",
     password: "Mật khẩu",
     hidePassword: "Ẩn mật khẩu",
     showPassword: "Hiện mật khẩu",
@@ -44,9 +44,9 @@ const STR = {
     signUpNow: "Sign up now",
     selfRegistered: "Accounts you register yourself",
     selfRegisteredDesc:
-      'Uniemarket uses real accounts — sign in with the email and password you registered. No account yet? Click "Sign up now" below.',
-    email: "Email",
-    emailPlaceholder: "you@email.com",
+      'Uniemarket uses real accounts — sign in with your username or email and the password you registered. No account yet? Click "Sign up now" below.',
+    email: "Username / Email",
+    emailPlaceholder: "username or you@email.com",
     password: "Password",
     hidePassword: "Hide password",
     showPassword: "Show password",
@@ -126,14 +126,14 @@ export function Login() {
         <div>
           <Label htmlFor="login-email">{t.email}</Label>
           <div className="relative">
-            <Mail
+            <UserRound
               className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-subtle"
               aria-hidden
             />
             <Input
               id="login-email"
-              type="email"
-              autoComplete="email"
+              type="text"
+              autoComplete="username"
               placeholder={t.emailPlaceholder}
               className="pl-9"
               value={email}

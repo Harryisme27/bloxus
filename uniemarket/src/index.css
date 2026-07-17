@@ -149,11 +149,22 @@
 }
 .um-float { animation: um-float 5s ease-in-out infinite; }
 
+/* Chuyển trang: mỗi route mới hiện mượt (fade + trượt lên nhẹ). Áp ở RootLayout
+   bằng cách key theo pathname để chạy lại mỗi lần đổi trang. */
+@keyframes um-page-in {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.um-page {
+  animation: um-page-in 0.42s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .um-overlay[data-state="open"],
   .um-dialog[data-state="open"],
   .um-dialog[data-state="closed"],
   .um-enter,
+  .um-page,
   .um-float {
     animation: none !important;
     opacity: 1 !important;

@@ -1,4 +1,4 @@
-import { NavLink, Outlet } from "react-router-dom";
+import { NavLink, Outlet, useLocation } from "react-router-dom";
 import {
   LayoutDashboard,
   Receipt,
@@ -68,6 +68,7 @@ const NAV_ITEMS: WorkNavItem[] = [
 export function WorkLayout() {
   const user = useAuthStore((state) => state.user);
   const t = usePick(STR);
+  const { pathname } = useLocation();
   const isAdmin = user?.role === "admin";
   const items = NAV_ITEMS.filter((item) => isAdmin || !item.adminOnly);
 
@@ -109,7 +110,9 @@ export function WorkLayout() {
         </aside>
 
         <main className="min-w-0">
-          <Outlet />
+          <div key={pathname} className="um-page">
+            <Outlet />
+          </div>
         </main>
       </div>
     </PageContainer>
