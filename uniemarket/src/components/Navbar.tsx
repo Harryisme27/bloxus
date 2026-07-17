@@ -144,8 +144,13 @@ export function Navbar() {
             </Link>
           )}
 
-          <LanguageToggle className="hidden sm:inline-flex" />
-          <CurrencyToggle className="hidden sm:inline-flex" />
+          {/* Khách chỉ dùng EN + USD; nút chuyển ngôn ngữ/tiền tệ chỉ dành cho staff. */}
+          {isStaff ? (
+            <>
+              <LanguageToggle className="hidden sm:inline-flex" />
+              <CurrencyToggle className="hidden sm:inline-flex" />
+            </>
+          ) : null}
 
           <button
             type="button"
@@ -246,14 +251,18 @@ export function Navbar() {
                   </Button>
                 </Link>
               )}
-              <div className="flex items-center justify-between pt-1">
-                <span className="text-sm font-medium text-text-muted">{t.languageLabel}</span>
-                <LanguageToggle />
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium text-text-muted">{t.currencyLabel}</span>
-                <CurrencyToggle />
-              </div>
+              {isStaff ? (
+                <>
+                  <div className="flex items-center justify-between pt-1">
+                    <span className="text-sm font-medium text-text-muted">{t.languageLabel}</span>
+                    <LanguageToggle />
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium text-text-muted">{t.currencyLabel}</span>
+                    <CurrencyToggle />
+                  </div>
+                </>
+              ) : null}
             </div>
           </PageContainer>
         </div>

@@ -93,6 +93,8 @@ export interface CategoryRow {
   accent_color: string | null;
   contact_field_label: string | null;
   contact_field_placeholder: string | null;
+  /** Các khu vực trong danh mục (thứ tự hiển thị) — admin đặt, vd ["Pets","Eggs"]. */
+  sections: string[];
   sort_order: number;
   is_featured: boolean;
   is_active: boolean;
@@ -115,6 +117,8 @@ export interface ProductRow {
   stock: number | null;
   images: string[];
   rarity: string | null;
+  /** Khu vực trong danh mục (khớp categories.sections). null = chưa phân khu. */
+  section: string | null;
   delivery_time_text: string | null;
   service_options: ServiceOptions | null;
   tags: string[];

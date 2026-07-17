@@ -41,6 +41,9 @@ const STR = {
     accentLabel: "Màu nhấn",
     accentAria: "Chọn màu nhấn",
     accentPlaceholder: "#f5b01e (để trống = mặc định)",
+    sectionsLabel: "Khu vực sản phẩm (phân cách bằng dấu phẩy, theo thứ tự hiển thị)",
+    sectionsPlaceholder: "VD: Pets, Eggs, Sheckles",
+    sectionsHint: "Trang game sẽ nhóm sản phẩm theo các khu này — gán khu cho từng sản phẩm ở phần Sửa sản phẩm.",
     imageLabel: "Ảnh danh mục (hiển thị trên thẻ game)",
     imageHint: "Để trống = dùng chữ viết tắt trên nền màu nhấn.",
     uploadImage: "Tải ảnh lên",
@@ -79,6 +82,9 @@ const STR = {
     accentLabel: "Accent color",
     accentAria: "Pick accent color",
     accentPlaceholder: "#f5b01e (leave empty = default)",
+    sectionsLabel: "Product sections (comma-separated, in display order)",
+    sectionsPlaceholder: "e.g. Pets, Eggs, Sheckles",
+    sectionsHint: "The game page groups products by these sections — assign each product's section in the product editor.",
     imageLabel: "Category image (shown on the game card)",
     imageHint: "Leave empty = use initials on the accent background.",
     uploadImage: "Upload image",
@@ -108,6 +114,7 @@ interface CategoryFormState {
   description: string;
   accent_color: string;
   icon_url: string;
+  sectionsText: string;
   contact_field_label: string;
   contact_field_placeholder: string;
   sort_order: number;
@@ -123,6 +130,7 @@ function initForm(category: CategoryRow | null): CategoryFormState {
     description: category?.description ?? "",
     accent_color: category?.accent_color ?? "",
     icon_url: category?.icon_url ?? "",
+    sectionsText: (category?.sections ?? []).join(", "),
     contact_field_label: category?.contact_field_label ?? "",
     contact_field_placeholder: category?.contact_field_placeholder ?? "",
     sort_order: category?.sort_order ?? 0,
@@ -201,6 +209,10 @@ export function CategoryDialog({ open, onOpenChange, category }: CategoryDialogP
       description: form.description.trim() || null,
       accent_color: form.accent_color.trim() || null,
       icon_url: form.icon_url.trim() || null,
+      // Danh sách khu: tách theo dấu phẩy, bỏ trống + trùng (giữ thứ tự nhập).
+      sections: Array.from(
+        new Set(form.sectionsText.split(",").map((s) => s.trim()).filter(Boolean)),
+      ),
       contact_field_label: form.contact_field_label.trim() || null,
       contact_field_placeholder: form.contact_field_placeholder.trim() || null,
       sort_order: form.sort_order,
@@ -338,6 +350,17 @@ export function CategoryDialog({ open, onOpenChange, category }: CategoryDialogP
                 <p className="text-xs text-text-subtle">{t.imageHint}</p>
               </div>
             </div>
+          </div>
+
+          <div>
+            <Label htmlFor="cat-sections">{t.sectionsLabel}</Label>
+            <Input
+              id="cat-sections"
+              value={form.sectionsText}
+              placeholder={t.sectionsPlaceholder}
+              onChange={(e) => set("sectionsText", e.target.value)}
+            />
+            <p className="mt-1.5 text-xs text-text-subtle">{t.sectionsHint}</p>
           </div>
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">

@@ -31,6 +31,8 @@ const STR = {
     emptyDesc:
       "Không tìm thấy sản phẩm nào khớp với bộ lọc hiện tại. Thử điều chỉnh lại nhé.",
     clearFilters: "Xoá bộ lọc",
+    allSections: "Tất cả",
+    otherSection: "Khác",
   },
   en: {
     home: "Home",
@@ -47,6 +49,8 @@ const STR = {
     emptyTitle: "No matching products",
     emptyDesc: "No products match the current filters. Try adjusting them.",
     clearFilters: "Clear filters",
+    allSections: "All",
+    otherSection: "Other",
   },
 };
 
@@ -60,6 +64,8 @@ export function GameDetail() {
   const [kind, setKind] = useState<KindFilter>("all");
   const [rarity, setRarity] = useState("all");
   const [sort, setSort] = useState<SortKey>("featured");
+  // Khu vực đang chọn: "all" | tên khu | "__other__" (sản phẩm chưa phân khu).
+  const [section, setSection] = useState("all");
 
   const categoryQuery = useQuery({
     queryKey: ["category", slug],
@@ -83,11 +89,21 @@ export function GameDetail() {
     return Array.from(set).sort();
   }, [products]);
 
+  // Danh sách khu admin đặt cho danh mục này (?? [] vì cột mới có thể chưa có).
+  const sections = useMemo(
+    () => categoryQuery.data?.sections ?? [],
+    [categoryQuery.data],
+  );
+
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     let list = products.filter((p) => {
       if (kind !== "all" && p.kind !== kind) return false;
       if (rarity !== "all" && p.rarity !== rarity) return false;
+      if (section !== "all") {
+        const inKnownSection = !!p.section && sections.includes(p.section);
+        if (section === "__other__" ? inKnownSection : p.section !== section) return false;
+      }
       if (
         q &&
         !p.name.toLowerCase().includes(q) &&
@@ -105,7 +121,21 @@ export function GameDetail() {
     else list.sort((a, b) => Number(b.is_featured) - Number(a.is_featured));
 
     return list;
-  }, [products, search, kind, rarity, sort]);
+  }, [products, search, kind, rarity, sort, section, sections]);
+
+  // Nhóm theo khu khi đang xem "Tất cả": [tên khu, sản phẩm][] theo thứ tự admin
+  // đặt + nhóm "Khác" cuối cùng cho sản phẩm chưa phân khu.
+  const grouped = useMemo(() => {
+    if (sections.length === 0 || section !== "all") return null;
+    const groups: Array<[string, typeof filtered]> = [];
+    for (const s of sections) {
+      const items = filtered.filter((p) => p.section === s);
+      if (items.length > 0) groups.push([s, items]);
+    }
+    const other = filtered.filter((p) => !p.section || !sections.includes(p.section));
+    if (other.length > 0) groups.push([t.otherSection, other]);
+    return groups;
+  }, [filtered, sections, section, t.otherSection]);
 
   if (!isSupabaseConfigured) {
     return (
@@ -177,7 +207,15 @@ export function GameDetail() {
     setKind("all");
     setRarity("all");
     setSort("featured");
+    setSection("all");
   };
+
+  const hasOther = products.some((p) => !p.section || !sections.includes(p.section));
+  const sectionPills: Array<{ value: string; label: string }> = [
+    { value: "all", label: t.allSections },
+    ...sections.map((s) => ({ value: s, label: s })),
+    ...(hasOther && sections.length > 0 ? [{ value: "__other__", label: t.otherSection }] : []),
+  ];
 
   return (
     <div>
@@ -234,6 +272,31 @@ export function GameDetail() {
       </section>
 
       <PageContainer className="py-8 sm:py-10">
+        {/* Thanh khu vực (bloxmart-style) — chỉ hiện khi admin đã đặt khu. */}
+        {sections.length > 0 ? (
+          <div className="mb-5 flex flex-wrap gap-2">
+            {sectionPills.map((pill) => {
+              const active = section === pill.value;
+              return (
+                <button
+                  key={pill.value}
+                  type="button"
+                  onClick={() => setSection(pill.value)}
+                  aria-pressed={active}
+                  className="rounded-full border px-4 py-1.5 font-heading text-sm font-semibold transition-colors"
+                  style={
+                    active
+                      ? { borderColor: accent, color: "#100E09", backgroundColor: accent }
+                      : { borderColor: `${accent}55`, color: accent, backgroundColor: `${accent}14` }
+                  }
+                >
+                  {pill.label}
+                </button>
+              );
+            })}
+          </div>
+        ) : null}
+
         <ItemFilters
           className="mb-6"
           search={search}
@@ -275,11 +338,37 @@ export function GameDetail() {
               <Package className="h-4 w-4" aria-hidden="true" />
               {filtered.length} / {products.length} {t.products}
             </p>
-            <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
-              {filtered.map((product) => (
-                <ProductCard key={product.id} product={product} />
-              ))}
-            </div>
+            {grouped ? (
+              // Xem "Tất cả" + có khu: nhóm sản phẩm theo khu, đúng thứ tự admin đặt.
+              <div className="space-y-10">
+                {grouped.map(([name, items]) => (
+                  <section key={name}>
+                    <div className="mb-4 flex items-center gap-3">
+                      <span
+                        className="h-6 w-1.5 rounded-full"
+                        style={{ backgroundColor: accent }}
+                        aria-hidden="true"
+                      />
+                      <h2 className="font-heading text-xl font-bold text-text">{name}</h2>
+                      <span className="text-sm text-text-subtle">
+                        {items.length} {t.products}
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
+                      {items.map((product) => (
+                        <ProductCard key={product.id} product={product} />
+                      ))}
+                    </div>
+                  </section>
+                ))}
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
+                {filtered.map((product) => (
+                  <ProductCard key={product.id} product={product} />
+                ))}
+              </div>
+            )}
           </>
         ) : (
           <EmptyState

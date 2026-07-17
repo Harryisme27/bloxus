@@ -40,6 +40,9 @@ const STR = {
     editTitle: "Sửa sản phẩm",
     addTitle: "Thêm sản phẩm",
     dialogDesc: "Sản phẩm/dịch vụ hiển thị trên cửa hàng — điền thông tin, giá và ảnh.",
+    sectionLabel: "Khu vực",
+    sectionNone: "— Không phân khu —",
+    sectionEmptyHint: "Danh mục này chưa có khu vực — thêm ở phần Sửa danh mục.",
     cancel: "Hủy",
     saving: "Đang lưu…",
     save: "Lưu sản phẩm",
@@ -103,6 +106,9 @@ const STR = {
     editTitle: "Edit product",
     addTitle: "Add product",
     dialogDesc: "Products/services shown in the store — fill in details, price, and images.",
+    sectionLabel: "Section",
+    sectionNone: "— No section —",
+    sectionEmptyHint: "This category has no sections yet — add them in Edit category.",
     cancel: "Cancel",
     saving: "Saving…",
     save: "Save product",
@@ -168,6 +174,7 @@ interface ProductFormState {
   price: number | null;
   original_price: number | null;
   rarity: string;
+  section: string;
   stockText: string;
   delivery_time_text: string;
   tags: string;
@@ -196,6 +203,7 @@ export function WorkProductEditor({ product, onClose }: WorkProductEditorProps) 
     price: product ? product.price : null,
     original_price: product?.original_price ?? null,
     rarity: product?.rarity ?? "",
+    section: product?.section ?? "",
     stockText: product?.stock == null ? "" : String(product.stock),
     delivery_time_text: product?.delivery_time_text ?? "",
     tags: (product?.tags ?? []).join(", "),
@@ -306,6 +314,7 @@ export function WorkProductEditor({ product, onClose }: WorkProductEditorProps) 
       price: form.price,
       original_price: form.original_price,
       rarity: form.rarity.trim() || null,
+      section: form.section.trim() || null,
       stock,
       images,
       delivery_time_text: form.delivery_time_text.trim() || null,
@@ -370,6 +379,36 @@ export function WorkProductEditor({ product, onClose }: WorkProductEditorProps) 
                     ))}
                   </div>
                 </div>
+              </div>
+
+              {/* Khu vực trong danh mục (bloxmart-style) — nhóm sản phẩm ở trang game. */}
+              <div>
+                <Label htmlFor="prod-section">{t.sectionLabel}</Label>
+                {(() => {
+                  const sections =
+                    categories.find((c) => c.id === form.category_id)?.sections ?? [];
+                  if (sections.length === 0) {
+                    return <p className="text-xs text-text-subtle">{t.sectionEmptyHint}</p>;
+                  }
+                  return (
+                    <Select
+                      id="prod-section"
+                      value={form.section}
+                      onChange={(e) => set("section", e.target.value)}
+                    >
+                      <option value="">{t.sectionNone}</option>
+                      {sections.map((s) => (
+                        <option key={s} value={s}>
+                          {s}
+                        </option>
+                      ))}
+                      {/* Giữ giá trị cũ nếu khu đã bị xóa khỏi danh mục. */}
+                      {form.section && !sections.includes(form.section) ? (
+                        <option value={form.section}>{form.section}</option>
+                      ) : null}
+                    </Select>
+                  );
+                })()}
               </div>
 
               <div>
