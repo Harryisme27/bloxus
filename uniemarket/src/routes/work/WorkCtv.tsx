@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { useConfirm } from "@/components/ui/confirm";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -197,6 +198,7 @@ function ManualRoleTab() {
 function ApplicationsTab() {
   const queryClient = useQueryClient();
   const t = usePick(STR);
+  const confirm = useConfirm();
   const query = useQuery({ queryKey: ["applications"], queryFn: () => listApplications() });
 
   const mutation = useMutation({
@@ -235,9 +237,12 @@ function ApplicationsTab() {
               key={app.id}
               app={app}
               onApprove={() => mutation.mutate({ id: app.id, approve: true })}
-              onReject={() => {
-                const note = window.prompt(t.rejectPrompt) ?? undefined;
-                mutation.mutate({ id: app.id, approve: false, note });
+              onReject={async () => {
+                const r = await confirm({
+                  title: t.reject,
+                  input: { label: t.rejectPrompt, multiline: true },
+                });
+                if (r.ok) mutation.mutate({ id: app.id, approve: false, note: r.value || undefined });
               }}
               busy={mutation.isPending}
             />

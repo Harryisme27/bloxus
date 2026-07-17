@@ -22,6 +22,7 @@ import "@fontsource/jetbrains-mono/500.css";
 import "./index.css";
 import { router } from "./App";
 import { useAuthStore } from "./store/authStore";
+import { ConfirmProvider } from "./components/ui/confirm";
 
 // Xác định phiên đăng nhập Supabase ngay khi app khởi động. Khi CHƯA cấu hình
 // Supabase (thiếu .env.local) thì init() thoát êm — storefront demo vẫn chạy.
@@ -40,7 +41,9 @@ const queryClient = new QueryClient({
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
-      <RouterProvider router={router} />
+      <ConfirmProvider>
+        <RouterProvider router={router} />
+      </ConfirmProvider>
       <Toaster
         theme="dark"
         position="bottom-left"

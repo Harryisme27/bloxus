@@ -4,6 +4,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { AlertTriangle, Ban, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useConfirm } from "@/components/ui/confirm";
 import { resolveCancel } from "@/lib/db/orders";
 import type { OrderRow } from "@/types/db";
 import { usePick } from "@/i18n";
@@ -47,6 +48,7 @@ export interface CancelRequestBannerProps {
 export function CancelRequestBanner({ order, isAdmin }: CancelRequestBannerProps) {
   const queryClient = useQueryClient();
   const t = usePick(STR);
+  const confirm = useConfirm();
 
   const resolveMutation = useMutation({
     mutationFn: (input: { approve: boolean; note?: string }) =>
@@ -63,16 +65,17 @@ export function CancelRequestBanner({ order, isAdmin }: CancelRequestBannerProps
     onError: (err: Error) => toast.error(err.message),
   });
 
-  const handleApprove = () => {
-    const ok = window.confirm(t.confirmApprove(order.order_code));
-    if (ok) resolveMutation.mutate({ approve: true });
+  const handleApprove = async () => {
+    const r = await confirm({ title: t.approve, message: t.confirmApprove(order.order_code), tone: "danger" });
+    if (r.ok) resolveMutation.mutate({ approve: true });
   };
 
-  const handleReject = () => {
-    // prompt trả null khi bấm Hủy -> không làm gì.
-    const note = window.prompt(t.rejectPrompt, "");
-    if (note === null) return;
-    resolveMutation.mutate({ approve: false, note: note.trim() || undefined });
+  const handleReject = async () => {
+    const r = await confirm({
+      title: t.reject,
+      input: { label: t.rejectPrompt, multiline: true },
+    });
+    if (r.ok) resolveMutation.mutate({ approve: false, note: r.value || undefined });
   };
 
   return (

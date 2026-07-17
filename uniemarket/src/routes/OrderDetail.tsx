@@ -20,6 +20,7 @@ import { PageContainer } from "@/components/PageContainer";
 import { RequireAuth } from "@/components/account/RequireAuth";
 import { SetupNotice } from "@/components/SetupNotice";
 import { Button } from "@/components/ui/button";
+import { useConfirm } from "@/components/ui/confirm";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { OrderChatPanel } from "@/components/chat/OrderChatPanel";
@@ -154,6 +155,7 @@ export function OrderDetail() {
 
 function OrderDetailContent() {
   const t = usePick(STR);
+  const confirm = useConfirm();
   const { id = "" } = useParams<{ id: string }>();
   const queryClient = useQueryClient();
   const [cancelOpen, setCancelOpen] = useState(false);
@@ -295,9 +297,9 @@ function OrderDetailContent() {
                       variant="danger"
                       className="mt-4"
                       disabled={finalizeCancelMutation.isPending}
-                      onClick={() => {
-                        if (window.confirm(t.confirmCancelNow))
-                          finalizeCancelMutation.mutate();
+                      onClick={async () => {
+                        const r = await confirm({ title: t.confirmCancelNowBtn, message: t.confirmCancelNow, tone: "danger" });
+                        if (r.ok) finalizeCancelMutation.mutate();
                       }}
                     >
                       <XCircle className="h-4 w-4" aria-hidden />

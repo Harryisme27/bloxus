@@ -1,6 +1,7 @@
 import { MessageSquare, Users, Zap } from "lucide-react";
 import { PageContainer } from "@/components/PageContainer";
 import { Button } from "@/components/ui/button";
+import { useConfirm } from "@/components/ui/confirm";
 import { usePick } from "@/i18n";
 
 const STR = {
@@ -29,6 +30,7 @@ const STR = {
 /** Community call-to-action band inviting visitors to the (demo) Discord. */
 export function DiscordCTA() {
   const t = usePick(STR);
+  const confirm = useConfirm();
   return (
     <PageContainer className="py-14">
       <div className="relative overflow-hidden rounded-3xl border border-border bg-surface p-8 sm:p-12">
@@ -66,7 +68,7 @@ export function DiscordCTA() {
               size="lg"
               onClick={() =>
                 // DEMO — không có link Discord thật trong bản demo cục bộ này.
-                alert(t.demoAlert)
+                void confirm({ title: t.joinDiscord, message: t.demoAlert, hideCancel: true, confirmText: "OK" })
               }
             >
               <MessageSquare className="h-4 w-4" aria-hidden="true" />

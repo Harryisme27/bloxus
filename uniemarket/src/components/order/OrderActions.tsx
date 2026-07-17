@@ -6,6 +6,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Clock3, PackageCheck, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useConfirm } from "@/components/ui/confirm";
 import { confirmReceived, finalizeRefund } from "@/lib/db/orders";
 import { orderDisplayStatus } from "@/types/db";
 import type { OrderRow } from "@/types/db";
@@ -60,6 +61,7 @@ export function OrderActions({ order, compact = false }: OrderActionsProps) {
   const t = usePick(STR);
   const user = useAuthStore((s) => s.user);
   const queryClient = useQueryClient();
+  const confirm = useConfirm();
   const [refundOpen, setRefundOpen] = useState(false);
 
   const invalidate = () => {
@@ -152,9 +154,9 @@ export function OrderActions({ order, compact = false }: OrderActionsProps) {
                   size={btnSize}
                   className="mt-3"
                   disabled={finalizeRefundMutation.isPending}
-                  onClick={() => {
-                    if (window.confirm(t.confirmFinalizeRefund))
-                      finalizeRefundMutation.mutate();
+                  onClick={async () => {
+                    const r = await confirm({ title: t.finalizeRefundNow, message: t.confirmFinalizeRefund, tone: "danger" });
+                    if (r.ok) finalizeRefundMutation.mutate();
                   }}
                 >
                   <RotateCcw className="h-4 w-4" aria-hidden />
@@ -180,8 +182,9 @@ export function OrderActions({ order, compact = false }: OrderActionsProps) {
                 size={btnSize}
                 className="w-full"
                 disabled={!isDelivered || completeMutation.isPending}
-                onClick={() => {
-                  if (window.confirm(t.confirmReceived)) completeMutation.mutate();
+                onClick={async () => {
+                  const r = await confirm({ title: t.completeOrder, message: t.confirmReceived });
+                  if (r.ok) completeMutation.mutate();
                 }}
               >
                 <PackageCheck className="h-4 w-4" aria-hidden />
