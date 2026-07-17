@@ -1,7 +1,7 @@
 // Data layer — Hồ sơ người dùng.
 import { requireSupabase } from "@/lib/supabase";
 import { useLangStore } from "@/i18n";
-import type { ProfileRow, PublicProfileRow, UserRole } from "@/types/db";
+import type { ProfileRow, PublicProfileRow, RoleRequestRow, UserRole } from "@/types/db";
 
 /** Cập nhật mốc "hoạt động gần đây" của tôi (gọi định kỳ khi đang dùng app). */
 export async function touchLastSeen(): Promise<void> {
@@ -38,6 +38,50 @@ export async function setUserRole(email: string, role: UserRole): Promise<Profil
   const { data, error } = await sb.rpc("set_user_role", { p_email: email, p_role: role });
   if (error) throw new Error(error.message);
   return data as ProfileRow;
+}
+
+/** Manager đề xuất cấp quyền — admin sẽ duyệt (RPC request_role_grant). */
+export async function requestRoleGrant(
+  email: string,
+  role: UserRole,
+  note?: string,
+): Promise<RoleRequestRow> {
+  const sb = requireSupabase();
+  const { data, error } = await sb.rpc("request_role_grant", {
+    p_email: email,
+    p_role: role,
+    p_note: note ?? null,
+  });
+  if (error) throw new Error(error.message);
+  return data as RoleRequestRow;
+}
+
+/** Danh sách đề xuất cấp quyền (RLS: admin thấy hết, manager thấy của mình). */
+export async function listRoleRequests(): Promise<RoleRequestRow[]> {
+  const sb = requireSupabase();
+  const { data, error } = await sb
+    .from("role_requests")
+    .select("*")
+    .order("created_at", { ascending: false })
+    .limit(30);
+  if (error) throw new Error(error.message);
+  return (data ?? []) as RoleRequestRow[];
+}
+
+/** Admin duyệt/từ chối đề xuất cấp quyền. */
+export async function reviewRoleGrant(
+  requestId: string,
+  approve: boolean,
+  note?: string,
+): Promise<RoleRequestRow> {
+  const sb = requireSupabase();
+  const { data, error } = await sb.rpc("review_role_grant", {
+    p_request_id: requestId,
+    p_approve: approve,
+    p_note: note ?? null,
+  });
+  if (error) throw new Error(error.message);
+  return data as RoleRequestRow;
 }
 
 /** Hồ sơ của tôi (null khi chưa đăng nhập). */

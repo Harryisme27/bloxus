@@ -19,7 +19,7 @@ import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { listApplications, approveCtv } from "@/lib/db/applications";
-import { listCtvs, setUserRole, listCtvCategories, setCtvCategories } from "@/lib/db/profiles";
+import { listCtvs, setUserRole, listCtvCategories, setCtvCategories, requestRoleGrant, listRoleRequests, reviewRoleGrant } from "@/lib/db/profiles";
 import { listCategories } from "@/lib/db/catalog";
 import { relativeTime } from "@/lib/format";
 import type { CtvApplicationRow, ProfileRow, UserRole } from "@/types/db";
@@ -77,6 +77,13 @@ const STR = {
     allAccessBadge: "Toàn bộ",
     catsCount: (n: number) => `${n} danh mục`,
     noCatAccess: "Chưa phân",
+    requestInfo:
+      "Bạn là Manager — đề xuất cấp quyền sẽ được gửi cho Admin duyệt trước khi có hiệu lực.",
+    requestSent: (email: string) => `Đã gửi đề xuất cấp quyền cho ${email} — chờ admin duyệt.`,
+    sendRequest: "Gửi đề xuất",
+    requestsHeading: "Đề xuất cấp quyền",
+    requestApproved: "Đã duyệt đề xuất — quyền được cấp.",
+    requestRejected: "Đã từ chối đề xuất.",
   },
   en: {
     title: "Collaborators",
@@ -124,6 +131,13 @@ const STR = {
     allAccessBadge: "All",
     catsCount: (n: number) => `${n} categor${n === 1 ? "y" : "ies"}`,
     noCatAccess: "None",
+    requestInfo:
+      "You're a Manager — role grant proposals are sent to an Admin for approval before taking effect.",
+    requestSent: (email: string) => `Role request for ${email} sent — awaiting admin approval.`,
+    sendRequest: "Send request",
+    requestsHeading: "Role grant requests",
+    requestApproved: "Request approved — role granted.",
+    requestRejected: "Request declined.",
   },
 };
 
@@ -140,17 +154,15 @@ export function WorkCtv() {
         <p className="mt-1 text-sm text-text-muted">{t.subtitle}</p>
       </div>
 
-      <Tabs defaultValue={isAdmin ? "grant" : "list"}>
+      <Tabs defaultValue="grant">
         <TabsList>
-          {isAdmin ? <TabsTrigger value="grant">{t.tabGrant}</TabsTrigger> : null}
+          <TabsTrigger value="grant">{t.tabGrant}</TabsTrigger>
           <TabsTrigger value="list">{t.tabList}</TabsTrigger>
           <TabsTrigger value="applications">{t.tabApplications}</TabsTrigger>
         </TabsList>
-        {isAdmin ? (
-          <TabsContent value="grant" className="pt-5">
-            <ManualRoleTab />
-          </TabsContent>
-        ) : null}
+        <TabsContent value="grant" className="pt-5">
+          <ManualRoleTab isAdmin={isAdmin} />
+        </TabsContent>
         <TabsContent value="list" className="pt-5">
           <CtvListTab />
         </TabsContent>
@@ -162,7 +174,7 @@ export function WorkCtv() {
   );
 }
 
-function ManualRoleTab() {
+function ManualRoleTab({ isAdmin }: { isAdmin: boolean }) {
   const queryClient = useQueryClient();
   const t = usePick(STR);
   const lang = useLangStore((state) => state.lang);
@@ -171,10 +183,17 @@ function ManualRoleTab() {
   const [role, setRole] = useState<UserRole>("ctv");
 
   const mutation = useMutation({
-    mutationFn: ({ email: e, role: r }: { email: string; role: UserRole }) => setUserRole(e, r),
+    // Admin cấp thẳng; manager chỉ ĐỀ XUẤT (admin duyệt sau — RPC request_role_grant).
+    mutationFn: async ({ email: e, role: r }: { email: string; role: UserRole }): Promise<void> => {
+      if (isAdmin) await setUserRole(e, r);
+      else await requestRoleGrant(e, r);
+    },
     onSuccess: (_data, vars) => {
-      toast.success(t.granted(roleLabels[vars.role], vars.email));
+      toast.success(
+        isAdmin ? t.granted(roleLabels[vars.role], vars.email) : t.requestSent(vars.email),
+      );
       void queryClient.invalidateQueries({ queryKey: ["ctvs"] });
+      void queryClient.invalidateQueries({ queryKey: ["role-requests"] });
       setEmail("");
     },
     onError: (err) => toast.error(err instanceof Error ? err.message : t.grantFail),
@@ -190,7 +209,7 @@ function ManualRoleTab() {
   return (
     <div className="max-w-xl space-y-4">
       <div className="rounded-2xl border border-yellow/40 bg-yellow-soft px-4 py-3 text-sm text-text-muted">
-        {t.grantInfo}
+        {isAdmin ? t.grantInfo : t.requestInfo}
       </div>
       <Card>
         <CardContent className="p-5">
@@ -216,18 +235,109 @@ function ManualRoleTab() {
                 disabled={mutation.isPending}
               >
                 <option value="ctv">{roleLabels.ctv}</option>
-                <option value="admin">{roleLabels.admin}</option>
-                <option value="customer">{roleLabels.customer}</option>
+                <option value="manager">{roleLabels.manager}</option>
+                {isAdmin ? (
+                  <>
+                    <option value="admin">{roleLabels.admin}</option>
+                    <option value="customer">{roleLabels.customer}</option>
+                  </>
+                ) : null}
               </Select>
             </div>
             <Button type="submit" disabled={!email.trim() || mutation.isPending}>
               <KeyRound className="h-4 w-4" aria-hidden />
-              {mutation.isPending ? t.granting : t.grant}
+              {mutation.isPending
+                ? t.granting
+                : isAdmin
+                  ? t.grant
+                  : t.sendRequest}
             </Button>
           </form>
         </CardContent>
       </Card>
+
+      <RoleRequestsPanel isAdmin={isAdmin} />
     </div>
+  );
+}
+
+/** Danh sách đề xuất cấp quyền: admin duyệt/từ chối; manager theo dõi của mình. */
+function RoleRequestsPanel({ isAdmin }: { isAdmin: boolean }) {
+  const queryClient = useQueryClient();
+  const t = usePick(STR);
+  const lang = useLangStore((state) => state.lang);
+  const roleLabels = ROLE_LABELS[lang];
+
+  const query = useQuery({ queryKey: ["role-requests"], queryFn: listRoleRequests });
+
+  const reviewMutation = useMutation({
+    mutationFn: ({ id, approve }: { id: string; approve: boolean }) => reviewRoleGrant(id, approve),
+    onSuccess: (_d, vars) => {
+      toast.success(vars.approve ? t.requestApproved : t.requestRejected);
+      void queryClient.invalidateQueries({ queryKey: ["role-requests"] });
+      void queryClient.invalidateQueries({ queryKey: ["ctvs"] });
+    },
+    onError: (err) => toast.error(err instanceof Error ? err.message : t.actionFail),
+  });
+
+  const rows = query.data ?? [];
+  if (query.isPending || rows.length === 0) return null;
+
+  return (
+    <Card>
+      <CardContent className="p-5">
+        <p className="mb-3 font-heading text-sm font-semibold text-text">{t.requestsHeading}</p>
+        <ul className="space-y-3">
+          {rows.map((r) => (
+            <li
+              key={r.id}
+              className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-border bg-surface-2 px-3 py-2.5"
+            >
+              <div className="min-w-0">
+                <p className="truncate text-sm font-medium text-text">
+                  {r.target_email}
+                  <span className="ml-2 text-xs text-text-subtle">→ {roleLabels[r.requested_role]}</span>
+                </p>
+                <p className="text-xs text-text-subtle">{relativeTime(r.created_at)}</p>
+              </div>
+              {r.status === "pending" && isAdmin ? (
+                <div className="flex gap-1.5">
+                  <Button
+                    size="sm"
+                    disabled={reviewMutation.isPending}
+                    onClick={() => reviewMutation.mutate({ id: r.id, approve: true })}
+                  >
+                    <Check className="h-3.5 w-3.5" aria-hidden />
+                    {t.approve}
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    disabled={reviewMutation.isPending}
+                    onClick={() => reviewMutation.mutate({ id: r.id, approve: false })}
+                  >
+                    <X className="h-3.5 w-3.5" aria-hidden />
+                    {t.reject}
+                  </Button>
+                </div>
+              ) : (
+                <Badge
+                  variant={
+                    r.status === "approved" ? "green" : r.status === "rejected" ? "danger" : "gold"
+                  }
+                >
+                  {r.status === "approved"
+                    ? t.badgeApproved
+                    : r.status === "rejected"
+                      ? t.badgeRejected
+                      : t.badgePending}
+                </Badge>
+              )}
+            </li>
+          ))}
+        </ul>
+      </CardContent>
+    </Card>
   );
 }
 

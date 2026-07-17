@@ -81,7 +81,7 @@ export function WorkPayments() {
 
       {!isSupabaseConfigured ? (
         <SetupNotice />
-      ) : user && user.role !== "admin" ? (
+      ) : user && user.role !== "admin" && user.role !== "manager" ? (
         <div className="rounded-2xl border border-border bg-surface p-10 text-center">
           <ShieldAlert className="mx-auto h-10 w-10 text-text-subtle" aria-hidden />
           <p className="mt-3 font-heading text-lg font-semibold text-text">{t.adminOnly}</p>

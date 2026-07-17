@@ -9,6 +9,20 @@
 // ----------------------------------------------------------------------------
 
 export type UserRole = "customer" | "ctv" | "manager" | "admin";
+
+/** Đề xuất cấp quyền (manager gửi, admin duyệt — 15-manager-money.sql). */
+export interface RoleRequestRow {
+  id: string;
+  requester: string;
+  target_email: string;
+  requested_role: UserRole;
+  status: "pending" | "approved" | "rejected";
+  note: string | null;
+  reviewed_by: string | null;
+  review_note: string | null;
+  created_at: string;
+  reviewed_at: string | null;
+}
 export type ProductKind = "item" | "service";
 export type DbOrderStatus =
   | "pending_payment"

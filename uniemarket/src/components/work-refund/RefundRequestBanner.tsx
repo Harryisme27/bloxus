@@ -47,7 +47,10 @@ export interface RefundRequestBannerProps {
 /** Cảnh báo yêu cầu hoàn tiền — hiện ở đầu workview khi refund_requested_at != null. */
 export function RefundRequestBanner({ order }: RefundRequestBannerProps) {
   const queryClient = useQueryClient();
-  const isAdmin = useAuthStore((state) => state.user?.role === "admin");
+  // Admin hoặc manager đều duyệt được hoàn tiền (15-manager-money.sql).
+  const isAdmin = useAuthStore(
+    (state) => state.user?.role === "admin" || state.user?.role === "manager",
+  );
   const t = usePick(STR);
   const confirm = useConfirm();
 

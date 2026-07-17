@@ -598,9 +598,10 @@ function OrderControls({
   // Giao hàng: chỉ khi đang thực hiện (chưa giao) và KHÔNG có yêu cầu hủy treo.
   const canDeliver =
     displayStatus === "in_progress" && !hasPendingCancel && (isAdmin || isMyCtvOrder);
-  const adminConfirmPay = isAdmin && status === "pending_payment";
+  // Manager cũng được xác nhận thanh toán + hoàn tiền (15-manager-money.sql).
+  const adminConfirmPay = canAssign && status === "pending_payment";
   const adminAssign = canAssign && status === "paid";
-  const adminRefund = isAdmin && status === "completed";
+  const adminRefund = canAssign && status === "completed";
   const adminCanCancel =
     isAdmin && (status === "pending_payment" || status === "paid" || status === "in_progress");
   // CTV luôn thấy nút hỗ trợ khi đơn đang thực hiện (kể cả lúc đang chờ giao/duyệt hủy).

@@ -56,7 +56,7 @@ interface WorkNavItem {
 const NAV_ITEMS: WorkNavItem[] = [
   { to: "/work", key: "dashboard", icon: LayoutDashboard, roles: ["admin", "manager", "ctv"], end: true },
   { to: "/work/orders", key: "orders", icon: Receipt, roles: ["admin", "manager", "ctv"] },
-  { to: "/work/payments", key: "payments", icon: BadgeDollarSign, roles: ["admin"] },
+  { to: "/work/payments", key: "payments", icon: BadgeDollarSign, roles: ["admin", "manager"] },
   { to: "/work/catalog", key: "catalog", icon: PackageSearch, roles: ["admin", "manager"] },
   { to: "/work/ctv", key: "ctv", icon: Users, roles: ["admin", "manager"] },
   { to: "/work/chat", key: "chat", icon: MessagesSquare, roles: ["admin", "manager", "ctv"] },
