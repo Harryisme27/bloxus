@@ -1,4 +1,5 @@
 import { formatPrice } from "@/lib/format";
+import { useCurrencyStore } from "@/store/currencyStore";
 import { cn } from "@/lib/utils";
 
 export interface PriceTagProps {
@@ -18,6 +19,7 @@ const SIZE_CLASSES: Record<NonNullable<PriceTagProps["size"]>, string> = {
 
 /** Displays the (amber) current price, with an optional struck-through original price + discount badge. */
 export function PriceTag({ price, originalPrice, size = "md", className }: PriceTagProps) {
+  useCurrencyStore((s) => s.currency); // re-render khi đổi tiền tệ
   const hasDiscount = !!originalPrice && originalPrice > price;
   const discountPercent = hasDiscount
     ? Math.round(((originalPrice - price) / originalPrice) * 100)

@@ -13,6 +13,7 @@ import {
 import { PageContainer } from "@/components/PageContainer";
 import { Button } from "@/components/ui/button";
 import { LanguageToggle } from "@/components/LanguageToggle";
+import { CurrencyToggle } from "@/components/CurrencyToggle";
 import { ChatIconLink } from "@/components/nav/ChatIconLink";
 import { NotificationBell } from "@/components/nav/NotificationBell";
 import { ProfileMenu } from "@/components/nav/ProfileMenu";
@@ -30,6 +31,7 @@ const STR = {
     openMenu: "Mở menu",
     notifications: "Thông báo",
     languageLabel: "Ngôn ngữ",
+    currencyLabel: "Tiền tệ",
   },
   en: {
     homeAria: "Uniemarket - Home",
@@ -37,6 +39,7 @@ const STR = {
     openMenu: "Open menu",
     notifications: "Notifications",
     languageLabel: "Language",
+    currencyLabel: "Currency",
   },
 };
 
@@ -142,6 +145,7 @@ export function Navbar() {
           )}
 
           <LanguageToggle className="hidden sm:inline-flex" />
+          <CurrencyToggle className="hidden sm:inline-flex" />
 
           <button
             type="button"
@@ -245,6 +249,10 @@ export function Navbar() {
               <div className="flex items-center justify-between pt-1">
                 <span className="text-sm font-medium text-text-muted">{t.languageLabel}</span>
                 <LanguageToggle />
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium text-text-muted">{t.currencyLabel}</span>
+                <CurrencyToggle />
               </div>
             </div>
           </PageContainer>

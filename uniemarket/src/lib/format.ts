@@ -1,15 +1,27 @@
-// Formatting helpers. Currency is VND (BIGINT đồng, không có phần thập phân).
+// Formatting helpers. Giá LƯU bằng VND (BIGINT đồng). Hiển thị có thể quy đổi
+// sang USD tuỳ chọn tiền tệ của người xem (chỉ hiển thị — server vẫn tính VND).
 import { useLangStore } from "@/i18n";
+import { useCurrencyStore, USD_VND_RATE } from "@/store/currencyStore";
 
-const currencyFormatter = new Intl.NumberFormat("vi-VN", {
+const vndFormatter = new Intl.NumberFormat("vi-VN", {
   style: "currency",
   currency: "VND",
   maximumFractionDigits: 0,
 });
+const usdFormatter = new Intl.NumberFormat("en-US", {
+  style: "currency",
+  currency: "USD",
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
+});
 
-/** Format a number as VND currency, e.g. formatPrice(875000) -> "875.000 ₫". */
+/** Format một số tiền VND theo tiền tệ đang chọn.
+ * VND: "875.000 ₫". USD (quy đổi theo tỉ giá): "$35.00". */
 export function formatPrice(n: number): string {
-  return currencyFormatter.format(n);
+  if (useCurrencyStore.getState().currency === "usd") {
+    return usdFormatter.format(n / USD_VND_RATE);
+  }
+  return vndFormatter.format(n);
 }
 
 /** Format an ISO date string as a short, human-readable relative time. Song ngữ:

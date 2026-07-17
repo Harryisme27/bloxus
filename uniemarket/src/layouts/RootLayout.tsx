@@ -2,6 +2,7 @@ import { Outlet, useLocation } from "react-router-dom";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { ChatWidget } from "@/components/ChatWidget";
+import { useCurrencyStore } from "@/store/currencyStore";
 
 /** Shared shell for every route: sticky navbar, page outlet, footer, and the
  * floating chat widget. sonner's <Toaster/> is mounted once in main.tsx
@@ -12,6 +13,9 @@ import { ChatWidget } from "@/components/ChatWidget";
  * key theo pathname để animation chạy lại mỗi lần chuyển route. */
 export function RootLayout() {
   const { pathname } = useLocation();
+  // Subscribe tiền tệ ở gốc: đổi USD/VND -> re-render toàn cây (kể cả dialog qua
+  // portal vẫn nằm trong cây React) nên mọi formatPrice() cập nhật ngay.
+  useCurrencyStore((s) => s.currency);
   return (
     <div className="flex min-h-screen flex-col bg-bg text-text">
       <Navbar />
