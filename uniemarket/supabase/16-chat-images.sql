@@ -7,6 +7,12 @@
 -- Chạy 1 lần trong Supabase SQL Editor (sau 14/15).
 -- ============================================================================
 
+-- 0) Nới CHECK constraint của messages.body: hợp lệ khi có chữ HOẶC có ảnh.
+alter table public.messages drop constraint if exists messages_body_check;
+alter table public.messages
+  add constraint messages_body_check
+  check (length(btrim(body)) > 0 or array_length(attachments, 1) is not null);
+
 create or replace function public.post_message(
   p_thread_id   uuid,
   p_body        text,
