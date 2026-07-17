@@ -1,9 +1,23 @@
 import { useState } from "react";
-import { Link, NavLink } from "react-router-dom";
-import { ShoppingCart, Search, Menu, X, User as UserIcon, Briefcase } from "lucide-react";
+import { Link, NavLink, useNavigate } from "react-router-dom";
+import {
+  ShoppingCart,
+  Search,
+  Menu,
+  X,
+  Briefcase,
+  MessageCircle,
+  Bell,
+  LogOut,
+} from "lucide-react";
 import { PageContainer } from "@/components/PageContainer";
 import { Button } from "@/components/ui/button";
 import { LanguageToggle } from "@/components/LanguageToggle";
+import { ChatIconLink } from "@/components/nav/ChatIconLink";
+import { NotificationBell } from "@/components/nav/NotificationBell";
+import { ProfileMenu } from "@/components/nav/ProfileMenu";
+import { useUnreadCount } from "@/components/nav/useUnreadCount";
+import { useHeartbeat } from "@/components/realtime/useHeartbeat";
 import { useCartStore } from "@/store/cartStore";
 import { useAuthStore } from "@/store/authStore";
 import { useT } from "@/i18n";
@@ -11,16 +25,28 @@ import { cn } from "@/lib/utils";
 
 export function Navbar() {
   const s = useT();
+  const navigate = useNavigate();
   const [mobileOpen, setMobileOpen] = useState(false);
   const cartCount = useCartStore((state) => state.items.reduce((sum, line) => sum + line.quantity, 0));
   const user = useAuthStore((state) => state.user);
+  const logout = useAuthStore((state) => state.logout);
   const isStaff = user?.role === "admin" || user?.role === "ctv";
+  const unread = useUnreadCount();
+
+  // Keep last_seen fresh while the app is open (Agent D owns the hook impl).
+  useHeartbeat();
 
   const navLinks: { to: string; label: string }[] = [
     { to: "/games", label: s.nav.games },
     { to: "/proofs", label: s.nav.proofs },
     { to: "/faq", label: s.nav.faq },
   ];
+
+  async function handleMobileLogout() {
+    setMobileOpen(false);
+    await logout();
+    navigate("/");
+  }
 
   return (
     <header
@@ -59,6 +85,19 @@ export function Navbar() {
         </div>
 
         <div className="flex items-center gap-2">
+          {isStaff ? (
+            <Link to="/work" className="hidden sm:block">
+              <Button variant="gold" size="sm">
+                <Briefcase className="h-4 w-4" aria-hidden="true" />
+                {s.nav.work}
+              </Button>
+            </Link>
+          ) : null}
+
+          {/* Chrome for logged-in users: chat, bell, cart, profile. */}
+          {user ? <ChatIconLink /> : null}
+          {user ? <NotificationBell /> : null}
+
           <Link
             to="/cart"
             className="relative flex h-10 w-10 items-center justify-center rounded-lg text-text-muted transition-colors hover:bg-surface-2 hover:text-text"
@@ -72,22 +111,10 @@ export function Navbar() {
             ) : null}
           </Link>
 
-          {isStaff ? (
-            <Link to="/work" className="hidden sm:block">
-              <Button variant="gold" size="sm">
-                <Briefcase className="h-4 w-4" aria-hidden="true" />
-                {s.nav.work}
-              </Button>
-            </Link>
-          ) : null}
-
           {user ? (
-            <Link to="/profile" className="hidden items-center gap-2 sm:flex">
-              <Button variant="secondary" size="sm">
-                <UserIcon className="h-4 w-4" aria-hidden="true" />
-                {user.display_name ?? user.username}
-              </Button>
-            </Link>
+            <div className="hidden sm:block">
+              <ProfileMenu />
+            </div>
           ) : (
             <Link to="/login" className="hidden sm:block">
               <Button variant="primary" size="sm">
@@ -128,6 +155,42 @@ export function Navbar() {
                 {link.label}
               </NavLink>
             ))}
+
+            {user ? (
+              <>
+                <NavLink
+                  to="/messages"
+                  onClick={() => setMobileOpen(false)}
+                  className={({ isActive }) =>
+                    cn(
+                      "flex items-center gap-2 rounded-lg px-3 py-2.5 text-sm font-medium text-text-muted transition-colors hover:bg-surface-2 hover:text-text",
+                      isActive && "bg-surface-2 text-text",
+                    )
+                  }
+                >
+                  <MessageCircle className="h-4 w-4" aria-hidden="true" />
+                  {s.nav.messages}
+                </NavLink>
+
+                {/* Compact notifications entry — jumps to the order chat surface. */}
+                <Link
+                  to="/messages"
+                  onClick={() => setMobileOpen(false)}
+                  className="flex items-center justify-between rounded-lg px-3 py-2.5 text-sm font-medium text-text-muted transition-colors hover:bg-surface-2 hover:text-text"
+                >
+                  <span className="flex items-center gap-2">
+                    <Bell className="h-4 w-4" aria-hidden="true" />
+                    Thông báo
+                  </span>
+                  {unread > 0 ? (
+                    <span className="tabular-nums-mono flex h-5 min-w-5 items-center justify-center rounded-full bg-yellow px-1 text-[11px] font-bold text-text-on-yellow">
+                      {unread > 99 ? "99+" : unread}
+                    </span>
+                  ) : null}
+                </Link>
+              </>
+            ) : null}
+
             <div className="mt-2 flex flex-col gap-2 border-t border-border pt-3">
               {isStaff ? (
                 <Link to="/work" onClick={() => setMobileOpen(false)}>
@@ -138,12 +201,22 @@ export function Navbar() {
                 </Link>
               ) : null}
               {user ? (
-                <Link to="/profile" onClick={() => setMobileOpen(false)}>
-                  <Button variant="secondary" size="sm" className="w-full">
-                    <UserIcon className="h-4 w-4" aria-hidden="true" />
-                    {user.display_name ?? user.username}
+                <>
+                  <Link to="/profile" onClick={() => setMobileOpen(false)}>
+                    <Button variant="secondary" size="sm" className="w-full">
+                      {user.display_name ?? user.username}
+                    </Button>
+                  </Link>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="w-full text-danger"
+                    onClick={handleMobileLogout}
+                  >
+                    <LogOut className="h-4 w-4" aria-hidden="true" />
+                    {s.nav.logout}
                   </Button>
-                </Link>
+                </>
               ) : (
                 <Link to="/login" onClick={() => setMobileOpen(false)}>
                   <Button variant="primary" size="sm" className="w-full">

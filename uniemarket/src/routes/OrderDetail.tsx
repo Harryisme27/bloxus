@@ -26,7 +26,8 @@ import { OrderChatPanel } from "@/components/chat/OrderChatPanel";
 import { WorkOrderStatusBadge } from "@/components/work/orderStatusMeta";
 import { CancelRequestDialog } from "@/components/order/CancelRequestDialog";
 import { DeliveryProofGallery } from "@/components/order/DeliveryProofGallery";
-import { confirmReceived, finalizeCancel, getOrder, listOrderEvents } from "@/lib/db/orders";
+import { OrderActions } from "@/components/order/OrderActions";
+import { finalizeCancel, getOrder, listOrderEvents } from "@/lib/db/orders";
 import { getSettings } from "@/lib/db/settings";
 import { isSupabaseConfigured } from "@/lib/supabase";
 import { formatPrice, relativeTime } from "@/lib/format";
@@ -78,16 +79,6 @@ function OrderDetailContent() {
     void queryClient.invalidateQueries({ queryKey: ["my-orders"] });
     void queryClient.invalidateQueries({ queryKey: ["work-orders"] });
   };
-
-  const confirmReceivedMutation = useMutation({
-    mutationFn: () => confirmReceived(id),
-    onSuccess: () => {
-      toast.success("Đã xác nhận nhận hàng — đơn hoàn thành!");
-      invalidateOrder();
-      void queryClient.invalidateQueries({ queryKey: ["proofs"] });
-    },
-    onError: (err) => toast.error(err instanceof Error ? err.message : "Không xác nhận được."),
-  });
 
   const finalizeCancelMutation = useMutation({
     mutationFn: () => finalizeCancel(id),
@@ -241,18 +232,6 @@ function OrderDetailContent() {
                       className="mt-3"
                     />
                   ) : null}
-                  <Button
-                    size="lg"
-                    className="mt-4 w-full sm:w-auto"
-                    disabled={confirmReceivedMutation.isPending}
-                    onClick={() => {
-                      if (window.confirm("Xác nhận bạn đã nhận đúng hàng? Đơn sẽ hoàn thành."))
-                        confirmReceivedMutation.mutate();
-                    }}
-                  >
-                    <Check className="h-4 w-4" aria-hidden />
-                    {confirmReceivedMutation.isPending ? "Đang xác nhận..." : "Đã nhận hàng"}
-                  </Button>
                 </div>
               </div>
             </div>
@@ -277,6 +256,9 @@ function OrderDetailContent() {
               </div>
             </div>
           ) : null}
+
+          {/* Buyer actions: Hoàn tất đơn (Complete Order) + Yêu cầu hoàn tiền */}
+          <OrderActions order={order} />
 
           {/* Payment instructions while pending */}
           {isPending ? (

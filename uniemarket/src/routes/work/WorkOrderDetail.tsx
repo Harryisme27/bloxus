@@ -43,6 +43,8 @@ import { describeSelectedOptions, paymentMethodLabel } from "@/components/work/w
 import { CancelRequestBanner } from "@/components/work-deliver/CancelRequestBanner";
 import { DeliverDialog } from "@/components/work-deliver/DeliverDialog";
 import { DeliveredPanel } from "@/components/work-deliver/DeliveredPanel";
+import { RefundRequestBanner } from "@/components/work-refund/RefundRequestBanner";
+import { useOrderRealtime } from "@/components/realtime/useOrderRealtime";
 import { confirmPayment, getOrder, listOrderEvents, updateOrderStatus } from "@/lib/db/orders";
 import { listMyThreads, postMessage } from "@/lib/db/chat";
 import { formatPrice, relativeTime } from "@/lib/format";
@@ -98,6 +100,9 @@ function OrderDetailView({
     queryKey: ["order-events", orderId],
     queryFn: () => listOrderEvents(orderId),
   });
+
+  // Realtime (Agent D): tự cập nhật khi khách yêu cầu hoàn tiền/hủy hoặc xác nhận nhận hàng.
+  useOrderRealtime(orderQuery.data?.id);
 
   const invalidateOrder = () => {
     void queryClient.invalidateQueries({ queryKey: ["order", orderId] });
@@ -210,6 +215,9 @@ function OrderDetailView({
           {hasPendingCancel ? (
             <CancelRequestBanner order={order} isAdmin={isAdmin} />
           ) : null}
+
+          {/* Cảnh báo khách yêu cầu hoàn tiền (tự ẩn nếu không có yêu cầu) */}
+          <RefundRequestBanner order={order} />
 
           {/* Header đơn */}
           <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border bg-surface p-5">

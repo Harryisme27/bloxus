@@ -1,6 +1,8 @@
 // /messages — hộp tin nhắn của tài khoản (khách + staff đều dùng được;
 // RLS phía server quyết định ai thấy thread nào).
-// 2 cột: danh sách hội thoại (trái) + khung chat (phải). Deep-link ?thread=<id>.
+// 3 cột (desktop): danh sách hội thoại (trái) · khung chat (giữa) · "Chi tiết
+// đơn" (phải). Mobile: xếp chồng — chọn thread mới hiện chat + sidebar bên dưới.
+// Deep-link ?thread=<id>.
 import type { ReactNode } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -11,6 +13,7 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { MessagePane } from "@/components/chat/MessagePane";
 import { ThreadList } from "@/components/chat/ThreadList";
+import { OrderDetailsSidebar } from "@/components/chat/OrderDetailsSidebar";
 import { listMyThreads } from "@/lib/db/chat";
 import { isSupabaseConfigured } from "@/lib/supabase";
 import { cn } from "@/lib/utils";
@@ -111,8 +114,8 @@ export function Messages() {
     );
   } else {
     content = (
-      <div className="grid gap-4 lg:grid-cols-[minmax(0,20rem)_minmax(0,1fr)]">
-        {/* Cột trái: danh sách — mobile ẩn khi đã chọn thread qua URL */}
+      <div className="grid gap-4 lg:grid-cols-[280px_minmax(0,1fr)_320px]">
+        {/* Cột trái: danh sách hội thoại — mobile ẩn khi đã chọn thread */}
         <div className={cn("min-w-0", selectedId && "hidden lg:block")}>
           <div
             className={cn(
@@ -128,7 +131,7 @@ export function Messages() {
           </div>
         </div>
 
-        {/* Cột phải: khung chat — mobile ẩn khi chưa chọn */}
+        {/* Cột giữa: khung chat — mobile ẩn khi chưa chọn */}
         <div className={cn("min-w-0", !selectedId && "hidden lg:block")}>
           {selectedId ? (
             <Button
@@ -153,6 +156,17 @@ export function Messages() {
               <p className="text-sm text-text-subtle">Chọn một hội thoại để bắt đầu.</p>
             </div>
           )}
+        </div>
+
+        {/* Cột phải: "Chi tiết đơn" — mobile xếp dưới chat khi đã chọn thread */}
+        <div className={cn("min-w-0", !selectedId && "hidden lg:block")}>
+          {activeThread ? (
+            <OrderDetailsSidebar
+              key={activeThread.id}
+              thread={activeThread}
+              className="lg:h-[65vh] lg:min-h-[28rem]"
+            />
+          ) : null}
         </div>
       </div>
     );

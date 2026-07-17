@@ -6,10 +6,14 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Hash, RefreshCw, Send, ShoppingBag } from "lucide-react";
 import { listMessages, postMessage, subscribeToThread } from "@/lib/db/chat";
+import { getOrder } from "@/lib/db/orders";
+import { getPublicProfile } from "@/lib/db/profiles";
 import { relativeTime } from "@/lib/format";
 import { isSupabaseConfigured } from "@/lib/supabase";
 import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/store/authStore";
+import { useOrderRealtime } from "@/components/realtime/useOrderRealtime";
+import { lastSeenText } from "@/components/realtime/lastSeen";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -47,6 +51,48 @@ export function MessagePane({ thread, className, compact, hideHeader }: MessageP
   const senderProfiles = useSenderProfiles(
     messages.filter((m) => m.sender_id !== myId).map((m) => m.sender_id),
   );
+
+  // --- Header thread đơn hàng: người đối diện + "hoạt động gần đây" ---
+  const isOrderThread = thread.kind === "order" && Boolean(thread.order_id);
+
+  // Đơn của thread — cùng queryKey ['order', id] với OrderDetailsSidebar nên
+  // dữ liệu dùng chung; useOrderRealtime làm mới key này khi đơn đổi.
+  const orderQuery = useQuery({
+    queryKey: ["order", thread.order_id],
+    queryFn: () => getOrder(thread.order_id as string),
+    enabled: isSupabaseConfigured && isOrderThread,
+    staleTime: 30_000,
+  });
+  const order = orderQuery.data ?? null;
+
+  // Realtime đơn hàng: trạng thái đổi -> sidebar (dùng cùng cache) cập nhật ngay.
+  useOrderRealtime(isOrderThread ? (thread.order_id ?? undefined) : undefined);
+
+  // Người đối diện: tôi là khách -> CTV được giao ("Đội hỗ trợ" khi chưa giao);
+  // tôi là staff -> khách đặt đơn.
+  const iAmBuyer = order && myId ? order.user_id === myId : false;
+  const counterpartyId = order ? (iAmBuyer ? order.assigned_ctv : order.user_id) : null;
+
+  const counterpartyQuery = useQuery({
+    queryKey: ["public-profile", counterpartyId],
+    queryFn: () => getPublicProfile(counterpartyId as string),
+    enabled: isSupabaseConfigured && Boolean(counterpartyId),
+    staleTime: 5 * 60 * 1000,
+  });
+  const counterparty = counterpartyQuery.data ?? null;
+
+  const counterpartyName = iAmBuyer
+    ? (counterparty?.display_name ?? counterparty?.username ?? "Đội hỗ trợ")
+    : (counterparty?.display_name ?? counterparty?.username ?? "Khách hàng");
+  const counterpartyAvatar =
+    counterparty?.avatar_url && /^https?:\/\//i.test(counterparty.avatar_url)
+      ? counterparty.avatar_url
+      : null;
+  // "⚡ Phản hồi: vài giây · 🕓 Hoạt động 3 giờ trước" (bỏ phần hoạt động khi
+  // chưa có hồ sơ người đối diện, vd "Đội hỗ trợ").
+  const orderSubtitle = counterparty
+    ? `⚡ Phản hồi: vài giây · 🕓 ${lastSeenText(counterparty.last_seen_at)}`
+    : "⚡ Phản hồi: vài giây";
 
   // Realtime: tin mới -> thêm vào cache (chống trùng id) + cập nhật inbox.
   useEffect(() => {
@@ -119,8 +165,6 @@ export function MessagePane({ thread, className, compact, hideHeader }: MessageP
     }
   }
 
-  const HeaderIcon = thread.kind === "staff" ? Hash : ShoppingBag;
-
   return (
     <div
       className={cn(
@@ -135,20 +179,29 @@ export function MessagePane({ thread, className, compact, hideHeader }: MessageP
             compact ? "px-3 py-2.5" : "px-4 py-3",
           )}
         >
-          <span
-            className={cn(
-              "flex h-9 w-9 shrink-0 items-center justify-center rounded-full",
-              thread.kind === "staff" ? "bg-green-soft text-green" : "bg-yellow-soft text-yellow",
-            )}
-          >
-            <HeaderIcon className="h-4 w-4" aria-hidden />
-          </span>
+          {isOrderThread ? (
+            counterpartyAvatar ? (
+              <img
+                src={counterpartyAvatar}
+                alt={counterpartyName}
+                className="h-9 w-9 shrink-0 rounded-full object-cover"
+              />
+            ) : (
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-yellow-soft text-yellow">
+                <ShoppingBag className="h-4 w-4" aria-hidden />
+              </span>
+            )
+          ) : (
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-green-soft text-green">
+              <Hash className="h-4 w-4" aria-hidden />
+            </span>
+          )}
           <div className="min-w-0">
             <p className="truncate font-heading text-sm font-semibold text-text">
-              {threadTitle(thread)}
+              {isOrderThread && order ? counterpartyName : threadTitle(thread)}
             </p>
-            <p className="text-xs text-text-subtle">
-              {thread.kind === "staff" ? "Kênh nội bộ đội ngũ" : "Trao đổi về đơn hàng"}
+            <p className="truncate text-xs text-text-subtle">
+              {isOrderThread ? orderSubtitle : "Kênh nội bộ đội ngũ"}
             </p>
           </div>
         </div>
