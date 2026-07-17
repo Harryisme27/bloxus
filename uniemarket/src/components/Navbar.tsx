@@ -2,7 +2,6 @@ import { useState } from "react";
 import { Link, NavLink, useNavigate } from "react-router-dom";
 import {
   ShoppingCart,
-  Search,
   Menu,
   X,
   Briefcase,
@@ -15,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { LanguageToggle } from "@/components/LanguageToggle";
 import { CurrencyToggle } from "@/components/CurrencyToggle";
 import { ChatIconLink } from "@/components/nav/ChatIconLink";
+import { NavbarSearch } from "@/components/nav/NavbarSearch";
 import { NotificationBell } from "@/components/nav/NotificationBell";
 import { ProfileMenu } from "@/components/nav/ProfileMenu";
 import { useUnreadCount } from "@/components/nav/useUnreadCount";
@@ -99,10 +99,7 @@ export function Navbar() {
         </div>
 
         <div className="hidden max-w-sm flex-1 items-center lg:flex">
-          <div className="flex w-full items-center gap-2 rounded-full border border-border-strong bg-surface-2 px-3.5 py-2 text-sm text-text-subtle">
-            <Search className="h-4 w-4 shrink-0" aria-hidden="true" />
-            <span className="truncate">{s.nav.searchPlaceholder}</span>
-          </div>
+          <NavbarSearch />
         </div>
 
         <div className="flex items-center gap-2">

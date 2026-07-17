@@ -51,6 +51,38 @@ export async function listProducts(opts?: {
   return (data ?? []) as ProductRow[];
 }
 
+/** Tìm nhanh cho thanh search navbar: game theo tên + sản phẩm theo tên. */
+export async function searchCatalog(q: string): Promise<{
+  categories: CategoryRow[];
+  products: ProductRow[];
+}> {
+  const sb = requireSupabase();
+  const term = `%${q.trim()}%`;
+  const [cats, prods] = await Promise.all([
+    sb
+      .from("categories")
+      .select("*")
+      .eq("is_active", true)
+      .ilike("name", term)
+      .order("sort_order", { ascending: true })
+      .limit(3),
+    sb
+      .from("products")
+      .select("*")
+      .eq("is_active", true)
+      .ilike("name", term)
+      .order("is_featured", { ascending: false })
+      .order("sort_order", { ascending: true })
+      .limit(6),
+  ]);
+  if (cats.error) throw new Error(cats.error.message);
+  if (prods.error) throw new Error(prods.error.message);
+  return {
+    categories: (cats.data ?? []) as CategoryRow[],
+    products: (prods.data ?? []) as ProductRow[],
+  };
+}
+
 export async function getProductById(id: string): Promise<ProductRow | null> {
   const sb = requireSupabase();
   const { data, error } = await sb.from("products").select("*").eq("id", id).maybeSingle();
