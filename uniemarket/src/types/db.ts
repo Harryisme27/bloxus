@@ -267,6 +267,10 @@ export interface ReviewRow {
   item_name: string | null;
   verified_purchase: boolean;
   source: string | null;
+  /** Đánh giá gắn với đơn/CTV (09-reviews-refund-time.sql). */
+  order_id: string | null;
+  ctv_id: string | null;
+  user_id: string | null;
   created_at: string;
 }
 

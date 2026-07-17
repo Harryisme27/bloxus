@@ -1,4 +1,5 @@
 import { PageContainer } from "@/components/PageContainer";
+import { Reveal } from "@/components/Reveal";
 import { TrustBar } from "@/components/TrustBar";
 import { SetupNotice } from "@/components/SetupNotice";
 import { HeroSection } from "@/components/storefront/HeroSection";
@@ -14,32 +15,44 @@ import { isSupabaseConfigured } from "@/lib/supabase";
 export function Home() {
   return (
     <div>
-      {/* (a) Hero */}
+      {/* (a) Hero — có animation vào trang riêng bên trong */}
       <HeroSection />
 
       {/* (b) Trust bar */}
       <PageContainer className="-mt-8 pb-2">
-        <TrustBar className="relative z-10" />
+        <Reveal>
+          <TrustBar className="relative z-10" />
+        </Reveal>
       </PageContainer>
 
       {/* (c) Animated stat counters */}
       <PageContainer className="py-10">
-        <HomeStats />
+        <Reveal>
+          <HomeStats />
+        </Reveal>
       </PageContainer>
 
       {isSupabaseConfigured ? (
         <>
           {/* (d) Featured games */}
-          <FeaturedGames />
+          <Reveal>
+            <FeaturedGames />
+          </Reveal>
 
           {/* (e) Trending / best-selling items */}
-          <TrendingItems />
+          <Reveal>
+            <TrendingItems />
+          </Reveal>
 
           {/* (f) Recently delivered proofs ticker */}
-          <ProofTicker />
+          <Reveal>
+            <ProofTicker />
+          </Reveal>
 
           {/* (g) Reviews preview */}
-          <ReviewsPreview />
+          <Reveal>
+            <ReviewsPreview />
+          </Reveal>
         </>
       ) : (
         <PageContainer className="py-10">
@@ -48,7 +61,9 @@ export function Home() {
       )}
 
       {/* (h) Discord community band */}
-      <DiscordCTA />
+      <Reveal>
+        <DiscordCTA />
+      </Reveal>
     </div>
   );
 }

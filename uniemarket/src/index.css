@@ -92,3 +92,75 @@
     display: none;
   }
 }
+
+/* ---------------------------------------------------------------------------
+   Animation (kiểu bloxmart): dialog pop, hiện dần khi cuộn, logo lơ lửng.
+   Tôn trọng prefers-reduced-motion — người dùng tắt hiệu ứng thì mọi thứ hiện
+   ngay lập tức, không di chuyển.
+---------------------------------------------------------------------------- */
+@keyframes um-overlay-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes um-dialog-in {
+  from { opacity: 0; transform: translate(-50%, -48%) scale(0.94); }
+  to   { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+}
+@keyframes um-dialog-out {
+  from { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  to   { opacity: 0; transform: translate(-50%, -48%) scale(0.96); }
+}
+.um-overlay[data-state="open"] { animation: um-overlay-in 0.18s ease-out; }
+.um-dialog[data-state="open"]  { animation: um-dialog-in 0.22s cubic-bezier(0.22, 1, 0.36, 1); }
+.um-dialog[data-state="closed"] { animation: um-dialog-out 0.15s ease-in; }
+
+/* Hiện dần từ dưới lên khi phần tử vào khung nhìn (gắn bằng <Reveal>). */
+.um-reveal {
+  opacity: 0;
+  transform: translateY(22px);
+  transition: opacity 0.6s cubic-bezier(0.22, 1, 0.36, 1),
+              transform 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: opacity, transform;
+}
+.um-reveal.um-reveal-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Vào trang: các phần tử hero hiện lần lượt. */
+@keyframes um-fade-up {
+  from { opacity: 0; transform: translateY(18px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.um-enter {
+  opacity: 0;
+  animation: um-fade-up 0.65s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+.um-enter-1 { animation-delay: 0.05s; }
+.um-enter-2 { animation-delay: 0.15s; }
+.um-enter-3 { animation-delay: 0.25s; }
+.um-enter-4 { animation-delay: 0.35s; }
+.um-enter-5 { animation-delay: 0.45s; }
+
+/* Logo hero lơ lửng nhẹ. */
+@keyframes um-float {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-8px); }
+}
+.um-float { animation: um-float 5s ease-in-out infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  .um-overlay[data-state="open"],
+  .um-dialog[data-state="open"],
+  .um-dialog[data-state="closed"],
+  .um-enter,
+  .um-float {
+    animation: none !important;
+    opacity: 1 !important;
+  }
+  .um-reveal {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+}

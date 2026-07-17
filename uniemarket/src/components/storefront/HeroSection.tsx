@@ -65,19 +65,19 @@ export function HeroSection() {
           <img
             src="/logo-unie.png"
             alt="UNIE"
-            className="mb-6 h-28 w-auto drop-shadow-[0_12px_40px_rgba(245,176,30,0.35)] md:h-36"
+            className="um-enter um-enter-1 um-float mb-6 h-28 w-auto drop-shadow-[0_12px_40px_rgba(245,176,30,0.35)] md:h-36"
           />
 
-          <h1 className="font-heading text-4xl font-extrabold leading-[1.1] tracking-tight text-text sm:text-5xl">
+          <h1 className="um-enter um-enter-2 font-heading text-4xl font-extrabold leading-[1.1] tracking-tight text-text sm:text-5xl">
             {t.headlineLead}{" "}
             <span className="text-yellow">{t.headlineAccent}</span>
           </h1>
 
-          <p className="mt-5 max-w-2xl text-base text-text-muted sm:text-lg">
+          <p className="um-enter um-enter-3 mt-5 max-w-2xl text-base text-text-muted sm:text-lg">
             {t.subtitle}
           </p>
 
-          <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+          <div className="um-enter um-enter-4 mt-8 flex flex-col gap-3 sm:flex-row">
             <Link to="/games" className={cn(buttonVariants({ variant: "primary", size: "lg" }), "group")}>
               {t.shopNow}
               <ArrowRight
@@ -91,7 +91,7 @@ export function HeroSection() {
             </Link>
           </div>
 
-          <div className="mt-10 flex flex-wrap items-center justify-center gap-x-6 gap-y-3 text-sm text-text-muted">
+          <div className="um-enter um-enter-5 mt-10 flex flex-wrap items-center justify-center gap-x-6 gap-y-3 text-sm text-text-muted">
             <span className="inline-flex items-center gap-1.5">
               <Zap className="h-4 w-4 text-yellow" aria-hidden="true" />
               {t.support}

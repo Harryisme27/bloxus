@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
   ShieldCheck,
@@ -7,7 +7,10 @@ import {
   Star,
   BadgeCheck,
   ArrowRight,
+  ChevronLeft,
+  ChevronRight,
   Clock,
+  ImageOff,
   User2,
 } from "lucide-react";
 import { PageContainer } from "@/components/PageContainer";
@@ -16,7 +19,14 @@ import { RarityBadge } from "@/components/RarityBadge";
 import { CountUpStat } from "@/components/content/CountUpStat";
 import { Stars } from "@/components/content/Stars";
 import { Skeleton } from "@/components/ui/skeleton";
-import { buttonVariants } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { SetupNotice } from "@/components/SetupNotice";
 import { listProofs, listReviews } from "@/lib/db/content";
 import { isSupabaseConfigured } from "@/lib/supabase";
@@ -50,6 +60,15 @@ const STR = {
     anonymous: "Ẩn danh",
     handledBy: "Xử lý bởi",
     verifiedPurchase: "Đã mua hàng",
+    viewDetails: "Xem chi tiết",
+    prev: "Trước",
+    next: "Sau",
+    pageInfo: (cur: number, total: number) => `Trang ${cur}/${total}`,
+    detailTitle: "Chi tiết minh chứng",
+    proofImageAlt: "Ảnh giao hàng",
+    noImage: "Đơn này không có ảnh minh chứng.",
+    amountLabel: "Số tiền",
+    dateLabel: "Thời gian giao",
   },
   en: {
     eyebrow: "Trusted & transparent",
@@ -74,8 +93,19 @@ const STR = {
     anonymous: "Anonymous",
     handledBy: "Handled by",
     verifiedPurchase: "Verified purchase",
+    viewDetails: "View details",
+    prev: "Previous",
+    next: "Next",
+    pageInfo: (cur: number, total: number) => `Page ${cur}/${total}`,
+    detailTitle: "Proof details",
+    proofImageAlt: "Delivery photo",
+    noImage: "This order has no proof image.",
+    amountLabel: "Amount",
+    dateLabel: "Delivered at",
   },
 };
+
+const PROOFS_PER_PAGE = 10;
 
 export function Proofs() {
   const t = usePick(STR);
@@ -98,8 +128,18 @@ export function Proofs() {
     [proofs],
   );
   const [activeGame, setActiveGame] = useState("all");
+  const [page, setPage] = useState(1);
+  const [detail, setDetail] = useState<ProofRow | null>(null);
   const filteredProofs =
     activeGame === "all" ? proofs : proofs.filter((p) => p.game_name === activeGame);
+
+  // Đổi bộ lọc thì về trang 1.
+  useEffect(() => {
+    setPage(1);
+  }, [activeGame]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredProofs.length / PROOFS_PER_PAGE));
+  const pageProofs = filteredProofs.slice((page - 1) * PROOFS_PER_PAGE, page * PROOFS_PER_PAGE);
 
   const avgStars =
     reviews.length > 0
@@ -143,17 +183,44 @@ export function Proofs() {
             ))}
           </div>
         ) : filteredProofs.length > 0 ? (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {filteredProofs.map((p) => (
-              <ProofItem key={p.id} proof={p} />
-            ))}
-          </div>
+          <>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {pageProofs.map((p) => (
+                <ProofItem key={p.id} proof={p} onOpen={() => setDetail(p)} />
+              ))}
+            </div>
+            {totalPages > 1 ? (
+              <div className="mt-6 flex items-center justify-center gap-3">
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  disabled={page <= 1}
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                >
+                  <ChevronLeft className="h-4 w-4" aria-hidden /> {t.prev}
+                </Button>
+                <span className="tabular-nums text-sm text-text-muted">
+                  {t.pageInfo(page, totalPages)}
+                </span>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  disabled={page >= totalPages}
+                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                >
+                  {t.next} <ChevronRight className="h-4 w-4" aria-hidden />
+                </Button>
+              </div>
+            ) : null}
+          </>
         ) : (
           <p className="rounded-2xl border border-dashed border-border-strong bg-surface p-10 text-center text-sm text-text-muted">
             {t.noProofs}
           </p>
         )}
       </div>
+
+      <ProofDetailDialog proof={detail} onClose={() => setDetail(null)} />
 
       {/* Reviews */}
       <div className="mt-14">
@@ -214,10 +281,29 @@ function GameChip({ label, active, onClick }: { label: string; active: boolean; 
   );
 }
 
-function ProofItem({ proof }: { proof: ProofRow }) {
+function ProofItem({ proof, onOpen }: { proof: ProofRow; onOpen: () => void }) {
   const t = usePick(STR);
   return (
     <article className="flex flex-col gap-3 rounded-2xl border border-border bg-surface p-4 transition-all duration-200 hover:-translate-y-1 hover:border-yellow hover:shadow-glow-amber">
+      {/* Thumbnail ảnh proof (nếu có) — bấm để phóng to trong dialog */}
+      {proof.proof_image_url ? (
+        <button
+          type="button"
+          onClick={onOpen}
+          className="group relative -mx-1 -mt-1 mb-1 overflow-hidden rounded-xl border border-border"
+        >
+          <img
+            src={proof.proof_image_url}
+            alt={t.proofImageAlt}
+            loading="lazy"
+            className="h-36 w-full object-cover transition-transform duration-300 group-hover:scale-105"
+          />
+          <span className="absolute right-2 top-2 inline-flex items-center gap-1 rounded-full bg-green-soft px-2 py-0.5 text-[11px] font-semibold text-green">
+            <BadgeCheck className="h-3.5 w-3.5" aria-hidden /> {t.verified}
+          </span>
+        </button>
+      ) : null}
+
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
           <p className="truncate font-heading text-base font-semibold text-text">{proof.item_name}</p>
@@ -226,9 +312,13 @@ function ProofItem({ proof }: { proof: ProofRow }) {
         {proof.rarity ? <RarityBadge rarity={proof.rarity} className="shrink-0" /> : null}
       </div>
       <div className="flex items-center justify-between gap-2">
-        <span className="inline-flex items-center gap-1 rounded-full bg-green-soft px-2 py-0.5 text-[11px] font-semibold text-green">
-          <BadgeCheck className="h-3.5 w-3.5" aria-hidden /> {t.verified}
-        </span>
+        {!proof.proof_image_url ? (
+          <span className="inline-flex items-center gap-1 rounded-full bg-green-soft px-2 py-0.5 text-[11px] font-semibold text-green">
+            <BadgeCheck className="h-3.5 w-3.5" aria-hidden /> {t.verified}
+          </span>
+        ) : (
+          <span />
+        )}
         {proof.amount !== null ? (
           <span className="font-mono text-lg font-bold tabular-nums text-yellow">
             {formatPrice(proof.amount)}
@@ -245,12 +335,63 @@ function ProofItem({ proof }: { proof: ProofRow }) {
           {relativeTime(proof.delivered_at)}
         </span>
       </div>
-      {proof.staff_name ? (
-        <p className="text-xs text-text-subtle">
-          {t.handledBy} <span className="font-medium text-text-muted">{proof.staff_name}</span>
-        </p>
-      ) : null}
+      <button
+        type="button"
+        onClick={onOpen}
+        className="inline-flex items-center gap-1 self-start text-xs font-semibold text-yellow hover:text-yellow-hover"
+      >
+        {t.viewDetails} <ArrowRight className="h-3.5 w-3.5" aria-hidden />
+      </button>
     </article>
+  );
+}
+
+function ProofDetailDialog({ proof, onClose }: { proof: ProofRow | null; onClose: () => void }) {
+  const t = usePick(STR);
+  return (
+    <Dialog open={proof !== null} onOpenChange={(o) => (!o ? onClose() : undefined)}>
+      {proof ? (
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>{proof.item_name}</DialogTitle>
+            <DialogDescription>{proof.game_name}</DialogDescription>
+          </DialogHeader>
+
+          {proof.proof_image_url ? (
+            <img
+              src={proof.proof_image_url}
+              alt={t.proofImageAlt}
+              className="max-h-[50vh] w-full rounded-xl border border-border object-contain"
+            />
+          ) : (
+            <div className="flex h-40 flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-border-strong text-text-subtle">
+              <ImageOff className="h-7 w-7" aria-hidden />
+              <span className="text-sm">{t.noImage}</span>
+            </div>
+          )}
+
+          <dl className="mt-2 space-y-2 text-sm">
+            {proof.amount !== null ? (
+              <Row label={t.amountLabel} value={formatPrice(proof.amount)} accent />
+            ) : null}
+            <Row label={t.dateLabel} value={relativeTime(proof.delivered_at)} />
+            {proof.buyer_masked ? <Row label={t.anonymous} value={proof.buyer_masked} /> : null}
+            {proof.staff_name ? <Row label={t.handledBy} value={proof.staff_name} /> : null}
+          </dl>
+        </DialogContent>
+      ) : null}
+    </Dialog>
+  );
+}
+
+function Row({ label, value, accent }: { label: string; value: string; accent?: boolean }) {
+  return (
+    <div className="flex items-center justify-between gap-3 border-t border-border pt-2 first:border-t-0 first:pt-0">
+      <dt className="text-text-subtle">{label}</dt>
+      <dd className={cn("font-medium", accent ? "font-mono tabular-nums text-yellow" : "text-text")}>
+        {value}
+      </dd>
+    </div>
   );
 }
 

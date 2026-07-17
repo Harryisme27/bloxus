@@ -28,6 +28,7 @@ import { WorkOrderStatusBadge } from "@/components/work/orderStatusMeta";
 import { CancelRequestDialog } from "@/components/order/CancelRequestDialog";
 import { DeliveryProofGallery } from "@/components/order/DeliveryProofGallery";
 import { OrderActions } from "@/components/order/OrderActions";
+import { ReviewWidget } from "@/components/order/ReviewWidget";
 import { finalizeCancel, getOrder, listOrderEvents } from "@/lib/db/orders";
 import { getSettings } from "@/lib/db/settings";
 import { isSupabaseConfigured } from "@/lib/supabase";
@@ -356,6 +357,9 @@ function OrderDetailContent() {
 
           {/* Buyer actions: Hoàn tất đơn (Complete Order) + Yêu cầu hoàn tiền */}
           <OrderActions order={order} />
+
+          {/* Đánh giá CTV khi đơn đã hoàn thành */}
+          {order.status === "completed" ? <ReviewWidget orderId={order.id} /> : null}
 
           {/* Payment instructions while pending */}
           {isPending ? (

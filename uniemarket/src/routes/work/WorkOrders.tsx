@@ -46,6 +46,9 @@ const STR = {
     colStatus: "Trạng thái",
     colCtv: "CTV",
     open: "Mở",
+    refundRequest: "Yêu cầu hoàn tiền",
+    refundTag: "Yêu cầu hoàn tiền",
+    cancelTag: "Yêu cầu hủy",
   },
   en: {
     title: "Orders",
@@ -68,6 +71,9 @@ const STR = {
     colStatus: "Status",
     colCtv: "CTV",
     open: "Open",
+    refundRequest: "Refund request",
+    refundTag: "Refund requested",
+    cancelTag: "Cancellation requested",
   },
 };
 
@@ -99,7 +105,7 @@ function OrdersTable({ isAdmin, userId }: { isAdmin: boolean; userId: string }) 
   const t = usePick(STR);
   const s = useT();
 
-  const [statusFilter, setStatusFilter] = useState<DbOrderStatus | "all">("all");
+  const [statusFilter, setStatusFilter] = useState<DbOrderStatus | "all" | "refund_request">("all");
   const [search, setSearch] = useState("");
   const [ctvFilter, setCtvFilter] = useState<string>("all");
 
@@ -156,9 +162,18 @@ function OrdersTable({ isAdmin, userId }: { isAdmin: boolean; userId: string }) 
     ctvNameById.set(ctv.id, ctv.display_name ?? ctv.username);
   }
 
+  const refundCount = orders.filter(
+    (o) => o.refund_requested_at != null && o.status !== "refunded" && o.status !== "cancelled",
+  ).length;
+
   const normalizedSearch = search.trim().toUpperCase();
   const filtered = orders.filter((order) => {
-    if (statusFilter !== "all" && order.status !== statusFilter) return false;
+    if (statusFilter === "refund_request") {
+      if (order.refund_requested_at == null || order.status === "refunded" || order.status === "cancelled")
+        return false;
+    } else if (statusFilter !== "all" && order.status !== statusFilter) {
+      return false;
+    }
     if (isAdmin && ctvFilter !== "all" && order.assigned_ctv !== ctvFilter) return false;
     if (normalizedSearch && !order.order_code.toUpperCase().includes(normalizedSearch)) return false;
     return true;
@@ -183,6 +198,12 @@ function OrdersTable({ isAdmin, userId }: { isAdmin: boolean; userId: string }) 
             onClick={() => setStatusFilter(status)}
           />
         ))}
+        <FilterPill
+          active={statusFilter === "refund_request"}
+          label={`${t.refundRequest} (${refundCount})`}
+          onClick={() => setStatusFilter("refund_request")}
+          tone="danger"
+        />
       </div>
 
       {/* Tìm kiếm + lọc CTV */}
@@ -265,7 +286,23 @@ function OrdersTable({ isAdmin, userId }: { isAdmin: boolean; userId: string }) 
                     {formatPrice(order.total)}
                   </td>
                   <td className="px-4 py-3">
-                    <WorkOrderStatusBadge status={orderDisplayStatus(order)} />
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <WorkOrderStatusBadge status={orderDisplayStatus(order)} />
+                      {order.refund_requested_at &&
+                      order.status !== "refunded" &&
+                      order.status !== "cancelled" ? (
+                        <span className="inline-flex items-center rounded-full border border-danger bg-danger-soft px-2 py-0.5 text-[10px] font-semibold text-danger">
+                          {t.refundTag}
+                        </span>
+                      ) : null}
+                      {order.cancel_requested_at &&
+                      order.status !== "refunded" &&
+                      order.status !== "cancelled" ? (
+                        <span className="inline-flex items-center rounded-full border border-yellow bg-yellow-soft px-2 py-0.5 text-[10px] font-semibold text-yellow">
+                          {t.cancelTag}
+                        </span>
+                      ) : null}
+                    </div>
                   </td>
                   {isAdmin ? (
                     <td className="max-w-[140px] truncate px-4 py-3 text-text-muted">
@@ -296,20 +333,28 @@ function FilterPill({
   active,
   label,
   onClick,
+  tone = "default",
 }: {
   active: boolean;
   label: string;
   onClick: () => void;
+  tone?: "default" | "danger";
 }) {
+  const activeCls =
+    tone === "danger"
+      ? "border-danger bg-danger-soft text-danger"
+      : "border-yellow bg-yellow-soft text-yellow";
+  const idleCls =
+    tone === "danger"
+      ? "border-border-strong bg-surface text-text-muted hover:border-danger hover:text-danger"
+      : "border-border-strong bg-surface text-text-muted hover:bg-surface-2 hover:text-text";
   return (
     <button
       type="button"
       onClick={onClick}
       className={cn(
         "rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-yellow",
-        active
-          ? "border-yellow bg-yellow-soft text-yellow"
-          : "border-border-strong bg-surface text-text-muted hover:bg-surface-2 hover:text-text",
+        active ? activeCls : idleCls,
       )}
       aria-pressed={active}
     >

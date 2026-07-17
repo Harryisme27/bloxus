@@ -37,6 +37,9 @@ const STR = {
     timeoutLabel: "Thời gian giữ đơn tối đa (phút)",
     timeoutHint:
       "CTV nhận đơn mà quá số phút này chưa giao thì đơn tự trả về hàng đợi. Đặt 0 để tắt.",
+    refundTimeoutLabel: "Thời gian tự hoàn tiền (phút)",
+    refundTimeoutHint:
+      "Sau khi khách yêu cầu hoàn tiền, nếu admin chưa xử lý thì khách được tự chốt hoàn tiền sau số phút này.",
   },
   en: {
     fieldBrand: "Shop name",
@@ -64,6 +67,9 @@ const STR = {
     timeoutLabel: "Max order hold time (minutes)",
     timeoutHint:
       "If a collaborator claims an order but doesn't deliver within this many minutes, it returns to the queue. Set 0 to disable.",
+    refundTimeoutLabel: "Auto-refund time (minutes)",
+    refundTimeoutHint:
+      "After a customer requests a refund, if an admin hasn't handled it they can finalize the refund themselves after this many minutes.",
   },
 };
 
@@ -83,6 +89,7 @@ export function WorkSettings() {
   const [form, setForm] = useState<Record<string, string>>({});
   const [qrUrl, setQrUrl] = useState("");
   const [claimTimeout, setClaimTimeout] = useState("15");
+  const [refundTimeout, setRefundTimeout] = useState("60");
   const [uploading, setUploading] = useState(false);
 
   const fieldLabels: Record<string, string> = {
@@ -104,6 +111,8 @@ export function WorkSettings() {
       setQrUrl(asStr(query.data.momo_qr_url));
       const rawTimeout = query.data.claim_timeout_minutes;
       setClaimTimeout(rawTimeout == null ? "15" : String(rawTimeout));
+      const rawRefund = query.data.refund_timeout_minutes;
+      setRefundTimeout(rawRefund == null ? "60" : String(rawRefund));
     }
   }, [query.data]);
 
@@ -112,6 +121,7 @@ export function WorkSettings() {
       await Promise.all(FIELDS.map((f) => updateSetting(f.key, form[f.key] ?? "")));
       await updateSetting("momo_qr_url", qrUrl);
       await updateSetting("claim_timeout_minutes", Math.max(0, parseInt(claimTimeout, 10) || 0));
+      await updateSetting("refund_timeout_minutes", Math.max(1, parseInt(refundTimeout, 10) || 60));
     },
     onSuccess: () => {
       toast.success(t.saved);
@@ -233,6 +243,19 @@ export function WorkSettings() {
                 className="max-w-[160px]"
               />
               <p className="mt-1.5 text-xs text-text-subtle">{t.timeoutHint}</p>
+
+              <div className="mt-4">
+                <Label htmlFor="refund-timeout">{t.refundTimeoutLabel}</Label>
+                <Input
+                  id="refund-timeout"
+                  type="number"
+                  min={1}
+                  value={refundTimeout}
+                  onChange={(e) => setRefundTimeout(e.target.value)}
+                  className="max-w-[160px]"
+                />
+                <p className="mt-1.5 text-xs text-text-subtle">{t.refundTimeoutHint}</p>
+              </div>
             </div>
 
             <Button onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending}>
