@@ -33,6 +33,10 @@ const STR = {
     save: "Lưu cài đặt",
     customerSees: "Khách sẽ thấy",
     previewNote: "Kèm mã đơn (nội dung chuyển khoản) và số tiền của từng đơn.",
+    handlingTitle: "Xử lý đơn",
+    timeoutLabel: "Thời gian giữ đơn tối đa (phút)",
+    timeoutHint:
+      "CTV nhận đơn mà quá số phút này chưa giao thì đơn tự trả về hàng đợi. Đặt 0 để tắt.",
   },
   en: {
     fieldBrand: "Shop name",
@@ -56,6 +60,10 @@ const STR = {
     save: "Save settings",
     customerSees: "What the customer sees",
     previewNote: "Includes the order code (transfer memo) and each order's amount.",
+    handlingTitle: "Order handling",
+    timeoutLabel: "Max order hold time (minutes)",
+    timeoutHint:
+      "If a collaborator claims an order but doesn't deliver within this many minutes, it returns to the queue. Set 0 to disable.",
   },
 };
 
@@ -74,6 +82,7 @@ export function WorkSettings() {
   const fileRef = useRef<HTMLInputElement>(null);
   const [form, setForm] = useState<Record<string, string>>({});
   const [qrUrl, setQrUrl] = useState("");
+  const [claimTimeout, setClaimTimeout] = useState("15");
   const [uploading, setUploading] = useState(false);
 
   const fieldLabels: Record<string, string> = {
@@ -93,6 +102,8 @@ export function WorkSettings() {
       for (const f of FIELDS) next[f.key] = asStr(query.data[f.key]);
       setForm(next);
       setQrUrl(asStr(query.data.momo_qr_url));
+      const rawTimeout = query.data.claim_timeout_minutes;
+      setClaimTimeout(rawTimeout == null ? "15" : String(rawTimeout));
     }
   }, [query.data]);
 
@@ -100,6 +111,7 @@ export function WorkSettings() {
     mutationFn: async () => {
       await Promise.all(FIELDS.map((f) => updateSetting(f.key, form[f.key] ?? "")));
       await updateSetting("momo_qr_url", qrUrl);
+      await updateSetting("claim_timeout_minutes", Math.max(0, parseInt(claimTimeout, 10) || 0));
     },
     onSuccess: () => {
       toast.success(t.saved);
@@ -207,6 +219,20 @@ export function WorkSettings() {
                   ) : null}
                 </div>
               </div>
+            </div>
+
+            <div className="border-t border-border pt-4">
+              <p className="mb-3 font-heading text-sm font-semibold text-text">{t.handlingTitle}</p>
+              <Label htmlFor="claim-timeout">{t.timeoutLabel}</Label>
+              <Input
+                id="claim-timeout"
+                type="number"
+                min={0}
+                value={claimTimeout}
+                onChange={(e) => setClaimTimeout(e.target.value)}
+                className="max-w-[160px]"
+              />
+              <p className="mt-1.5 text-xs text-text-subtle">{t.timeoutHint}</p>
             </div>
 
             <Button onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending}>

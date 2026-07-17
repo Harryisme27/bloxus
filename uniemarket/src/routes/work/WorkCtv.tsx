@@ -1,20 +1,28 @@
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { BadgeCheck, Check, KeyRound, UserRound, X } from "lucide-react";
+import { BadgeCheck, Check, FolderCog, KeyRound, Loader2, UserRound, X } from "lucide-react";
 import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useConfirm } from "@/components/ui/confirm";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { listApplications, approveCtv } from "@/lib/db/applications";
-import { listCtvs, setUserRole } from "@/lib/db/profiles";
+import { listCtvs, setUserRole, listCtvCategories, setCtvCategories } from "@/lib/db/profiles";
+import { listCategories } from "@/lib/db/catalog";
 import { relativeTime } from "@/lib/format";
-import type { CtvApplicationRow, UserRole } from "@/types/db";
+import type { CtvApplicationRow, ProfileRow, UserRole } from "@/types/db";
 import { usePick, useLangStore } from "@/i18n";
 
 const ROLE_LABELS: { vi: Record<UserRole, string>; en: Record<UserRole, string> } = {
@@ -57,6 +65,17 @@ const STR = {
     noCtvPre: "Chưa có CTV nào. Dùng tab",
     noCtvPost: "để thêm CTV theo email.",
     ctvBadge: "CTV",
+    manageCats: "Phân danh mục",
+    catDialogTitle: (name: string) => `Danh mục cho ${name}`,
+    catDialogDesc: "Chọn danh mục CTV được phép nhận đơn, hoặc cho phép toàn bộ.",
+    allCats: "Toàn bộ danh mục",
+    catsSaved: "Đã cập nhật danh mục cho CTV.",
+    catsSaveFail: "Không lưu được.",
+    saveCats: "Lưu",
+    saving: "Đang lưu...",
+    allAccessBadge: "Toàn bộ",
+    catsCount: (n: number) => `${n} danh mục`,
+    noCatAccess: "Chưa phân",
   },
   en: {
     title: "Collaborators",
@@ -93,6 +112,17 @@ const STR = {
     noCtvPre: "No collaborators yet. Use the",
     noCtvPost: "tab to add a CTV by email.",
     ctvBadge: "CTV",
+    manageCats: "Assign categories",
+    catDialogTitle: (name: string) => `Categories for ${name}`,
+    catDialogDesc: "Choose which categories this collaborator can claim orders from, or allow all.",
+    allCats: "All categories",
+    catsSaved: "Collaborator categories updated.",
+    catsSaveFail: "Couldn't save.",
+    saveCats: "Save",
+    saving: "Saving...",
+    allAccessBadge: "All",
+    catsCount: (n: number) => `${n} categor${n === 1 ? "y" : "ies"}`,
+    noCatAccess: "None",
   },
 };
 
@@ -323,6 +353,8 @@ function ApplicationCard({
 function CtvListTab() {
   const t = usePick(STR);
   const query = useQuery({ queryKey: ["ctvs"], queryFn: listCtvs });
+  const [managing, setManaging] = useState<ProfileRow | null>(null);
+
   if (query.isPending) return <Skeleton className="h-40 rounded-2xl" />;
   const ctvs = query.data ?? [];
   if (ctvs.length === 0)
@@ -332,28 +364,148 @@ function CtvListTab() {
       </div>
     );
   return (
-    <div className="overflow-hidden rounded-2xl border border-border">
-      {ctvs.map((c) => (
-        <div
-          key={c.id}
-          className="flex items-center gap-3 border-b border-border bg-surface px-4 py-3 last:border-b-0"
-        >
-          <span className="flex h-9 w-9 items-center justify-center rounded-full bg-green-soft text-green">
-            <UserRound className="h-4 w-4" aria-hidden />
-          </span>
-          <div className="min-w-0 flex-1">
-            <p className="font-medium text-text">{c.display_name || c.username}</p>
-            <p className="text-xs text-text-subtle">
-              @{c.username}
-              {c.discord ? ` · ${c.discord}` : ""}
-              {c.phone ? ` · ${c.phone}` : ""}
-            </p>
+    <>
+      <div className="overflow-hidden rounded-2xl border border-border">
+        {ctvs.map((c) => (
+          <div
+            key={c.id}
+            className="flex flex-wrap items-center gap-3 border-b border-border bg-surface px-4 py-3 last:border-b-0"
+          >
+            <span className="flex h-9 w-9 items-center justify-center rounded-full bg-green-soft text-green">
+              <UserRound className="h-4 w-4" aria-hidden />
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="font-medium text-text">{c.display_name || c.username}</p>
+              <p className="text-xs text-text-subtle">
+                @{c.username}
+                {c.discord ? ` · ${c.discord}` : ""}
+                {c.phone ? ` · ${c.phone}` : ""}
+              </p>
+            </div>
+            {c.ctv_all_categories ? (
+              <Badge variant="gold">{t.allAccessBadge}</Badge>
+            ) : null}
+            <Button variant="secondary" size="sm" onClick={() => setManaging(c)}>
+              <FolderCog className="h-4 w-4" aria-hidden /> {t.manageCats}
+            </Button>
+            <Badge variant="success">
+              <BadgeCheck className="h-3 w-3" aria-hidden /> {t.ctvBadge}
+            </Badge>
           </div>
-          <Badge variant="success">
-            <BadgeCheck className="h-3 w-3" aria-hidden /> {t.ctvBadge}
-          </Badge>
-        </div>
-      ))}
-    </div>
+        ))}
+      </div>
+      <CategoryAssignDialog ctv={managing} onClose={() => setManaging(null)} />
+    </>
+  );
+}
+
+function CategoryAssignDialog({ ctv, onClose }: { ctv: ProfileRow | null; onClose: () => void }) {
+  const t = usePick(STR);
+  const queryClient = useQueryClient();
+  const [all, setAll] = useState(false);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+
+  const catsQuery = useQuery({
+    queryKey: ["categories", "all"],
+    queryFn: () => listCategories({ activeOnly: false }),
+    enabled: ctv !== null,
+  });
+  const assignedQuery = useQuery({
+    queryKey: ["ctv-categories", ctv?.id],
+    queryFn: () => listCtvCategories(ctv!.id),
+    enabled: ctv !== null,
+  });
+
+  useEffect(() => {
+    if (ctv) setAll(ctv.ctv_all_categories);
+  }, [ctv]);
+  useEffect(() => {
+    if (assignedQuery.data) setSelected(new Set(assignedQuery.data));
+  }, [assignedQuery.data]);
+
+  const mutation = useMutation({
+    mutationFn: () => setCtvCategories(ctv!.id, Array.from(selected), all),
+    onSuccess: () => {
+      toast.success(t.catsSaved);
+      void queryClient.invalidateQueries({ queryKey: ["ctvs"] });
+      void queryClient.invalidateQueries({ queryKey: ["ctv-categories", ctv?.id] });
+      onClose();
+    },
+    onError: (err: Error) => toast.error(err.message || t.catsSaveFail),
+  });
+
+  const cats = catsQuery.data ?? [];
+
+  return (
+    <Dialog open={ctv !== null} onOpenChange={(o) => (!o ? onClose() : undefined)}>
+      {ctv ? (
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t.catDialogTitle(ctv.display_name || ctv.username)}</DialogTitle>
+            <DialogDescription>{t.catDialogDesc}</DialogDescription>
+          </DialogHeader>
+
+          <label className="flex items-center gap-2.5 rounded-lg border border-border bg-surface-2 px-3 py-2.5">
+            <input
+              type="checkbox"
+              checked={all}
+              onChange={(e) => setAll(e.target.checked)}
+              className="h-4 w-4 accent-yellow"
+            />
+            <span className="text-sm font-medium text-text">{t.allCats}</span>
+          </label>
+
+          {!all ? (
+            <div className="mt-3 max-h-64 space-y-1 overflow-y-auto pr-1">
+              {catsQuery.isPending ? (
+                <Skeleton className="h-24" />
+              ) : (
+                cats.map((cat) => {
+                  const checked = selected.has(cat.id);
+                  return (
+                    <label
+                      key={cat.id}
+                      className="flex items-center gap-2.5 rounded-lg px-2 py-2 hover:bg-surface-2"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        onChange={(e) => {
+                          setSelected((prev) => {
+                            const next = new Set(prev);
+                            if (e.target.checked) next.add(cat.id);
+                            else next.delete(cat.id);
+                            return next;
+                          });
+                        }}
+                        className="h-4 w-4 accent-yellow"
+                      />
+                      <span className="text-sm text-text">{cat.name}</span>
+                      {!cat.is_active ? (
+                        <span className="text-xs text-text-subtle">(ẩn)</span>
+                      ) : null}
+                    </label>
+                  );
+                })
+              )}
+            </div>
+          ) : null}
+
+          <div className="mt-5 flex justify-end gap-2">
+            <Button variant="secondary" size="sm" onClick={onClose}>
+              <X className="h-4 w-4" aria-hidden /> {t.reject}
+            </Button>
+            <Button size="sm" disabled={mutation.isPending} onClick={() => mutation.mutate()}>
+              {mutation.isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+              ) : (
+                <Check className="h-4 w-4" aria-hidden />
+              )}
+              {mutation.isPending ? t.saving : t.saveCats}
+            </Button>
+          </div>
+        </DialogContent>
+      ) : null}
+    </Dialog>
   );
 }

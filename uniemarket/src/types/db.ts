@@ -67,6 +67,7 @@ export interface ProfileRow {
   discord: string | null;
   role: UserRole;
   last_seen_at: string | null;
+  ctv_all_categories: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -130,6 +131,7 @@ export interface OrderRow {
   order_code: string;
   user_id: string;
   status: DbOrderStatus;
+  category_id: string | null;
   subtotal: number;
   discount: number;
   total: number;

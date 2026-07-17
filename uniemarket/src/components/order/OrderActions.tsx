@@ -112,12 +112,10 @@ export function OrderActions({ order, compact = false }: OrderActionsProps) {
     displayStatus === "paid" ||
     displayStatus === "in_progress";
 
-  // Yêu cầu hoàn tiền khi đơn đang chạy/đã xong và chưa có yêu cầu nào.
+  // Yêu cầu hoàn tiền CHỈ khi đơn đang chạy (paid/in_progress) và chưa có yêu cầu.
+  // Đơn đã HOÀN THÀNH (khách xác nhận nhận hàng) thì KHÔNG được hoàn tiền nữa.
   const refundEligible =
-    !refundPending &&
-    (order.status === "paid" ||
-      order.status === "in_progress" ||
-      order.status === "completed");
+    !refundPending && (order.status === "paid" || order.status === "in_progress");
 
   // Không có gì để hiển thị (vd: pending_payment / cancelled / refunded và không có yêu cầu hoàn tiền).
   if (!showComplete && !refundEligible && !refundPending) return null;
@@ -172,11 +170,12 @@ export function OrderActions({ order, compact = false }: OrderActionsProps) {
         </div>
       ) : null}
 
-      {/* Nút hành động chính (ẩn khi đang chờ hoàn tiền) */}
+      {/* Nút hành động chính (ẩn khi đang chờ hoàn tiền). Xếp DỌC để không bị cắt
+          trong cột hẹp (sidebar chi tiết đơn / trang đơn). */}
       {(showComplete || refundEligible) && !refundPending ? (
-        <div className={compact ? "flex flex-wrap gap-2" : "flex flex-col gap-2 sm:flex-row"}>
+        <div className="flex flex-col gap-2">
           {showComplete ? (
-            <div className={compact ? "" : "flex-1"}>
+            <div>
               <Button
                 variant="gold"
                 size={btnSize}
@@ -199,7 +198,7 @@ export function OrderActions({ order, compact = false }: OrderActionsProps) {
           ) : null}
 
           {refundEligible ? (
-            <div className={compact ? "" : "flex-1"}>
+            <div>
               <Button
                 variant="secondary"
                 size={btnSize}

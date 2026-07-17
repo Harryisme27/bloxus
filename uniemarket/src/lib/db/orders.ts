@@ -9,8 +9,12 @@ import type {
   PlaceOrderPayload,
 } from "@/types/db";
 
-/** Đặt hàng (yêu cầu đăng nhập). Server đọc lại giá từ DB — giá client chỉ để hiển thị. */
-export async function placeOrder(payload: PlaceOrderPayload): Promise<OrderRow> {
+/**
+ * Đặt hàng (yêu cầu đăng nhập). MỖI MÓN trong giỏ được tách thành 1 ĐƠN riêng
+ * để các CTV khác nhau có thể nhận từng món → trả về MẢNG đơn đã tạo.
+ * Server đọc lại giá từ DB — giá client chỉ để hiển thị.
+ */
+export async function placeOrder(payload: PlaceOrderPayload): Promise<OrderRow[]> {
   const sb = requireSupabase();
   const { data, error } = await sb.rpc("place_order", {
     p_items: payload.items.map((item) => ({
@@ -25,7 +29,31 @@ export async function placeOrder(payload: PlaceOrderPayload): Promise<OrderRow> 
     p_note: payload.note ?? null,
   });
   if (error) throw new Error(error.message);
+  return (data ?? []) as OrderRow[];
+}
+
+/** CTV/Admin tự nhận 1 đơn trong hàng đợi (paid → in_progress). */
+export async function claimOrder(orderId: string): Promise<OrderRow> {
+  const sb = requireSupabase();
+  const { data, error } = await sb.rpc("claim_order", { p_order_id: orderId });
+  if (error) throw new Error(error.message);
   return data as OrderRow;
+}
+
+/** Hàng đợi đơn CTV có thể nhận (đã thanh toán, chưa ai nhận, đúng danh mục được phân). */
+export async function listClaimableOrders(): Promise<OrderRow[]> {
+  const sb = requireSupabase();
+  const { data, error } = await sb.rpc("list_claimable_orders");
+  if (error) throw new Error(error.message);
+  return (data ?? []) as OrderRow[];
+}
+
+/** Trả các đơn quá hạn xử lý về hàng đợi. Trả về số đơn được thu hồi. */
+export async function reclaimStaleOrders(): Promise<number> {
+  const sb = requireSupabase();
+  const { data, error } = await sb.rpc("reclaim_stale_orders");
+  if (error) throw new Error(error.message);
+  return (data as number) ?? 0;
 }
 
 /** Đơn hàng của chính tôi (khách). */

@@ -21,6 +21,7 @@ const STR = {
   vi: {
     orderCreated: "Đã tạo đơn hàng!",
     orderCodePrefix: "Mã đơn: ",
+    ordersCreatedMulti: (n: number) => `Đã tạo ${n} đơn (mỗi món một đơn riêng).`,
     createFailed: "Không tạo được đơn hàng.",
     title: "Thanh toán",
     subtitle:
@@ -50,6 +51,7 @@ const STR = {
   en: {
     orderCreated: "Order created!",
     orderCodePrefix: "Order code: ",
+    ordersCreatedMulti: (n: number) => `Created ${n} orders (one per item).`,
     createFailed: "Couldn't create the order.",
     title: "Checkout",
     subtitle:
@@ -123,11 +125,17 @@ function CheckoutContent() {
         contactValue: "",
         note: note.trim() || undefined,
       }),
-    onSuccess: (order) => {
+    onSuccess: (orders) => {
       placedRef.current = true;
       clear();
-      toast.success(t.orderCreated, { description: `${t.orderCodePrefix}${order.order_code}` });
-      navigate(`/orders/${order.id}`);
+      // Mỗi món = 1 đơn riêng. 1 đơn → mở thẳng; nhiều đơn → về danh sách.
+      if (orders.length === 1) {
+        toast.success(t.orderCreated, { description: `${t.orderCodePrefix}${orders[0].order_code}` });
+        navigate(`/orders/${orders[0].id}`);
+      } else {
+        toast.success(t.orderCreated, { description: t.ordersCreatedMulti(orders.length) });
+        navigate("/orders");
+      }
     },
     onError: (err) => {
       toast.error(err instanceof Error ? err.message : t.createFailed);

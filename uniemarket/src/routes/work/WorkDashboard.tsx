@@ -2,14 +2,16 @@
 // - Admin: 4 thẻ thống kê + hàng đợi giao đơn (paid chưa có CTV) + strip
 //   nhắc đơn chờ xác nhận tiền -> /work/payments.
 // - CTV: "Đơn của tôi" nhóm Mới giao / Đang thực hiện / Hoàn thành gần đây.
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import {
   ArrowRight,
   BadgeCheck,
   BadgeDollarSign,
   Clock,
+  HandHelping,
   Inbox,
   Loader,
   UserPlus,
@@ -23,7 +25,7 @@ import { ContactChip } from "@/components/work/CopyChip";
 import { WorkOrderStatusBadge } from "@/components/work/orderStatusMeta";
 import { useOrdersRealtime } from "@/components/work/useOrdersRealtime";
 import { listItemsForOrders, summarizeItems } from "@/components/work/workData";
-import { listWorkOrders } from "@/lib/db/orders";
+import { listWorkOrders, listClaimableOrders, claimOrder, reclaimStaleOrders } from "@/lib/db/orders";
 import { formatPrice, relativeTime } from "@/lib/format";
 import { isSupabaseConfigured } from "@/lib/supabase";
 import { useAuthStore } from "@/store/authStore";
@@ -63,6 +65,13 @@ const STR = {
     openOrder: "Mở đơn",
     loadError: (msg: string) => `Không tải được dữ liệu. ${msg}`,
     retry: "Thử lại",
+    claimTitle: "Đơn có thể nhận",
+    claimHint: "Nhận đơn thuộc danh mục bạn được phân",
+    claimCount: (n: number) => `${n} đơn trong hàng đợi`,
+    claimEmpty: "Không có đơn nào để nhận lúc này.",
+    claimBtn: "Nhận đơn",
+    claiming: "Đang nhận...",
+    claimed: (code: string) => `Đã nhận đơn ${code}.`,
   },
   en: {
     title: "Dashboard",
@@ -94,14 +103,40 @@ const STR = {
     openOrder: "Open order",
     loadError: (msg: string) => `Couldn't load data. ${msg}`,
     retry: "Try again",
+    claimTitle: "Orders you can claim",
+    claimHint: "Claim orders in your assigned categories",
+    claimCount: (n: number) => `${n} order${n === 1 ? "" : "s"} in the queue`,
+    claimEmpty: "No orders to claim right now.",
+    claimBtn: "Claim order",
+    claiming: "Claiming...",
+    claimed: (code: string) => `Claimed order ${code}.`,
   },
 };
+
+/** Trả các đơn quá hạn về hàng đợi khi mở khu làm việc (chống ôm đơn). */
+function useReclaimOnMount() {
+  const queryClient = useQueryClient();
+  useEffect(() => {
+    if (!isSupabaseConfigured) return;
+    void reclaimStaleOrders()
+      .then((n) => {
+        if (n > 0) {
+          void queryClient.invalidateQueries({ queryKey: ["work-orders"] });
+          void queryClient.invalidateQueries({ queryKey: ["claimable-orders"] });
+        }
+      })
+      .catch(() => {});
+    // chỉ chạy 1 lần khi mở
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+}
 
 /** /work — dashboard khu làm việc (hàng đợi thanh toán, đơn chờ giao, thống kê). */
 export function WorkDashboard() {
   const user = useAuthStore((state) => state.user);
   const t = usePick(STR);
   const isAdmin = user?.role === "admin";
+  useReclaimOnMount();
 
   return (
     <div className="space-y-6">
@@ -345,10 +380,13 @@ function CtvDashboard({ userId }: { userId: string }) {
 
   if (orders.length === 0) {
     return (
-      <div className="rounded-2xl border border-dashed border-border-strong bg-surface p-10 text-center">
-        <Inbox className="mx-auto h-10 w-10 text-text-subtle" aria-hidden />
-        <p className="mt-3 font-heading text-lg font-semibold text-text">{t.ctvEmptyTitle}</p>
-        <p className="mt-1 text-sm text-text-muted">{t.ctvEmptyBody}</p>
+      <div className="space-y-8">
+        <ClaimableQueue />
+        <div className="rounded-2xl border border-dashed border-border-strong bg-surface p-10 text-center">
+          <Inbox className="mx-auto h-10 w-10 text-text-subtle" aria-hidden />
+          <p className="mt-3 font-heading text-lg font-semibold text-text">{t.ctvEmptyTitle}</p>
+          <p className="mt-1 text-sm text-text-muted">{t.ctvEmptyBody}</p>
+        </div>
       </div>
     );
   }
@@ -357,6 +395,7 @@ function CtvDashboard({ userId }: { userId: string }) {
 
   return (
     <div className="space-y-8">
+      <ClaimableQueue />
       <CtvOrderGroup
         title={t.groupNew}
         hint={t.groupNewHint}
@@ -446,6 +485,88 @@ function CtvOrderGroup({
             </article>
           ))}
         </div>
+      )}
+    </section>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Hàng đợi đơn CTV tự nhận
+// ---------------------------------------------------------------------------
+
+function ClaimableQueue() {
+  const t = usePick(STR);
+  const queryClient = useQueryClient();
+
+  const query = useQuery({
+    queryKey: ["claimable-orders"],
+    queryFn: listClaimableOrders,
+    enabled: isSupabaseConfigured,
+  });
+
+  const claimMutation = useMutation({
+    mutationFn: (orderId: string) => claimOrder(orderId),
+    onSuccess: (order) => {
+      toast.success(t.claimed(order.order_code));
+      void queryClient.invalidateQueries({ queryKey: ["claimable-orders"] });
+      void queryClient.invalidateQueries({ queryKey: ["work-orders"] });
+    },
+    onError: (err: Error) => {
+      toast.error(err.message);
+      void queryClient.invalidateQueries({ queryKey: ["claimable-orders"] });
+    },
+  });
+
+  const orders = query.data ?? [];
+
+  return (
+    <section className="rounded-2xl border border-border bg-surface">
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border px-5 py-4">
+        <div className="flex items-center gap-2">
+          <HandHelping className="h-5 w-5 text-yellow" aria-hidden />
+          <h2 className="font-heading text-lg font-semibold text-text">{t.claimTitle}</h2>
+        </div>
+        <span className="text-sm text-text-muted">
+          {orders.length > 0 ? t.claimCount(orders.length) : t.claimHint}
+        </span>
+      </div>
+
+      {query.isPending ? (
+        <div className="p-5">
+          <Skeleton className="h-16 rounded-xl" />
+        </div>
+      ) : orders.length === 0 ? (
+        <EmptyBlock text={t.claimEmpty} />
+      ) : (
+        <ul className="divide-y divide-border">
+          {orders.map((order) => (
+            <li key={order.id} className="flex flex-wrap items-center gap-x-4 gap-y-2 px-5 py-3.5">
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <Link
+                    to={`/work/orders/${order.id}`}
+                    className="font-mono text-sm font-bold text-text hover:text-yellow"
+                  >
+                    {order.order_code}
+                  </Link>
+                  <span className="text-xs text-text-subtle">{relativeTime(order.created_at)}</span>
+                </div>
+                <span className="tabular-nums-mono mt-1 block text-sm font-semibold text-text">
+                  {formatPrice(order.total)}
+                </span>
+              </div>
+              <Button
+                variant="primary"
+                size="sm"
+                disabled={claimMutation.isPending}
+                onClick={() => claimMutation.mutate(order.id)}
+              >
+                <HandHelping className="h-4 w-4" aria-hidden />
+                {claimMutation.isPending ? t.claiming : t.claimBtn}
+              </Button>
+            </li>
+          ))}
+        </ul>
       )}
     </section>
   );
