@@ -2,6 +2,12 @@
 import { requireSupabase } from "@/lib/supabase";
 import type { ProfileRow, PublicProfileRow, UserRole } from "@/types/db";
 
+/** Cập nhật mốc "hoạt động gần đây" của tôi (gọi định kỳ khi đang dùng app). */
+export async function touchLastSeen(): Promise<void> {
+  const sb = requireSupabase();
+  await sb.rpc("touch_last_seen");
+}
+
 /** Admin cấp quyền cho một tài khoản theo email (customer | ctv | admin). */
 export async function setUserRole(email: string, role: UserRole): Promise<ProfileRow> {
   const sb = requireSupabase();

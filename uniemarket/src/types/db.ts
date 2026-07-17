@@ -66,6 +66,7 @@ export interface ProfileRow {
   phone: string | null;
   discord: string | null;
   role: UserRole;
+  last_seen_at: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -77,6 +78,7 @@ export interface PublicProfileRow {
   username: string;
   avatar_url: string | null;
   role: UserRole;
+  last_seen_at: string | null;
 }
 
 export interface CategoryRow {
@@ -153,6 +155,10 @@ export interface OrderRow {
   delivery_note: string | null;
   delivery_proof_images: string[];
   buyer_confirmed_at: string | null;
+  // Luồng hoàn tiền (07-refund-realtime.sql):
+  refund_requested_at: string | null;
+  refund_reason: string | null;
+  refund_request_by: string | null;
   created_at: string;
   updated_at: string;
 }

@@ -164,6 +164,32 @@ export async function confirmReceived(orderId: string): Promise<OrderRow> {
   return data as OrderRow;
 }
 
+/** Khách yêu cầu hoàn tiền (kèm lý do). Tự động sau 1h hoặc admin duyệt. */
+export async function requestRefund(orderId: string, reason: string): Promise<OrderRow> {
+  const sb = requireSupabase();
+  const { data, error } = await sb.rpc("request_refund", { p_order_id: orderId, p_reason: reason });
+  if (error) throw new Error(error.message);
+  return data as OrderRow;
+}
+
+/** Admin duyệt/từ chối yêu cầu hoàn tiền. */
+export async function resolveRefund(orderId: string, approve: boolean, note?: string): Promise<OrderRow> {
+  const sb = requireSupabase();
+  const { data, error } = await sb.rpc("resolve_refund", {
+    p_order_id: orderId, p_approve: approve, p_note: note ?? null,
+  });
+  if (error) throw new Error(error.message);
+  return data as OrderRow;
+}
+
+/** Khách tự chốt hoàn tiền sau 1h nếu admin chưa xử lý. */
+export async function finalizeRefund(orderId: string): Promise<OrderRow> {
+  const sb = requireSupabase();
+  const { data, error } = await sb.rpc("finalize_refund", { p_order_id: orderId });
+  if (error) throw new Error(error.message);
+  return data as OrderRow;
+}
+
 /** Upload 1 ảnh bằng chứng giao hàng vào bucket proof-images. Trả về public URL. */
 export async function uploadDeliveryProof(orderId: string, file: File): Promise<string> {
   const sb = requireSupabase();
