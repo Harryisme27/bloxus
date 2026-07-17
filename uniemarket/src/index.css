@@ -156,7 +156,11 @@
   to   { opacity: 1; transform: translateY(0); }
 }
 .um-page {
-  animation: um-page-in 0.42s cubic-bezier(0.22, 1, 0.36, 1) both;
+  /* KHÔNG dùng fill-mode "both/forwards": nó giữ lại transform:translateY(0) sau
+     khi chạy xong, mà bất kỳ transform nào cũng biến phần tử thành containing block
+     -> phá vỡ position:fixed/sticky của con (vd overlay editor sản phẩm). Không giữ
+     transform thì sau 0.42s transform trở về none, fixed/sticky chạy đúng lại. */
+  animation: um-page-in 0.42s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 @media (prefers-reduced-motion: reduce) {

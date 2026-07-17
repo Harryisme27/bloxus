@@ -73,7 +73,11 @@ export function NotificationBell() {
       );
       void queryClient.invalidateQueries({ queryKey: UNREAD_KEY });
       toast.info(n.title, { description: n.body ?? undefined });
-      if (n.type === "order_new" && (role === "admin" || role === "ctv")) {
+      // Đơn mới (admin) hoặc đơn vào hàng chờ nhận (CTV) -> phát âm thanh.
+      if (
+        (n.type === "order_new" || n.type === "order_claimable") &&
+        (role === "admin" || role === "ctv")
+      ) {
         playOrderBeep();
       }
     });
