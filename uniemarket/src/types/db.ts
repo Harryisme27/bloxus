@@ -137,6 +137,7 @@ export interface OrderRow {
   total: number;
   currency: string;
   payment_method: DbPaymentMethod | null;
+  payment_gateway: string | null;
   payment_ref: string | null;
   game_username: string | null;
   contact_channel: string | null;
@@ -323,6 +324,8 @@ export interface PlaceOrderItem {
 export interface PlaceOrderPayload {
   items: PlaceOrderItem[];
   paymentMethod: DbPaymentMethod;
+  /** Id cổng thanh toán khách chọn (bank_transfer | momo | stripe | crypto | paypal…). */
+  gateway?: string;
   gameUsername: string;
   contactChannel: string;
   contactValue: string;

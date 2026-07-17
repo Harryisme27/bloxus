@@ -1,6 +1,6 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { AtSign, Gamepad2, Landmark, Lock, MessageSquare, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import { PageContainer } from "@/components/PageContainer";
@@ -14,7 +14,9 @@ import { PaymentMethodSelector } from "@/components/commerce/PaymentMethodSelect
 import { useCartStore } from "@/store/cartStore";
 import { useAuthStore } from "@/store/authStore";
 import { placeOrder } from "@/lib/db/orders";
-import type { DbPaymentMethod } from "@/types/db";
+import { getSettings } from "@/lib/db/settings";
+import { enabledGateways, parseGateways } from "@/lib/paymentGateways";
+import { isSupabaseConfigured } from "@/lib/supabase";
 import { usePick } from "@/i18n";
 
 const STR = {
@@ -98,11 +100,27 @@ function CheckoutContent() {
 
   const [gameUsername, setGameUsername] = useState("");
   const [note, setNote] = useState("");
-  const [method, setMethod] = useState<DbPaymentMethod>("bank_transfer");
+  const [gatewayId, setGatewayId] = useState<string>("");
   const placedRef = useRef(false);
 
   const total = subtotal();
   const email = session?.user.email ?? "";
+
+  // Cổng thanh toán admin bật.
+  const settingsQuery = useQuery({
+    queryKey: ["settings"],
+    queryFn: getSettings,
+    enabled: isSupabaseConfigured,
+  });
+  const gateways = useMemo(
+    () => enabledGateways(parseGateways(settingsQuery.data)),
+    [settingsQuery.data],
+  );
+  // Chọn mặc định cổng đầu tiên khi tải xong.
+  useEffect(() => {
+    if (!gatewayId && gateways.length > 0) setGatewayId(gateways[0].id);
+  }, [gateways, gatewayId]);
+  const selectedGateway = gateways.find((g) => g.id === gatewayId) ?? gateways[0];
 
   const orderItems = useMemo(
     () =>
@@ -118,7 +136,9 @@ function CheckoutContent() {
     mutationFn: () =>
       placeOrder({
         items: orderItems,
-        paymentMethod: method,
+        // Enum lưu vào đơn chỉ bank_transfer|momo; id cổng thật lưu ở gateway.
+        paymentMethod: selectedGateway?.method ?? "bank_transfer",
+        gateway: selectedGateway?.id,
         gameUsername: gameUsername.trim(),
         // Trao đổi qua chat trên trang đơn hàng — không cần kênh liên hệ ngoài.
         contactChannel: "",
@@ -232,7 +252,7 @@ function CheckoutContent() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4 pt-5">
-              <PaymentMethodSelector value={method} onChange={setMethod} />
+              <PaymentMethodSelector gateways={gateways} value={gatewayId} onChange={setGatewayId} />
               <div className="rounded-xl border border-dashed border-border-strong bg-surface-2 p-4 text-sm text-text-muted">
                 <p className="font-semibold text-text">{t.manualPayment}</p>
                 <p className="mt-1">{t.manualPaymentDesc}</p>

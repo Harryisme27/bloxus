@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getSettings, updateSetting } from "@/lib/db/settings";
 import { prepareImage, uploadSiteAsset } from "@/components/work-admin/uploads";
+import { GATEWAY_META, parseGateways, type GatewaysSettings } from "@/lib/paymentGateways";
 import { usePick, useLangStore } from "@/i18n";
 
 const STR = {
@@ -40,6 +41,11 @@ const STR = {
     refundTimeoutLabel: "Thời gian tự hoàn tiền (phút)",
     refundTimeoutHint:
       "Sau khi khách yêu cầu hoàn tiền, nếu admin chưa xử lý thì khách được tự chốt hoàn tiền sau số phút này.",
+    gatewaysTitle: "Cổng thanh toán",
+    gatewaysHint:
+      "Bật/tắt cổng và nhập API. Chỉ những cổng được BẬT mới hiển thị cho khách ở bước thanh toán.",
+    show: "Hiển thị cho khách",
+    builtinNote: "Dùng thông tin nhận tiền ở trên.",
   },
   en: {
     fieldBrand: "Shop name",
@@ -70,6 +76,11 @@ const STR = {
     refundTimeoutLabel: "Auto-refund time (minutes)",
     refundTimeoutHint:
       "After a customer requests a refund, if an admin hasn't handled it they can finalize the refund themselves after this many minutes.",
+    gatewaysTitle: "Payment gateways",
+    gatewaysHint:
+      "Toggle gateways and enter API keys. Only ENABLED gateways are shown to customers at checkout.",
+    show: "Show to customers",
+    builtinNote: "Uses the payout details above.",
   },
 };
 
@@ -90,7 +101,10 @@ export function WorkSettings() {
   const [qrUrl, setQrUrl] = useState("");
   const [claimTimeout, setClaimTimeout] = useState("15");
   const [refundTimeout, setRefundTimeout] = useState("60");
+  const [gws, setGws] = useState<GatewaysSettings>({});
   const [uploading, setUploading] = useState(false);
+
+  const en = lang === "en";
 
   const fieldLabels: Record<string, string> = {
     brand: t.fieldBrand,
@@ -113,6 +127,7 @@ export function WorkSettings() {
       setClaimTimeout(rawTimeout == null ? "15" : String(rawTimeout));
       const rawRefund = query.data.refund_timeout_minutes;
       setRefundTimeout(rawRefund == null ? "60" : String(rawRefund));
+      setGws(parseGateways(query.data));
     }
   }, [query.data]);
 
@@ -122,6 +137,7 @@ export function WorkSettings() {
       await updateSetting("momo_qr_url", qrUrl);
       await updateSetting("claim_timeout_minutes", Math.max(0, parseInt(claimTimeout, 10) || 0));
       await updateSetting("refund_timeout_minutes", Math.max(1, parseInt(refundTimeout, 10) || 60));
+      await updateSetting("payment_gateways", gws);
     },
     onSuccess: () => {
       toast.success(t.saved);
@@ -255,6 +271,57 @@ export function WorkSettings() {
                   className="max-w-[160px]"
                 />
                 <p className="mt-1.5 text-xs text-text-subtle">{t.refundTimeoutHint}</p>
+              </div>
+            </div>
+
+            {/* Cổng thanh toán */}
+            <div className="border-t border-border pt-4">
+              <p className="font-heading text-sm font-semibold text-text">{t.gatewaysTitle}</p>
+              <p className="mb-3 mt-0.5 text-xs text-text-subtle">{t.gatewaysHint}</p>
+              <div className="space-y-3">
+                {GATEWAY_META.map((g) => {
+                  const cfg = gws[g.id] ?? {};
+                  const enabled = Boolean(cfg.enabled);
+                  const Icon = g.icon;
+                  const setGw = (patch: Record<string, unknown>) =>
+                    setGws((prev) => ({ ...prev, [g.id]: { ...(prev[g.id] ?? {}), ...patch } }));
+                  return (
+                    <div key={g.id} className="rounded-xl border border-border bg-surface-2 p-3.5">
+                      <label className="flex items-center gap-3">
+                        <input
+                          type="checkbox"
+                          checked={enabled}
+                          onChange={(e) => setGw({ enabled: e.target.checked })}
+                          className="h-4 w-4 accent-yellow"
+                        />
+                        <Icon className="h-5 w-5 text-yellow" aria-hidden />
+                        <span className="flex-1 font-heading text-sm font-semibold text-text">
+                          {en ? g.en : g.vi}
+                        </span>
+                        <span className="text-xs text-text-subtle">{t.show}</span>
+                      </label>
+                      {enabled && g.builtin ? (
+                        <p className="mt-2 pl-7 text-xs text-text-subtle">{t.builtinNote}</p>
+                      ) : null}
+                      {enabled && g.fields.length > 0 ? (
+                        <div className="mt-3 space-y-2 pl-7">
+                          {g.fields.map((f) => (
+                            <div key={f.key}>
+                              <Label htmlFor={`${g.id}-${f.key}`}>{en ? f.en : f.vi}</Label>
+                              <Input
+                                id={`${g.id}-${f.key}`}
+                                type={f.secret ? "password" : "text"}
+                                value={typeof cfg[f.key] === "string" ? (cfg[f.key] as string) : ""}
+                                placeholder={f.placeholder}
+                                onChange={(e) => setGw({ [f.key]: e.target.value })}
+                              />
+                            </div>
+                          ))}
+                        </div>
+                      ) : null}
+                    </div>
+                  );
+                })}
               </div>
             </div>
 

@@ -19,8 +19,9 @@ import { toast } from "sonner";
 import { PageContainer } from "@/components/PageContainer";
 import { RequireAuth } from "@/components/account/RequireAuth";
 import { SetupNotice } from "@/components/SetupNotice";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { useConfirm } from "@/components/ui/confirm";
+import { parseGateways } from "@/lib/paymentGateways";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { OrderChatPanel } from "@/components/chat/OrderChatPanel";
@@ -83,6 +84,11 @@ const STR = {
     transferNote: "Nội dung chuyển khoản",
     bankNotConfigured:
       "Shop chưa cấu hình thông tin ngân hàng — vui lòng liên hệ qua khung chat bên phải.",
+    gwNetwork: "Mạng lưới",
+    gwWallet: "Địa chỉ ví",
+    gwPayLink: "Link thanh toán",
+    gwOpenLink: "Mở link thanh toán",
+    gwNotConfigured: "Shop chưa cấu hình cổng này — vui lòng trao đổi qua khung chat.",
     orderDetailsTitle: "Chi tiết đơn",
     total: "Tổng cộng",
     timelineTitle: "Tiến trình đơn hàng",
@@ -136,6 +142,11 @@ const STR = {
     transferNote: "Transfer note",
     bankNotConfigured:
       "The shop hasn't configured bank details yet — please contact us via the chat on the right.",
+    gwNetwork: "Network",
+    gwWallet: "Wallet address",
+    gwPayLink: "Payment link",
+    gwOpenLink: "Open payment link",
+    gwNotConfigured: "The shop hasn't configured this gateway — please discuss via chat.",
     orderDetailsTitle: "Order details",
     total: "Total",
     timelineTitle: "Order timeline",
@@ -232,6 +243,9 @@ function OrderDetailContent() {
   const asText = (v: unknown) => (typeof v === "string" ? v : "");
   const displayStatus = orderDisplayStatus(order);
   const isPending = displayStatus === "pending_payment";
+  // Cổng thanh toán khách chọn (mặc định theo payment_method nếu thiếu).
+  const gwId = order.payment_gateway ?? order.payment_method ?? "bank_transfer";
+  const gwCfg = (parseGateways(settings)[gwId] ?? {}) as Record<string, unknown>;
 
   // Yêu cầu hủy đang chờ xử lý (đơn paid/in_progress — không tính đã hủy/hoàn thành).
   const cancelPending =
@@ -366,7 +380,7 @@ function OrderDetailContent() {
             <Card className="border-yellow/40" style={{ borderColor: "rgba(245,176,30,0.4)" }}>
               <CardHeader className="border-b border-border">
                 <CardTitle className="flex items-center gap-2 text-base">
-                  {order.payment_method === "momo" ? (
+                  {gwId === "momo" ? (
                     <Wallet className="h-4 w-4 text-yellow" aria-hidden />
                   ) : (
                     <Landmark className="h-4 w-4 text-yellow" aria-hidden />
@@ -380,7 +394,7 @@ function OrderDetailContent() {
                   <b className="text-text">{t.payInstrBold}</b>
                   {t.payInstrSuffix}
                 </p>
-                {order.payment_method === "momo" ? (
+                {gwId === "momo" ? (
                   <>
                     <PayRow label={t.momoNumber} value={asText(settings.momo_number)} onCopy={copy} />
                     {asText(settings.momo_qr_url) ? (
@@ -391,11 +405,37 @@ function OrderDetailContent() {
                       />
                     ) : null}
                   </>
+                ) : gwId === "crypto" ? (
+                  <>
+                    <PayRow label={t.gwNetwork} value={asText(gwCfg.network)} onCopy={copy} />
+                    <PayRow label={t.gwWallet} value={asText(gwCfg.wallet_address)} onCopy={copy} highlight />
+                    {!asText(gwCfg.wallet_address) ? (
+                      <p className="text-xs text-warning">{t.gwNotConfigured}</p>
+                    ) : null}
+                  </>
+                ) : gwId === "stripe" || gwId === "paypal" ? (
+                  <>
+                    {asText(gwCfg.link) ? (
+                      <a
+                        href={asText(gwCfg.link)}
+                        target="_blank"
+                        rel="noreferrer"
+                        className={buttonVariants({ variant: "primary", size: "sm" })}
+                      >
+                        {t.gwOpenLink}
+                      </a>
+                    ) : (
+                      <p className="text-xs text-warning">{t.gwNotConfigured}</p>
+                    )}
+                  </>
                 ) : (
                   <>
                     <PayRow label={t.bank} value={asText(settings.bank_name)} onCopy={copy} />
                     <PayRow label={t.accountNumber} value={asText(settings.bank_account)} onCopy={copy} />
                     <PayRow label={t.accountHolder} value={asText(settings.bank_holder)} onCopy={copy} />
+                    {!asText(settings.bank_account) ? (
+                      <p className="text-xs text-warning">{t.bankNotConfigured}</p>
+                    ) : null}
                   </>
                 )}
                 <PayRow label={t.amount} value={formatPrice(order.total)} onCopy={copy} highlight />
@@ -405,9 +445,6 @@ function OrderDetailContent() {
                   onCopy={copy}
                   highlight
                 />
-                {!asText(settings.bank_account) && order.payment_method === "bank_transfer" ? (
-                  <p className="text-xs text-warning">{t.bankNotConfigured}</p>
-                ) : null}
               </CardContent>
             </Card>
           ) : null}

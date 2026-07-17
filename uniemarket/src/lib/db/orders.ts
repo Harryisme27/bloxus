@@ -27,6 +27,7 @@ export async function placeOrder(payload: PlaceOrderPayload): Promise<OrderRow[]
     p_contact_channel: payload.contactChannel,
     p_contact_value: payload.contactValue,
     p_note: payload.note ?? null,
+    p_gateway: payload.gateway ?? null,
   });
   if (error) throw new Error(error.message);
   return (data ?? []) as OrderRow[];

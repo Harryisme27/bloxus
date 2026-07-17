@@ -1,5 +1,6 @@
 // Data layer — Hồ sơ người dùng.
 import { requireSupabase } from "@/lib/supabase";
+import { useLangStore } from "@/i18n";
 import type { ProfileRow, PublicProfileRow, UserRole } from "@/types/db";
 
 /** Cập nhật mốc "hoạt động gần đây" của tôi (gọi định kỳ khi đang dùng app). */
@@ -57,7 +58,12 @@ export async function updateMyProfile(
   const sb = requireSupabase();
   const { data: sessionData } = await sb.auth.getSession();
   const uid = sessionData.session?.user.id;
-  if (!uid) throw new Error("Bạn cần đăng nhập để cập nhật hồ sơ.");
+  if (!uid)
+    throw new Error(
+      useLangStore.getState().lang === "en"
+        ? "You must be logged in to update your profile."
+        : "Bạn cần đăng nhập để cập nhật hồ sơ.",
+    );
   const { data, error } = await sb
     .from("profiles")
     .update(patch)

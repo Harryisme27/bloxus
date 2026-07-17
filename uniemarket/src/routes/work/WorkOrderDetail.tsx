@@ -363,7 +363,7 @@ function OrderDetailView({
               </div>
               <p className="mt-1 text-xs text-text-subtle">
                 {t.createdPrefix(relativeTime(order.created_at))} · {t.paymentLabel}{" "}
-                {paymentMethodLabel(order.payment_method, lang)}
+                {paymentMethodLabel(order.payment_gateway ?? order.payment_method, lang)}
                 {order.payment_ref ? t.refPrefix(order.payment_ref) : ""}
               </p>
             </div>

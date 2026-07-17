@@ -183,7 +183,7 @@ function PaymentCard({ order }: { order: OrderRow }) {
           <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-sm text-text-muted">
             <span className="inline-flex items-center gap-1.5">
               <MethodIcon className="h-4 w-4 text-text-subtle" aria-hidden />
-              {paymentMethodLabel(order.payment_method, lang)}
+              {paymentMethodLabel(order.payment_gateway ?? order.payment_method, lang)}
             </span>
             <span>·</span>
             <span>{t.createdPrefix(relativeTime(order.created_at))}</span>

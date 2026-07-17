@@ -1,59 +1,32 @@
-import { Check, Landmark, Wallet } from "lucide-react";
-import type { LucideIcon } from "lucide-react";
-import type { DbPaymentMethod } from "@/types/db";
+import { Check } from "lucide-react";
+import type { GatewayMeta } from "@/lib/paymentGateways";
+import { useLangStore } from "@/i18n";
 import { cn } from "@/lib/utils";
-import { usePick } from "@/i18n";
-
-interface PaymentMethod {
-  id: DbPaymentMethod;
-  icon: LucideIcon;
-}
-
-/** 2 phương thức thanh toán thủ công của shop — khớp enum DbPaymentMethod. */
-export const PAYMENT_METHODS: PaymentMethod[] = [
-  { id: "bank_transfer", icon: Landmark },
-  { id: "momo", icon: Wallet },
-];
-
-const STR = {
-  vi: {
-    bank_transfer: { label: "Chuyển khoản ngân hàng", hint: "Chuyển khoản theo hướng dẫn" },
-    momo: { label: "Momo", hint: "Chuyển qua ví Momo / quét QR" },
-  },
-  en: {
-    bank_transfer: { label: "Bank transfer", hint: "Transfer following the instructions" },
-    momo: { label: "Momo", hint: "Pay via Momo wallet / scan QR" },
-  },
-};
-
-/** Human-readable label for a method id. */
-export function paymentMethodLabel(id: DbPaymentMethod): string {
-  return STR.en[id]?.label ?? id;
-}
 
 export interface PaymentMethodSelectorProps {
-  value: DbPaymentMethod;
-  onChange: (id: DbPaymentMethod) => void;
+  /** Các cổng đang bật (do admin cấu hình) để khách chọn. */
+  gateways: GatewayMeta[];
+  /** Id cổng đang chọn. */
+  value: string;
+  onChange: (id: string) => void;
   className?: string;
 }
 
-/** Grid of selectable surface tiles for the manual payment method. The active
- * tile gets an amber border + check chip. */
-export function PaymentMethodSelector({ value, onChange, className }: PaymentMethodSelectorProps) {
-  const t = usePick(STR);
+/** Lưới tile cổng thanh toán đang bật. Tile đang chọn viền hổ phách + dấu tích. */
+export function PaymentMethodSelector({ gateways, value, onChange, className }: PaymentMethodSelectorProps) {
+  const en = useLangStore((s) => s.lang) === "en";
   return (
     <div className={cn("grid grid-cols-1 gap-3 sm:grid-cols-2", className)} role="radiogroup">
-      {PAYMENT_METHODS.map((method) => {
-        const Icon = method.icon;
-        const selected = method.id === value;
-        const copy = t[method.id];
+      {gateways.map((g) => {
+        const Icon = g.icon;
+        const selected = g.id === value;
         return (
           <button
-            key={method.id}
+            key={g.id}
             type="button"
             role="radio"
             aria-checked={selected}
-            onClick={() => onChange(method.id)}
+            onClick={() => onChange(g.id)}
             className={cn(
               "group relative flex items-center gap-3 rounded-xl border bg-surface-2 p-4 text-left transition-all",
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-yellow focus-visible:ring-offset-2 focus-visible:ring-offset-bg",
@@ -72,9 +45,11 @@ export function PaymentMethodSelector({ value, onChange, className }: PaymentMet
             </span>
             <span className="min-w-0">
               <span className="block truncate font-heading text-sm font-semibold text-text">
-                {copy.label}
+                {en ? g.en : g.vi}
               </span>
-              <span className="block truncate text-xs text-text-subtle">{copy.hint}</span>
+              <span className="block truncate text-xs text-text-subtle">
+                {en ? g.hintEn : g.hintVi}
+              </span>
             </span>
             {selected ? (
               <span className="absolute right-3 top-3 flex h-5 w-5 items-center justify-center rounded-full bg-yellow text-text-on-yellow">

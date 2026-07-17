@@ -83,9 +83,21 @@ export function contactChannelLabel(channel: string | null, lang: Lang): string 
   return known[key] ?? channel;
 }
 
-/** Nhãn phương thức thanh toán. */
+/** Nhãn cổng/phương thức thanh toán (nhận id cổng: bank_transfer|momo|stripe|crypto|paypal). */
 export function paymentMethodLabel(method: string | null, lang: Lang): string {
-  if (method === "bank_transfer") return lang === "vi" ? "Chuyển khoản" : "Bank transfer";
-  if (method === "momo") return "MoMo";
-  return "—";
+  const vi = lang === "vi";
+  switch (method) {
+    case "bank_transfer":
+      return vi ? "Chuyển khoản" : "Bank transfer";
+    case "momo":
+      return "MoMo";
+    case "stripe":
+      return vi ? "Stripe (thẻ)" : "Stripe (card)";
+    case "crypto":
+      return "Crypto";
+    case "paypal":
+      return "PayPal";
+    default:
+      return "—";
+  }
 }

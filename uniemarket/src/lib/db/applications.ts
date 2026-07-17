@@ -1,6 +1,9 @@
 // Data layer — Tuyển CTV (đơn ứng tuyển + duyệt).
 import { requireSupabase } from "@/lib/supabase";
+import { useLangStore } from "@/i18n";
 import type { CtvApplicationInput, CtvApplicationRow, CtvApplicationStatus } from "@/types/db";
+
+const isEn = () => useLangStore.getState().lang === "en";
 
 /** Nộp đơn ứng tuyển CTV (mỗi người tối đa 1 đơn đang chờ — DB chặn đơn trùng). */
 export async function submitApplication(
@@ -9,7 +12,12 @@ export async function submitApplication(
   const sb = requireSupabase();
   const { data: sessionData } = await sb.auth.getSession();
   const uid = sessionData.session?.user.id;
-  if (!uid) throw new Error("Bạn cần đăng nhập để ứng tuyển CTV.");
+  if (!uid)
+    throw new Error(
+      isEn()
+        ? "You must be logged in to apply as a collaborator."
+        : "Bạn cần đăng nhập để ứng tuyển CTV.",
+    );
   const { data, error } = await sb
     .from("ctv_applications")
     .insert({
@@ -23,7 +31,11 @@ export async function submitApplication(
     .single();
   if (error) {
     if (error.code === "23505") {
-      throw new Error("Bạn đã có một đơn ứng tuyển đang chờ duyệt.");
+      throw new Error(
+        isEn()
+          ? "You already have a pending application."
+          : "Bạn đã có một đơn ứng tuyển đang chờ duyệt.",
+      );
     }
     throw new Error(error.message);
   }
