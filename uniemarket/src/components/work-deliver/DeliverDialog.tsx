@@ -24,7 +24,7 @@ const STR = {
     title: "Đã giao hàng",
     descPrefix: "Tải lên ảnh minh chứng đã giao cho đơn",
     descSuffix: "Khách sẽ bấm xác nhận đã nhận sau khi bạn giao.",
-    proofLabel: "Ảnh minh chứng giao hàng (bắt buộc ≥ 1)",
+    proofLabel: "Ảnh minh chứng giao hàng (bắt buộc ≥ 1, dán ảnh Ctrl+V được)",
     removeImage: "Xóa ảnh",
     addImage: "Thêm ảnh",
     selectedCount: (n: number) => `Đã chọn ${n} ảnh.`,
@@ -39,7 +39,7 @@ const STR = {
     title: "Mark delivered",
     descPrefix: "Upload delivery proof images for order",
     descSuffix: "The customer will confirm receipt after you deliver.",
-    proofLabel: "Delivery proof images (at least 1 required)",
+    proofLabel: "Delivery proof images (at least 1 — paste with Ctrl+V works)",
     removeImage: "Remove image",
     addImage: "Add image",
     selectedCount: (n: number) => `${n} image${n === 1 ? "" : "s"} selected.`,
@@ -109,20 +109,35 @@ export function DeliverDialog({ order, onClose }: DeliverDialogProps) {
     }
   };
 
+  const addFiles = (files: File[]) => {
+    const imgs = files.filter((f) => f.type.startsWith("image/"));
+    if (imgs.length === 0) return;
+    setImages((prev) => [
+      ...prev,
+      ...imgs.map((file) => ({
+        id: crypto.randomUUID(),
+        file,
+        previewUrl: URL.createObjectURL(file),
+      })),
+    ]);
+  };
+
   const handlePick = (event: ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(event.target.files ?? []);
-    if (files.length > 0) {
-      setImages((prev) => [
-        ...prev,
-        ...files.map((file) => ({
-          id: crypto.randomUUID(),
-          file,
-          previewUrl: URL.createObjectURL(file),
-        })),
-      ]);
-    }
+    addFiles(Array.from(event.target.files ?? []));
     // Cho phép chọn lại cùng một file sau khi xóa.
     event.target.value = "";
+  };
+
+  const handlePaste = (event: React.ClipboardEvent) => {
+    // Dán ảnh trực tiếp (Ctrl+V) từ clipboard.
+    const files = Array.from(event.clipboardData.items)
+      .filter((it) => it.kind === "file" && it.type.startsWith("image/"))
+      .map((it) => it.getAsFile())
+      .filter((f): f is File => f !== null);
+    if (files.length) {
+      event.preventDefault();
+      addFiles(files);
+    }
   };
 
   const removeImage = (id: string) => {
@@ -147,7 +162,7 @@ export function DeliverDialog({ order, onClose }: DeliverDialogProps) {
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4">
+        <div className="space-y-4" onPaste={handlePaste}>
           <div>
             <Label>{t.proofLabel}</Label>
             <div className="mt-1.5 grid grid-cols-3 gap-2 sm:grid-cols-4">

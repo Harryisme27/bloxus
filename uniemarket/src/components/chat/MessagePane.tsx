@@ -4,8 +4,14 @@
 import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Hash, RefreshCw, Send, ShoppingBag } from "lucide-react";
-import { listMessages, postMessage, subscribeToThread } from "@/lib/db/chat";
+import { Hash, ImagePlus, Loader2, RefreshCw, Send, ShoppingBag, X } from "lucide-react";
+import {
+  listMessages,
+  postMessage,
+  subscribeToThread,
+  uploadChatImage,
+  signedChatUrl,
+} from "@/lib/db/chat";
 import { getOrder } from "@/lib/db/orders";
 import { getPublicProfile } from "@/lib/db/profiles";
 import { relativeTime } from "@/lib/format";
@@ -36,10 +42,14 @@ const STR = {
     you: "Bạn",
     member: "Thành viên",
     sending: "đang gửi…",
-    inputPlaceholder: "Nhập tin nhắn… (Enter để gửi)",
+    inputPlaceholder: "Nhập tin nhắn… (Enter để gửi, dán ảnh Ctrl+V)",
     inputAria: "Nhập tin nhắn",
     sendAria: "Gửi tin nhắn",
     send: "Gửi",
+    attachAria: "Đính kèm ảnh",
+    removeImage: "Bỏ ảnh",
+    uploadFailed: "Không tải được ảnh lên.",
+    imageAlt: "Ảnh đính kèm",
   },
   en: {
     staffChannel: "# General",
@@ -55,10 +65,14 @@ const STR = {
     you: "You",
     member: "Member",
     sending: "sending…",
-    inputPlaceholder: "Type a message… (Enter to send)",
+    inputPlaceholder: "Type a message… (Enter to send, paste image Ctrl+V)",
     inputAria: "Type a message",
     sendAria: "Send message",
     send: "Send",
+    attachAria: "Attach image",
+    removeImage: "Remove image",
+    uploadFailed: "Couldn't upload the image.",
+    imageAlt: "Attachment",
   },
 };
 
@@ -86,11 +100,42 @@ export interface MessagePaneProps {
   hideHeader?: boolean;
 }
 
+/** Ảnh đính kèm chat: bucket riêng nên phải lấy signed URL để hiển thị. */
+function ChatAttachment({ path, alt }: { path: string; alt: string }) {
+  const [url, setUrl] = useState<string | null>(null);
+  useEffect(() => {
+    let alive = true;
+    void signedChatUrl(path).then((u) => {
+      if (alive) setUrl(u);
+    });
+    return () => {
+      alive = false;
+    };
+  }, [path]);
+
+  if (!url) {
+    return <span className="h-40 w-40 animate-pulse rounded-lg bg-surface-2" aria-hidden />;
+  }
+  return (
+    <a href={url} target="_blank" rel="noopener noreferrer" className="block">
+      <img
+        src={url}
+        alt={alt}
+        className="max-h-52 max-w-[12rem] rounded-lg border border-border object-cover transition-opacity hover:opacity-90"
+      />
+    </a>
+  );
+}
+
 export function MessagePane({ thread, className, compact, hideHeader }: MessagePaneProps) {
   const t = usePick(STR);
+  const lang = useLangStore((s) => s.lang);
   const myId = useAuthStore((s) => s.session?.user.id ?? null);
   const queryClient = useQueryClient();
   const [draft, setDraft] = useState("");
+  const [pendingImages, setPendingImages] = useState<File[]>([]);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const messagesQuery = useQuery({
@@ -167,8 +212,9 @@ export function MessagePane({ thread, className, compact, hideHeader }: MessageP
   }, [messages.length, thread.id]);
 
   const sendMutation = useMutation({
-    mutationFn: (body: string) => postMessage(thread.id, body),
-    onMutate: (body) => {
+    mutationFn: ({ body, attachments }: { body: string; attachments: string[] }) =>
+      postMessage(thread.id, body, attachments.length ? attachments : undefined),
+    onMutate: ({ body, attachments }) => {
       // Optimistic: hiện tin ngay với id tạm.
       const tempId = `temp-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
       queryClient.setQueryData<MessageRow[]>(["messages", thread.id], (old) => [
@@ -178,7 +224,7 @@ export function MessagePane({ thread, className, compact, hideHeader }: MessageP
           thread_id: thread.id,
           sender_id: myId ?? "",
           body,
-          attachments: [],
+          attachments,
           created_at: new Date().toISOString(),
         },
       ]);
@@ -202,18 +248,56 @@ export function MessagePane({ thread, className, compact, hideHeader }: MessageP
     },
   });
 
-  function handleSend() {
+  function addFiles(files: FileList | File[] | null) {
+    if (!files) return;
+    const imgs = Array.from(files).filter((f) => f.type.startsWith("image/"));
+    if (imgs.length) setPendingImages((prev) => [...prev, ...imgs].slice(0, 6));
+  }
+
+  async function handleSend() {
     const body = draft.trim();
-    if (!body || sendMutation.isPending) return;
+    const imgs = pendingImages;
+    if ((!body && imgs.length === 0) || sendMutation.isPending || uploading) return;
+
+    // Upload ảnh (nén trước) -> danh sách path, rồi gửi 1 tin kèm attachments.
+    let attachments: string[] = [];
+    if (imgs.length) {
+      setUploading(true);
+      try {
+        const { prepareImage } = await import("@/components/work-admin/uploads");
+        attachments = await Promise.all(
+          imgs.map(async (f) => uploadChatImage(thread.id, await prepareImage(f, lang))),
+        );
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : t.uploadFailed);
+        setUploading(false);
+        return;
+      }
+      setUploading(false);
+    }
+
     setDraft("");
-    sendMutation.mutate(body);
+    setPendingImages([]);
+    sendMutation.mutate({ body, attachments });
+  }
+
+  function handlePaste(e: React.ClipboardEvent<HTMLTextAreaElement>) {
+    // Dán ảnh trực tiếp từ clipboard (Ctrl+V) -> thêm vào ảnh chờ gửi.
+    const files = Array.from(e.clipboardData.items)
+      .filter((it) => it.kind === "file" && it.type.startsWith("image/"))
+      .map((it) => it.getAsFile())
+      .filter((f): f is File => f !== null);
+    if (files.length) {
+      e.preventDefault();
+      addFiles(files);
+    }
   }
 
   function handleKeyDown(e: KeyboardEvent<HTMLTextAreaElement>) {
     // Enter gửi, Shift+Enter xuống dòng.
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
-      handleSend();
+      void handleSend();
     }
   }
 
@@ -302,17 +386,32 @@ export function MessagePane({ thread, className, compact, hideHeader }: MessageP
                 key={msg.id}
                 className={cn("flex flex-col gap-1", isOwn ? "items-end" : "items-start")}
               >
-                <div
-                  className={cn(
-                    "max-w-[85%] whitespace-pre-wrap break-words rounded-2xl px-3.5 py-2 text-sm leading-relaxed",
-                    isOwn
-                      ? "rounded-br-sm bg-yellow text-text-on-yellow"
-                      : "rounded-bl-sm bg-surface-2 text-text",
-                    isTemp && "opacity-60",
-                  )}
-                >
-                  {msg.body}
-                </div>
+                {msg.attachments && msg.attachments.length > 0 ? (
+                  <div
+                    className={cn(
+                      "flex max-w-[85%] flex-wrap gap-1.5",
+                      isOwn ? "justify-end" : "justify-start",
+                      isTemp && "opacity-60",
+                    )}
+                  >
+                    {msg.attachments.map((path, i) => (
+                      <ChatAttachment key={`${msg.id}-${i}`} path={path} alt={t.imageAlt} />
+                    ))}
+                  </div>
+                ) : null}
+                {msg.body ? (
+                  <div
+                    className={cn(
+                      "max-w-[85%] whitespace-pre-wrap break-words rounded-2xl px-3.5 py-2 text-sm leading-relaxed",
+                      isOwn
+                        ? "rounded-br-sm bg-yellow text-text-on-yellow"
+                        : "rounded-bl-sm bg-surface-2 text-text",
+                      isTemp && "opacity-60",
+                    )}
+                  >
+                    {msg.body}
+                  </div>
+                ) : null}
                 <span className="flex items-center gap-1.5 px-1 text-[11px] text-text-subtle">
                   <span>{name}</span>
                   {profile?.role === "admin" ? (
@@ -340,34 +439,87 @@ export function MessagePane({ thread, className, compact, hideHeader }: MessageP
 
       {/* Ô nhập */}
       <form
-        className={cn("flex items-end gap-2 border-t border-border", compact ? "p-2.5" : "p-3")}
+        className={cn("border-t border-border", compact ? "p-2.5" : "p-3")}
         onSubmit={(e) => {
           e.preventDefault();
-          handleSend();
+          void handleSend();
         }}
       >
-        <textarea
-          value={draft}
-          onChange={(e) => setDraft(e.target.value)}
-          onKeyDown={handleKeyDown}
-          rows={1}
-          placeholder={t.inputPlaceholder}
-          aria-label={t.inputAria}
-          className={cn(
-            "max-h-32 flex-1 resize-none rounded-lg border border-border-strong bg-surface-2 px-3 py-2 text-sm text-text placeholder:text-text-subtle",
-            "focus-visible:border-yellow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-yellow",
-          )}
-        />
-        <Button
-          type="submit"
-          variant="primary"
-          size={compact ? "sm" : "md"}
-          aria-label={t.sendAria}
-          disabled={!draft.trim() || sendMutation.isPending || messagesQuery.isPending}
-        >
-          <Send className="h-4 w-4" aria-hidden />
-          {!compact ? <span className="hidden sm:inline">{t.send}</span> : null}
-        </Button>
+        {pendingImages.length > 0 ? (
+          <div className="mb-2 flex flex-wrap gap-2">
+            {pendingImages.map((file, i) => (
+              <div key={i} className="relative">
+                <img
+                  src={URL.createObjectURL(file)}
+                  alt=""
+                  className="h-16 w-16 rounded-lg border border-border-strong object-cover"
+                />
+                <button
+                  type="button"
+                  aria-label={t.removeImage}
+                  onClick={() => setPendingImages((prev) => prev.filter((_, j) => j !== i))}
+                  className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-danger text-white shadow"
+                >
+                  <X className="h-3 w-3" aria-hidden />
+                </button>
+              </div>
+            ))}
+          </div>
+        ) : null}
+
+        <div className="flex items-end gap-2">
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            multiple
+            className="hidden"
+            onChange={(e) => {
+              addFiles(e.target.files);
+              if (fileInputRef.current) fileInputRef.current.value = "";
+            }}
+          />
+          <button
+            type="button"
+            aria-label={t.attachAria}
+            onClick={() => fileInputRef.current?.click()}
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-text-muted transition-colors hover:bg-surface-2 hover:text-text"
+          >
+            <ImagePlus className="h-5 w-5" aria-hidden />
+          </button>
+          <textarea
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            onKeyDown={handleKeyDown}
+            onPaste={handlePaste}
+            rows={1}
+            placeholder={t.inputPlaceholder}
+            aria-label={t.inputAria}
+            className={cn(
+              "max-h-32 flex-1 resize-none rounded-lg border border-border-strong bg-surface-2 px-3 py-2 text-sm text-text placeholder:text-text-subtle",
+              "focus-visible:border-yellow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-yellow",
+            )}
+          />
+          <Button
+            type="submit"
+            variant="primary"
+            size={compact ? "sm" : "md"}
+            aria-label={t.sendAria}
+            disabled={
+              (!draft.trim() && pendingImages.length === 0) ||
+              sendMutation.isPending ||
+              uploading ||
+              messagesQuery.isPending
+            }
+          >
+            {uploading ? (
+              <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+            ) : (
+              <Send className="h-4 w-4" aria-hidden />
+            )}
+            {!compact ? <span className="hidden sm:inline">{t.send}</span> : null}
+          </Button>
+        </div>
       </form>
     </div>
   );

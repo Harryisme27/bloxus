@@ -53,6 +53,28 @@ export async function postMessage(
   return data as MessageRow;
 }
 
+/** Tải ảnh vào bucket riêng `chat-attachments/<threadId>/...` (RLS theo thread).
+ * Trả về PATH của object (lưu vào messages.attachments); hiển thị qua signed URL. */
+export async function uploadChatImage(threadId: string, file: File): Promise<string> {
+  const sb = requireSupabase();
+  const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
+  const path = `${threadId}/${crypto.randomUUID()}.${ext}`;
+  const { error } = await sb.storage.from("chat-attachments").upload(path, file, {
+    cacheControl: "3600",
+    upsert: false,
+  });
+  if (error) throw new Error(error.message);
+  return path;
+}
+
+/** Tạo signed URL (1 giờ) để hiển thị ảnh chat từ bucket riêng. */
+export async function signedChatUrl(path: string): Promise<string | null> {
+  const sb = requireSupabase();
+  const { data, error } = await sb.storage.from("chat-attachments").createSignedUrl(path, 3600);
+  if (error) return null;
+  return data?.signedUrl ?? null;
+}
+
 /**
  * Lắng nghe tin nhắn mới trong 1 thread (Realtime).
  * Trả về hàm unsubscribe — GỌI NÓ trong cleanup của useEffect.
