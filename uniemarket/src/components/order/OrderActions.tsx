@@ -150,7 +150,7 @@ export function OrderActions({ order, compact = false }: OrderActionsProps) {
                 <Button
                   variant="danger"
                   size={btnSize}
-                  className="mt-3"
+                  className="mt-3 w-full"
                   disabled={finalizeRefundMutation.isPending}
                   onClick={async () => {
                     const r = await confirm({ title: t.finalizeRefundNow, message: t.confirmFinalizeRefund, tone: "danger" });
