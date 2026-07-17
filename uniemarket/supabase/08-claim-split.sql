@@ -51,7 +51,11 @@ end;
 $$;
 
 -- 3) place_order: MỖI MÓN = 1 ĐƠN riêng (trả về nhiều đơn) --------------------
-create or replace function public.place_order(
+-- Hàm cũ trả về 1 đơn; bản mới trả về NHIỀU đơn nên phải xóa hàm cũ trước
+-- (Postgres không cho đổi kiểu trả về bằng create or replace).
+drop function if exists public.place_order(jsonb, public.payment_method, text, text, text, text);
+
+create function public.place_order(
   p_items           jsonb,
   p_payment_method  public.payment_method,
   p_game_username   text,
@@ -290,6 +294,8 @@ end;
 $$;
 
 -- 9) Quyền + view public_profiles không đổi. Grants cho hàm mới. --------------
+-- place_order vừa bị drop + tạo lại nên phải cấp lại quyền.
+grant execute on function public.place_order(jsonb, public.payment_method, text, text, text, text) to authenticated, service_role;
 grant execute on function public.claim_order(uuid)                      to authenticated, service_role;
 grant execute on function public.list_claimable_orders()                to authenticated, service_role;
 grant execute on function public.reclaim_stale_orders()                 to authenticated, service_role;
