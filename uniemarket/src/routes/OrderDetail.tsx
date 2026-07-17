@@ -36,7 +36,8 @@ import { isSupabaseConfigured } from "@/lib/supabase";
 import { formatPrice, relativeTime } from "@/lib/format";
 import { orderDisplayStatus } from "@/types/db";
 import type { OrderEventType } from "@/types/db";
-import { usePick } from "@/i18n";
+import { usePick, useLangStore } from "@/i18n";
+import { translateOrderNote } from "@/lib/orderEventNote";
 
 const STR = {
   vi: {
@@ -167,6 +168,7 @@ export function OrderDetail() {
 
 function OrderDetailContent() {
   const t = usePick(STR);
+  const lang = useLangStore((s) => s.lang);
   const confirm = useConfirm();
   const { id = "" } = useParams<{ id: string }>();
   const queryClient = useQueryClient();
@@ -501,7 +503,11 @@ function OrderDetailContent() {
                         <p className="text-sm font-medium text-text">
                           {t.eventLabel[ev.event_type]}
                         </p>
-                        {ev.note ? <p className="text-xs text-text-muted">{ev.note}</p> : null}
+                        {ev.note ? (
+                          <p className="text-xs text-text-muted">
+                            {translateOrderNote(ev.note, lang)}
+                          </p>
+                        ) : null}
                         <p className="tabular-nums-mono text-xs text-text-subtle">
                           {relativeTime(ev.created_at)}
                         </p>

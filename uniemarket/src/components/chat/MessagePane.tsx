@@ -17,7 +17,7 @@ import { lastSeenText } from "@/components/realtime/lastSeen";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { usePick } from "@/i18n";
+import { usePick, useLangStore } from "@/i18n";
 import { useSenderProfiles } from "./useSenderProfiles";
 import type { MessageRow, ThreadRow } from "@/types/db";
 
@@ -62,12 +62,18 @@ const STR = {
   },
 };
 
-/** Tiêu đề hiển thị của thread (cột title đã lưu sẵn, có fallback). */
+/** Tiêu đề hiển thị của thread (cột title đã lưu sẵn, có fallback).
+ * Server lưu title tiếng Việt ("Đơn UM-XXX") — xem EN thì dịch tiền tố. */
 export function threadTitle(
   thread: ThreadRow,
   fallback: { staff: string; order: string },
 ): string {
-  if (thread.title) return thread.title;
+  if (thread.title) {
+    if (useLangStore.getState().lang === "en") {
+      return thread.title.replace(/^Đơn /, "Order ").replace(/^Kênh nội bộ/, "Team channel");
+    }
+    return thread.title;
+  }
   return thread.kind === "staff" ? fallback.staff : fallback.order;
 }
 

@@ -54,6 +54,7 @@ import { orderDisplayStatus } from "@/types/db";
 import type { DbOrderStatus, OrderDisplayStatus, OrderEventRow, OrderWithItems } from "@/types/db";
 import { cn } from "@/lib/utils";
 import { usePick, useT, useLangStore } from "@/i18n";
+import { translateOrderNote } from "@/lib/orderEventNote";
 
 const STR = {
   vi: {
@@ -776,7 +777,9 @@ const EVENT_ICON: Record<OrderEventRow["event_type"], LucideIcon> = {
 function TimelineItem({ event }: { event: OrderEventRow }) {
   const t = usePick(STR);
   const s = useT();
+  const lang = useLangStore((st) => st.lang);
   const Icon = EVENT_ICON[event.event_type];
+  const note = translateOrderNote(event.note, lang);
 
   // Nếu meta.to là trạng thái hợp lệ, hiện nhãn của trạng thái đích (theo ngôn ngữ).
   const toStatus =
@@ -801,7 +804,7 @@ function TimelineItem({ event }: { event: OrderEventRow }) {
           {t.event[event.event_type]}
           {toStatus ? <span className="font-normal text-text-muted"> → {toStatus}</span> : null}
         </p>
-        {event.note ? <p className="mt-0.5 text-sm text-text-muted">{event.note}</p> : null}
+        {note ? <p className="mt-0.5 text-sm text-text-muted">{note}</p> : null}
         <p className="mt-0.5 text-xs text-text-subtle">{relativeTime(event.created_at)}</p>
       </div>
     </li>
