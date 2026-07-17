@@ -243,3 +243,19 @@ export async function listOrderEvents(orderId: string): Promise<OrderEventRow[]>
   if (error) throw new Error(error.message);
   return (data ?? []) as OrderEventRow[];
 }
+
+/** Admin xóa các đơn theo id (RPC admin-only, cascade items/events/threads). */
+export async function deleteOrders(ids: string[]): Promise<number> {
+  const sb = requireSupabase();
+  const { data, error } = await sb.rpc("admin_delete_orders", { p_ids: ids });
+  if (error) throw new Error(error.message);
+  return (data as number) ?? 0;
+}
+
+/** Admin xóa TẤT CẢ đơn hàng (RPC admin-only). Trả về số đơn đã xóa. */
+export async function deleteAllOrders(): Promise<number> {
+  const sb = requireSupabase();
+  const { data, error } = await sb.rpc("admin_delete_all_orders");
+  if (error) throw new Error(error.message);
+  return (data as number) ?? 0;
+}

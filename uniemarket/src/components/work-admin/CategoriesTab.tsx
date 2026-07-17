@@ -1,9 +1,10 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { EyeOff, Pencil, Plus, Star } from "lucide-react";
+import { ChevronLeft, ChevronRight, EyeOff, Pencil, Plus, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Select } from "@/components/ui/select";
 import { deleteCategory, listCategories, listProducts, upsertCategory } from "@/lib/db/catalog";
 import type { CategoryRow, CategoryUpsert } from "@/types/db";
 import { cn } from "@/lib/utils";
@@ -35,6 +36,10 @@ const STR = {
     confirmDesc:
       "Danh mục sẽ bị ẩn khỏi cửa hàng, không xoá dữ liệu. Sản phẩm bên trong vẫn được giữ nguyên và bạn có thể bật hiển thị lại bất cứ lúc nào.",
     confirmLabel: "Ẩn danh mục",
+    perPage: (n: number) => `${n} / trang`,
+    showing: (a: number, b: number, total: number) => `${a}–${b} / ${total}`,
+    prev: "Trước",
+    next: "Sau",
   },
   en: {
     hidden: "Category hidden from the store",
@@ -57,8 +62,14 @@ const STR = {
     confirmDesc:
       "The category will be hidden from the store without deleting any data. Products inside are kept and you can make it visible again anytime.",
     confirmLabel: "Hide category",
+    perPage: (n: number) => `${n} / page`,
+    showing: (a: number, b: number, total: number) => `${a}–${b} of ${total}`,
+    prev: "Prev",
+    next: "Next",
   },
 };
+
+const PAGE_SIZES = [10, 20, 50, 100];
 
 /** Tab "Danh mục" trong /work/catalog — bảng danh mục + CRUD. */
 export function CategoriesTab() {
@@ -69,6 +80,8 @@ export function CategoriesTab() {
     category: null,
   });
   const [deleteTarget, setDeleteTarget] = useState<CategoryRow | null>(null);
+  const [pageSize, setPageSize] = useState(10);
+  const [page, setPage] = useState(1);
 
   const categoriesQuery = useQuery({
     queryKey: ["categories", "admin"],
@@ -106,16 +119,39 @@ export function CategoriesTab() {
 
   const categories = categoriesQuery.data ?? [];
 
+  useEffect(() => {
+    setPage(1);
+  }, [pageSize]);
+
+  const totalPages = Math.max(1, Math.ceil(categories.length / pageSize));
+  const currentPage = Math.min(page, totalPages);
+  const pageStart = (currentPage - 1) * pageSize;
+  const paginated = categories.slice(pageStart, pageStart + pageSize);
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-3">
         <p className="text-sm text-text-muted">
           {categoriesQuery.isSuccess ? t.count(categories.length) : " "}
         </p>
-        <Button size="sm" onClick={() => setDialog({ open: true, category: null })}>
-          <Plus className="h-4 w-4" aria-hidden />
-          {t.add}
-        </Button>
+        <div className="flex shrink-0 items-center gap-2">
+          <Select
+            value={String(pageSize)}
+            onChange={(e) => setPageSize(Number(e.target.value))}
+            className="w-auto"
+            aria-label={t.perPage(pageSize)}
+          >
+            {PAGE_SIZES.map((n) => (
+              <option key={n} value={n}>
+                {t.perPage(n)}
+              </option>
+            ))}
+          </Select>
+          <Button size="sm" onClick={() => setDialog({ open: true, category: null })}>
+            <Plus className="h-4 w-4" aria-hidden />
+            {t.add}
+          </Button>
+        </div>
       </div>
 
       {categoriesQuery.isPending ? (
@@ -139,7 +175,7 @@ export function CategoriesTab() {
                 </tr>
               </thead>
               <tbody>
-                {categories.map((category) => (
+                {paginated.map((category) => (
                   <tr
                     key={category.id}
                     className={cn(
@@ -231,6 +267,36 @@ export function CategoriesTab() {
               </tbody>
             </table>
           </div>
+          {categories.length > pageSize ? (
+            <div className="flex items-center justify-between gap-3 border-t border-border px-4 py-3">
+              <span className="text-xs text-text-subtle">
+                {t.showing(pageStart + 1, Math.min(pageStart + pageSize, categories.length), categories.length)}
+              </span>
+              <div className="flex items-center gap-1.5">
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  disabled={currentPage <= 1}
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                >
+                  <ChevronLeft className="h-4 w-4" aria-hidden />
+                  {t.prev}
+                </Button>
+                <span className="px-2 text-sm tabular-nums-mono text-text-muted">
+                  {currentPage} / {totalPages}
+                </span>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  disabled={currentPage >= totalPages}
+                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                >
+                  {t.next}
+                  <ChevronRight className="h-4 w-4" aria-hidden />
+                </Button>
+              </div>
+            </div>
+          ) : null}
         </Card>
       )}
 

@@ -1,7 +1,7 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { ImageIcon, Pencil, Plus, Search, Star } from "lucide-react";
+import { ChevronLeft, ChevronRight, ImageIcon, Pencil, Plus, Search, Star } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -44,6 +44,10 @@ const STR = {
     feature: "Đánh dấu nổi bật",
     toggleActive: (name: string) => `Mở bán ${name}`,
     edit: "Sửa",
+    perPage: (n: number) => `${n} / trang`,
+    showing: (a: number, b: number, total: number) => `${a}–${b} / ${total}`,
+    prev: "Trước",
+    next: "Sau",
   },
   en: {
     opened: "Product is now on sale",
@@ -73,8 +77,14 @@ const STR = {
     feature: "Mark as featured",
     toggleActive: (name: string) => `Put ${name} on sale`,
     edit: "Edit",
+    perPage: (n: number) => `${n} / page`,
+    showing: (a: number, b: number, total: number) => `${a}–${b} of ${total}`,
+    prev: "Prev",
+    next: "Next",
   },
 };
+
+const PAGE_SIZES = [10, 20, 50, 100];
 
 export interface ProductsTabProps {
   onCreate: () => void;
@@ -89,6 +99,8 @@ export function ProductsTab({ onCreate, onEdit }: ProductsTabProps) {
   const [kindFilter, setKindFilter] = useState("all");
   const [activeFilter, setActiveFilter] = useState("all");
   const [search, setSearch] = useState("");
+  const [pageSize, setPageSize] = useState(10);
+  const [page, setPage] = useState(1);
 
   const productsQuery = useQuery({
     queryKey: ["products", "admin"],
@@ -117,6 +129,16 @@ export function ProductsTab({ onCreate, onEdit }: ProductsTabProps) {
       return true;
     });
   }, [productsQuery.data, categoryFilter, kindFilter, activeFilter, search]);
+
+  // Phân trang: về trang 1 khi đổi bộ lọc / số dòng mỗi trang.
+  useEffect(() => {
+    setPage(1);
+  }, [categoryFilter, kindFilter, activeFilter, search, pageSize]);
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+  const currentPage = Math.min(page, totalPages);
+  const pageStart = (currentPage - 1) * pageSize;
+  const paginated = filtered.slice(pageStart, pageStart + pageSize);
 
   const activeMutation = useMutation({
     mutationFn: ({ id, active }: { id: string; active: boolean }) => setProductActive(id, active),
@@ -168,10 +190,24 @@ export function ProductsTab({ onCreate, onEdit }: ProductsTabProps) {
             <option value="hidden">{t.hiddenOnly}</option>
           </Select>
         </div>
-        <Button size="sm" className="shrink-0" onClick={onCreate}>
-          <Plus className="h-4 w-4" aria-hidden />
-          {t.add}
-        </Button>
+        <div className="flex shrink-0 items-center gap-2">
+          <Select
+            value={String(pageSize)}
+            onChange={(e) => setPageSize(Number(e.target.value))}
+            className="w-auto"
+            aria-label={t.perPage(pageSize)}
+          >
+            {PAGE_SIZES.map((n) => (
+              <option key={n} value={n}>
+                {t.perPage(n)}
+              </option>
+            ))}
+          </Select>
+          <Button size="sm" onClick={onCreate}>
+            <Plus className="h-4 w-4" aria-hidden />
+            {t.add}
+          </Button>
+        </div>
       </div>
 
       {productsQuery.isPending ? (
@@ -200,7 +236,7 @@ export function ProductsTab({ onCreate, onEdit }: ProductsTabProps) {
                 </tr>
               </thead>
               <tbody>
-                {filtered.map((product) => (
+                {paginated.map((product) => (
                   <tr
                     key={product.id}
                     className={cn(
@@ -296,6 +332,36 @@ export function ProductsTab({ onCreate, onEdit }: ProductsTabProps) {
               </tbody>
             </table>
           </div>
+          {filtered.length > pageSize ? (
+            <div className="flex items-center justify-between gap-3 border-t border-border px-4 py-3">
+              <span className="text-xs text-text-subtle">
+                {t.showing(pageStart + 1, Math.min(pageStart + pageSize, filtered.length), filtered.length)}
+              </span>
+              <div className="flex items-center gap-1.5">
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  disabled={currentPage <= 1}
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                >
+                  <ChevronLeft className="h-4 w-4" aria-hidden />
+                  {t.prev}
+                </Button>
+                <span className="px-2 text-sm tabular-nums-mono text-text-muted">
+                  {currentPage} / {totalPages}
+                </span>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  disabled={currentPage >= totalPages}
+                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                >
+                  {t.next}
+                  <ChevronRight className="h-4 w-4" aria-hidden />
+                </Button>
+              </div>
+            </div>
+          ) : null}
         </Card>
       )}
     </div>

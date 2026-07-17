@@ -5,17 +5,19 @@
 import { isAdminOrManager } from "@/lib/roles";
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
-import { Inbox, Search } from "lucide-react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
+import { Inbox, Search, Trash2, X } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useConfirm } from "@/components/ui/confirm";
 import { SetupNotice } from "@/components/SetupNotice";
 import { WorkOrderStatusBadge, WORK_STATUS_ORDER } from "@/components/work/orderStatusMeta";
 import { useOrdersRealtime } from "@/components/work/useOrdersRealtime";
 import { countItems, listItemsForOrders } from "@/components/work/workData";
-import { listWorkOrders } from "@/lib/db/orders";
+import { listWorkOrders, deleteOrders, deleteAllOrders } from "@/lib/db/orders";
 import { listCtvs } from "@/lib/db/profiles";
 import { formatPrice, relativeTime } from "@/lib/format";
 import { isSupabaseConfigured } from "@/lib/supabase";
@@ -50,6 +52,20 @@ const STR = {
     refundRequest: "Yêu cầu hoàn tiền",
     refundTag: "Yêu cầu hoàn tiền",
     cancelTag: "Yêu cầu hủy",
+    selectAll: "Chọn tất cả",
+    deleteOrder: "Xóa đơn",
+    deleteSelected: (n: number) => `Xóa đã chọn (${n})`,
+    deleteAll: "Xóa tất cả lịch sử",
+    deletedN: (n: number) => `Đã xóa ${n} đơn.`,
+    confirmDelSelTitle: "Xóa các đơn đã chọn?",
+    confirmDelSelMsg: (n: number) =>
+      `${n} đơn cùng toàn bộ lịch sử, tin nhắn, minh chứng sẽ bị xóa vĩnh viễn. Không thể hoàn tác.`,
+    confirmDelOneTitle: (code: string) => `Xóa đơn ${code}?`,
+    confirmDelOneMsg: "Đơn cùng toàn bộ lịch sử/tin nhắn sẽ bị xóa vĩnh viễn. Không thể hoàn tác.",
+    confirmDelAllTitle: "Xóa TẤT CẢ đơn hàng?",
+    confirmDelAllMsg:
+      "Toàn bộ đơn hàng cùng lịch sử, tin nhắn, minh chứng sẽ bị xóa vĩnh viễn. Đây là thao tác nguy hiểm, không thể hoàn tác.",
+    confirmDelBtn: "Xóa",
   },
   en: {
     title: "Orders",
@@ -75,6 +91,20 @@ const STR = {
     refundRequest: "Refund request",
     refundTag: "Refund requested",
     cancelTag: "Cancellation requested",
+    selectAll: "Select all",
+    deleteOrder: "Delete order",
+    deleteSelected: (n: number) => `Delete selected (${n})`,
+    deleteAll: "Delete all history",
+    deletedN: (n: number) => `Deleted ${n} order${n === 1 ? "" : "s"}.`,
+    confirmDelSelTitle: "Delete selected orders?",
+    confirmDelSelMsg: (n: number) =>
+      `${n} order${n === 1 ? "" : "s"} plus all their history, messages, and proofs will be permanently deleted. This cannot be undone.`,
+    confirmDelOneTitle: (code: string) => `Delete order ${code}?`,
+    confirmDelOneMsg: "The order and all its history/messages will be permanently deleted. This cannot be undone.",
+    confirmDelAllTitle: "Delete ALL orders?",
+    confirmDelAllMsg:
+      "Every order plus all history, messages, and proofs will be permanently deleted. This is a dangerous action and cannot be undone.",
+    confirmDelBtn: "Delete",
   },
 };
 
@@ -105,10 +135,35 @@ function OrdersTable({ isAdmin, userId }: { isAdmin: boolean; userId: string }) 
   useOrdersRealtime();
   const t = usePick(STR);
   const s = useT();
+  const queryClient = useQueryClient();
+  const confirm = useConfirm();
+  // CHỈ admin được xóa đơn (manager thì không).
+  const canDelete = useAuthStore((state) => state.user?.role === "admin");
 
   const [statusFilter, setStatusFilter] = useState<DbOrderStatus | "all" | "refund_request">("all");
   const [search, setSearch] = useState("");
   const [ctvFilter, setCtvFilter] = useState<string>("all");
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+
+  const deleteMutation = useMutation({
+    mutationFn: (ids: string[]) => deleteOrders(ids),
+    onSuccess: (n) => {
+      toast.success(t.deletedN(n));
+      setSelected(new Set());
+      void queryClient.invalidateQueries({ queryKey: ["work-orders"] });
+    },
+    onError: (err: Error) => toast.error(err.message),
+  });
+  const deleteAllMutation = useMutation({
+    mutationFn: () => deleteAllOrders(),
+    onSuccess: (n) => {
+      toast.success(t.deletedN(n));
+      setSelected(new Set());
+      void queryClient.invalidateQueries({ queryKey: ["work-orders"] });
+    },
+    onError: (err: Error) => toast.error(err.message),
+  });
+  const deleting = deleteMutation.isPending || deleteAllMutation.isPending;
 
   const ordersQuery = useQuery({
     queryKey: isAdmin ? ["work-orders", "all"] : ["work-orders", { assignedTo: userId }],
@@ -182,6 +237,50 @@ function OrdersTable({ isAdmin, userId }: { isAdmin: boolean; userId: string }) 
 
   const itemsMap = itemsQuery.data ?? {};
 
+  // Chọn nhiều để xóa (chỉ admin). Áp trên danh sách đang lọc.
+  const filteredIds = filtered.map((o) => o.id);
+  const allSelected = filteredIds.length > 0 && filteredIds.every((id) => selected.has(id));
+  const someSelected = filteredIds.some((id) => selected.has(id));
+  function toggleAll() {
+    setSelected(allSelected ? new Set() : new Set(filteredIds));
+  }
+  function toggleOne(id: string) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  }
+  async function handleDeleteOne(id: string, code: string) {
+    const r = await confirm({
+      title: t.confirmDelOneTitle(code),
+      message: t.confirmDelOneMsg,
+      confirmText: t.confirmDelBtn,
+      tone: "danger",
+    });
+    if (r.ok) deleteMutation.mutate([id]);
+  }
+  async function handleDeleteSelected() {
+    const ids = [...selected];
+    if (ids.length === 0) return;
+    const r = await confirm({
+      title: t.confirmDelSelTitle,
+      message: t.confirmDelSelMsg(ids.length),
+      confirmText: t.confirmDelBtn,
+      tone: "danger",
+    });
+    if (r.ok) deleteMutation.mutate(ids);
+  }
+  async function handleDeleteAll() {
+    const r = await confirm({
+      title: t.confirmDelAllTitle,
+      message: t.confirmDelAllMsg,
+      confirmText: t.confirmDelBtn,
+      tone: "danger",
+    });
+    if (r.ok) deleteAllMutation.mutate();
+  }
+
   return (
     <div className="space-y-4">
       {/* Pill lọc trạng thái */}
@@ -238,6 +337,29 @@ function OrdersTable({ isAdmin, userId }: { isAdmin: boolean; userId: string }) 
             </Select>
           </div>
         ) : null}
+
+        {/* Xóa đơn — chỉ admin */}
+        {canDelete ? (
+          <div className="ml-auto flex items-center gap-2">
+            {selected.size > 0 ? (
+              <Button
+                variant="danger"
+                size="sm"
+                disabled={deleting}
+                onClick={handleDeleteSelected}
+              >
+                <Trash2 className="h-4 w-4" aria-hidden />
+                {t.deleteSelected(selected.size)}
+              </Button>
+            ) : null}
+            {orders.length > 0 ? (
+              <Button variant="secondary" size="sm" disabled={deleting} onClick={handleDeleteAll}>
+                <Trash2 className="h-4 w-4 text-danger" aria-hidden />
+                {t.deleteAll}
+              </Button>
+            ) : null}
+          </div>
+        ) : null}
       </div>
 
       {/* Bảng */}
@@ -253,6 +375,20 @@ function OrdersTable({ isAdmin, userId }: { isAdmin: boolean; userId: string }) 
           <table className="w-full min-w-[860px] text-left text-sm">
             <thead>
               <tr className="border-b border-border text-xs uppercase tracking-wider text-text-subtle">
+                {canDelete ? (
+                  <th className="px-4 py-3">
+                    <input
+                      type="checkbox"
+                      checked={allSelected}
+                      ref={(el) => {
+                        if (el) el.indeterminate = !allSelected && someSelected;
+                      }}
+                      onChange={toggleAll}
+                      aria-label={t.selectAll}
+                      className="h-4 w-4 cursor-pointer rounded border-border-strong bg-surface-2 accent-yellow"
+                    />
+                  </th>
+                ) : null}
                 <th className="px-4 py-3 font-semibold">{t.colCode}</th>
                 <th className="px-4 py-3 font-semibold">{t.colCreated}</th>
                 <th className="px-4 py-3 font-semibold">{t.colCustomer}</th>
@@ -265,7 +401,24 @@ function OrdersTable({ isAdmin, userId }: { isAdmin: boolean; userId: string }) 
             </thead>
             <tbody className="divide-y divide-border">
               {filtered.map((order) => (
-                <tr key={order.id} className="transition-colors hover:bg-surface-2">
+                <tr
+                  key={order.id}
+                  className={cn(
+                    "transition-colors hover:bg-surface-2",
+                    selected.has(order.id) && "bg-yellow-soft/40",
+                  )}
+                >
+                  {canDelete ? (
+                    <td className="px-4 py-3">
+                      <input
+                        type="checkbox"
+                        checked={selected.has(order.id)}
+                        onChange={() => toggleOne(order.id)}
+                        aria-label={`${t.deleteOrder} ${order.order_code}`}
+                        className="h-4 w-4 cursor-pointer rounded border-border-strong bg-surface-2 accent-yellow"
+                      />
+                    </td>
+                  ) : null}
                   <td className="px-4 py-3">
                     <Link
                       to={`/work/orders/${order.id}`}
@@ -313,12 +466,26 @@ function OrdersTable({ isAdmin, userId }: { isAdmin: boolean; userId: string }) 
                     </td>
                   ) : null}
                   <td className="px-4 py-3 text-right">
-                    <Link
-                      to={`/work/orders/${order.id}`}
-                      className={cn(buttonVariants({ variant: "ghost", size: "sm" }))}
-                    >
-                      {t.open}
-                    </Link>
+                    <div className="flex items-center justify-end gap-1">
+                      <Link
+                        to={`/work/orders/${order.id}`}
+                        className={cn(buttonVariants({ variant: "ghost", size: "sm" }))}
+                      >
+                        {t.open}
+                      </Link>
+                      {canDelete ? (
+                        <button
+                          type="button"
+                          title={t.deleteOrder}
+                          aria-label={`${t.deleteOrder} ${order.order_code}`}
+                          disabled={deleting}
+                          onClick={() => handleDeleteOne(order.id, order.order_code)}
+                          className="rounded-md p-1.5 text-text-subtle transition-colors hover:bg-danger-soft hover:text-danger disabled:opacity-50"
+                        >
+                          <X className="h-4 w-4" aria-hidden />
+                        </button>
+                      ) : null}
+                    </div>
                   </td>
                 </tr>
               ))}

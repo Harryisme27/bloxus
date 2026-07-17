@@ -1,0 +1,3 @@
+# SPA fallback: mọi đường dẫn chưa khớp file tĩnh -> index.html (200, không phải 301)
+# để react-router xử lý client-side. BẮT BUỘC cho SPA trên Cloudflare Pages.
+/*    /index.html   200
