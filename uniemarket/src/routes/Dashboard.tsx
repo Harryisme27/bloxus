@@ -1,3 +1,4 @@
+import { isStaffRole } from "@/lib/roles";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -87,7 +88,7 @@ export function Dashboard() {
 function DashboardContent() {
   const t = usePick(STR);
   const user = useAuthStore((state) => state.user)!;
-  const isStaff = user.role === "admin" || user.role === "ctv";
+  const isStaff = isStaffRole(user.role);
 
   const ordersQuery = useQuery({
     queryKey: ["my-orders"],

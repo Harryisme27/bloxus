@@ -1,3 +1,4 @@
+import { isStaffRole } from "@/lib/roles";
 import { useState } from "react";
 import { Link, NavLink, useNavigate } from "react-router-dom";
 import {
@@ -51,7 +52,7 @@ export function Navbar() {
   const cartCount = useCartStore((state) => state.items.reduce((sum, line) => sum + line.quantity, 0));
   const user = useAuthStore((state) => state.user);
   const logout = useAuthStore((state) => state.logout);
-  const isStaff = user?.role === "admin" || user?.role === "ctv";
+  const isStaff = isStaffRole(user?.role);
   const unread = useUnreadCount();
 
   // Keep last_seen fresh while the app is open (Agent D owns the hook impl).

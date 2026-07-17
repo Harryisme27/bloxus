@@ -2,6 +2,7 @@
 // Admin: mọi đơn + lọc theo CTV; CTV: chỉ đơn được giao (RLS lo, vẫn truyền
 // assignedTo cho cache key rõ ràng). Lọc trạng thái bằng pill (kèm đếm),
 // tìm theo mã đơn.
+import { isAdminOrManager } from "@/lib/roles";
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -87,14 +88,14 @@ export function WorkOrders() {
       <header>
         <h1 className="font-heading text-3xl font-bold text-text">{t.title}</h1>
         <p className="mt-1 text-sm text-text-muted">
-          {user?.role === "admin" ? t.subtitleAdmin : t.subtitleCtv}
+          {isAdminOrManager(user?.role) ? t.subtitleAdmin : t.subtitleCtv}
         </p>
       </header>
 
       {!isSupabaseConfigured ? (
         <SetupNotice />
       ) : user ? (
-        <OrdersTable isAdmin={user.role === "admin"} userId={user.id} />
+        <OrdersTable isAdmin={isAdminOrManager(user.role)} userId={user.id} />
       ) : null}
     </div>
   );

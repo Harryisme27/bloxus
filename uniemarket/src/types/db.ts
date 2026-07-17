@@ -8,7 +8,7 @@
 // Enums (khớp các CREATE TYPE trong 01-schema.sql)
 // ----------------------------------------------------------------------------
 
-export type UserRole = "customer" | "ctv" | "admin";
+export type UserRole = "customer" | "ctv" | "manager" | "admin";
 export type ProductKind = "item" | "service";
 export type DbOrderStatus =
   | "pending_payment"

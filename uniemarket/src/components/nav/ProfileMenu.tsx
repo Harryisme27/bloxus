@@ -6,6 +6,7 @@
 //
 // No @radix-ui/react-dropdown-menu dependency exists, so this is a small
 // click-outside implementation.
+import { isStaffRole } from "@/lib/roles";
 import { useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
@@ -37,6 +38,7 @@ const STR = {
     workArea: "Khu làm việc",
     logout: "Đăng xuất",
     roleAdmin: "Admin",
+    roleManager: "Quản lý",
     roleCtv: "CTV",
     roleCustomer: "Khách",
   },
@@ -50,6 +52,7 @@ const STR = {
     workArea: "Work area",
     logout: "Log out",
     roleAdmin: "Admin",
+    roleManager: "Manager",
     roleCtv: "CTV",
     roleCustomer: "Customer",
   },
@@ -63,6 +66,7 @@ interface MenuLink {
 
 const ROLE_CHIP_CLASS: Record<UserRole, string> = {
   admin: "bg-yellow text-text-on-yellow",
+  manager: "bg-yellow-soft text-yellow",
   ctv: "bg-green text-text-on-green",
   customer: "bg-surface-3 text-text-muted",
 };
@@ -98,6 +102,7 @@ export function ProfileMenu() {
 
   const roleLabel: Record<UserRole, string> = {
     admin: t.roleAdmin,
+    manager: t.roleManager,
     ctv: t.roleCtv,
     customer: t.roleCustomer,
   };
@@ -131,7 +136,7 @@ export function ProfileMenu() {
   const name = user.display_name ?? user.username;
   const chipClassName = ROLE_CHIP_CLASS[user.role];
   const chipLabel = roleLabel[user.role];
-  const isStaff = user.role === "admin" || user.role === "ctv";
+  const isStaff = isStaffRole(user.role);
 
   async function handleLogout() {
     setOpen(false);

@@ -74,13 +74,13 @@ export async function updateMyProfile(
   return data as ProfileRow;
 }
 
-/** Danh sách CTV đã duyệt (chỉ admin đọc được — RLS). Dùng cho màn giao đơn. */
+/** Danh sách người nhận đơn được (CTV + manager). Dùng cho màn giao đơn + trang CTV. */
 export async function listCtvs(): Promise<ProfileRow[]> {
   const sb = requireSupabase();
   const { data, error } = await sb
     .from("profiles")
     .select("*")
-    .eq("role", "ctv")
+    .in("role", ["ctv", "manager"])
     .order("username", { ascending: true });
   if (error) throw new Error(error.message);
   return (data ?? []) as ProfileRow[];

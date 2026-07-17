@@ -3,6 +3,7 @@
 // - Khách đã đăng nhập: hiện thread đơn hàng gần nhất (MessagePane compact),
 //   không có thread thì dẫn tới /messages.
 // - Staff (admin/CTV): dẫn tới /work/chat.
+import { isStaffRole } from "@/lib/roles";
 import { useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -63,7 +64,7 @@ export function ChatWidget() {
   const [open, setOpen] = useState(false);
   const session = useAuthStore((s) => s.session);
   const user = useAuthStore((s) => s.user);
-  const isStaff = user?.role === "admin" || user?.role === "ctv";
+  const isStaff = isStaffRole(user?.role);
 
   // Chỉ tải khi panel mở + là khách đã đăng nhập.
   const threadsQuery = useQuery({

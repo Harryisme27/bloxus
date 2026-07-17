@@ -320,6 +320,11 @@ export function MessagePane({ thread, className, compact, hideHeader }: MessageP
                       Admin
                     </Badge>
                   ) : null}
+                  {profile?.role === "manager" ? (
+                    <Badge variant="gold" className="px-1.5 py-0 text-[10px]">
+                      Manager
+                    </Badge>
+                  ) : null}
                   {profile?.role === "ctv" ? (
                     <Badge variant="green" className="px-1.5 py-0 text-[10px]">
                       CTV

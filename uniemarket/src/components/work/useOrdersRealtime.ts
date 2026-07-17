@@ -34,11 +34,11 @@ export function useOrdersRealtime(): void {
 
   useEffect(() => {
     if (!isSupabaseConfigured || !supabase || !sessionUserId || !uid) return;
-    if (role !== "admin" && role !== "ctv") return;
+    if (role !== "admin" && role !== "manager" && role !== "ctv") return;
 
     const sb = supabase;
-    // Admin nghe toàn bộ; CTV chỉ nghe đơn được giao cho mình.
-    const filter = role === "admin" ? undefined : `assigned_ctv=eq.${uid}`;
+    // Admin/manager nghe toàn bộ; CTV chỉ nghe đơn được giao cho mình.
+    const filter = role === "admin" || role === "manager" ? undefined : `assigned_ctv=eq.${uid}`;
 
     const invalidate = (orderId?: string) => {
       void queryClient.invalidateQueries({ queryKey: ["work-orders"] });

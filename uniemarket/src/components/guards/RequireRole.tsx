@@ -20,6 +20,7 @@ const STR = {
     backHome: "Về trang chủ",
     applyCtv: "Ứng tuyển CTV",
     roleAdmin: "quản trị viên",
+    roleManager: "quản lý",
     roleCtv: "cộng tác viên",
     roleCustomer: "khách hàng",
   },
@@ -33,6 +34,7 @@ const STR = {
     backHome: "Back to home",
     applyCtv: "Apply to be a CTV",
     roleAdmin: "administrators",
+    roleManager: "managers",
     roleCtv: "collaborators",
     roleCustomer: "customers",
   },
@@ -58,7 +60,13 @@ export function RequireRole({
   const location = useLocation();
 
   const roleLabel = (role: UserRole) =>
-    role === "admin" ? t.roleAdmin : role === "ctv" ? t.roleCtv : t.roleCustomer;
+    role === "admin"
+      ? t.roleAdmin
+      : role === "manager"
+        ? t.roleManager
+        : role === "ctv"
+          ? t.roleCtv
+          : t.roleCustomer;
 
   if (!isSupabaseConfigured) {
     return (

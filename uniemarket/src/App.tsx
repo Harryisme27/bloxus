@@ -74,7 +74,7 @@ export const router = createBrowserRouter([
       {
         path: "work",
         element: (
-          <RequireRole roles={["admin", "ctv"]}>
+          <RequireRole roles={["admin", "manager", "ctv"]}>
             <WorkLayout />
           </RequireRole>
         ),

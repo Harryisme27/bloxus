@@ -1,3 +1,4 @@
+import { isStaffRole } from "@/lib/roles";
 import { useEffect } from "react";
 import { Outlet, useLocation } from "react-router-dom";
 import { Navbar } from "@/components/Navbar";
@@ -25,7 +26,7 @@ export function RootLayout() {
   const user = useAuthStore((s) => s.user);
   const authLoading = useAuthStore((s) => s.loading);
   const lang = useLangStore((s) => s.lang);
-  const isStaff = user?.role === "admin" || user?.role === "ctv";
+  const isStaff = isStaffRole(user?.role);
   useEffect(() => {
     if (authLoading || isStaff) return;
     if (lang !== "en") useLangStore.getState().setLang("en");

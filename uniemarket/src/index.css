@@ -149,6 +149,30 @@
 }
 .um-float { animation: um-float 5s ease-in-out infinite; }
 
+/* Thanh cuộn theo theme (nền tối ấm + thumb bo tròn, hover ánh hổ phách). */
+* {
+  scrollbar-width: thin; /* Firefox */
+  scrollbar-color: var(--color-surface-3) var(--color-bg);
+}
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: var(--color-bg);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-surface-3);
+  border-radius: 999px;
+  border: 2px solid var(--color-bg);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-yellow);
+}
+::-webkit-scrollbar-corner {
+  background: var(--color-bg);
+}
+
 /* Chuyển trang: mỗi route mới hiện mượt (fade + trượt lên nhẹ). Áp ở RootLayout
    bằng cách key theo pathname để chạy lại mỗi lần đổi trang. */
 @keyframes um-page-in {

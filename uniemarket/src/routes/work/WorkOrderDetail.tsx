@@ -221,6 +221,7 @@ function OrderDetailView({
   const t = usePick(STR);
   const lang = useLangStore((state) => state.lang);
   const isAdmin = role === "admin";
+  const canAssign = role === "admin" || role === "manager";
 
   const [paymentRef, setPaymentRef] = useState("");
   const [assignOpen, setAssignOpen] = useState(false);
@@ -326,7 +327,9 @@ function OrderDetailView({
     );
   }
 
-  const isMyCtvOrder = role === "ctv" && order.assigned_ctv === userId;
+  // Đơn tôi đang xử lý (CTV hoặc manager tự nhận / được giao).
+  const isMyCtvOrder =
+    (role === "ctv" || role === "manager") && order.assigned_ctv === userId;
   const displayStatus = orderDisplayStatus(order);
   const hasPendingCancel =
     order.cancel_requested_at != null &&
@@ -379,6 +382,7 @@ function OrderDetailView({
             displayStatus={displayStatus}
             hasPendingCancel={hasPendingCancel}
             isAdmin={isAdmin}
+            canAssign={canAssign}
             isMyCtvOrder={isMyCtvOrder}
             paymentRef={paymentRef}
             onPaymentRefChange={setPaymentRef}
@@ -557,6 +561,7 @@ function OrderControls({
   displayStatus,
   hasPendingCancel,
   isAdmin,
+  canAssign,
   isMyCtvOrder,
   paymentRef,
   onPaymentRefChange,
@@ -573,6 +578,8 @@ function OrderControls({
   displayStatus: OrderDisplayStatus;
   hasPendingCancel: boolean;
   isAdmin: boolean;
+  /** Admin hoặc manager — được giao đơn cho CTV. */
+  canAssign: boolean;
   isMyCtvOrder: boolean;
   paymentRef: string;
   onPaymentRefChange: (value: string) => void;
@@ -592,7 +599,7 @@ function OrderControls({
   const canDeliver =
     displayStatus === "in_progress" && !hasPendingCancel && (isAdmin || isMyCtvOrder);
   const adminConfirmPay = isAdmin && status === "pending_payment";
-  const adminAssign = isAdmin && status === "paid";
+  const adminAssign = canAssign && status === "paid";
   const adminRefund = isAdmin && status === "completed";
   const adminCanCancel =
     isAdmin && (status === "pending_payment" || status === "paid" || status === "in_progress");

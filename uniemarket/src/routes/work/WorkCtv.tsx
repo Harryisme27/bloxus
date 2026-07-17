@@ -24,10 +24,11 @@ import { listCategories } from "@/lib/db/catalog";
 import { relativeTime } from "@/lib/format";
 import type { CtvApplicationRow, ProfileRow, UserRole } from "@/types/db";
 import { usePick, useLangStore } from "@/i18n";
+import { useAuthStore } from "@/store/authStore";
 
 const ROLE_LABELS: { vi: Record<UserRole, string>; en: Record<UserRole, string> } = {
-  vi: { ctv: "Cộng tác viên", admin: "Quản trị", customer: "Khách" },
-  en: { ctv: "Collaborator", admin: "Admin", customer: "Customer" },
+  vi: { ctv: "Cộng tác viên", manager: "Quản lý", admin: "Quản trị", customer: "Khách" },
+  en: { ctv: "Collaborator", manager: "Manager", admin: "Admin", customer: "Customer" },
 };
 
 const STR = {
@@ -129,6 +130,9 @@ const STR = {
 /** /work/ctv (admin) — duyệt đơn ứng tuyển + danh sách CTV. */
 export function WorkCtv() {
   const t = usePick(STR);
+  // Cấp/đổi vai trò là quyền admin (guard_profile_role chặn ở DB) — manager chỉ
+  // quản lý danh sách + phân danh mục.
+  const isAdmin = useAuthStore((state) => state.user?.role === "admin");
   return (
     <div>
       <div className="mb-6">
@@ -136,15 +140,17 @@ export function WorkCtv() {
         <p className="mt-1 text-sm text-text-muted">{t.subtitle}</p>
       </div>
 
-      <Tabs defaultValue="grant">
+      <Tabs defaultValue={isAdmin ? "grant" : "list"}>
         <TabsList>
-          <TabsTrigger value="grant">{t.tabGrant}</TabsTrigger>
+          {isAdmin ? <TabsTrigger value="grant">{t.tabGrant}</TabsTrigger> : null}
           <TabsTrigger value="list">{t.tabList}</TabsTrigger>
           <TabsTrigger value="applications">{t.tabApplications}</TabsTrigger>
         </TabsList>
-        <TabsContent value="grant" className="pt-5">
-          <ManualRoleTab />
-        </TabsContent>
+        {isAdmin ? (
+          <TabsContent value="grant" className="pt-5">
+            <ManualRoleTab />
+          </TabsContent>
+        ) : null}
         <TabsContent value="list" className="pt-5">
           <CtvListTab />
         </TabsContent>

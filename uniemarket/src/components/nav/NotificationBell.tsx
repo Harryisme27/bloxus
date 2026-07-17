@@ -16,6 +16,7 @@ import { Bell, CheckCheck } from "lucide-react";
 import { listMy, markRead } from "@/lib/db/notifications";
 import { subscribeToMyNotifications } from "@/lib/db/chat";
 import { isSupabaseConfigured } from "@/lib/supabase";
+import { isStaffRole } from "@/lib/roles";
 import { useAuthStore } from "@/store/authStore";
 import { relativeTime } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -76,7 +77,7 @@ export function NotificationBell() {
       // Đơn mới (admin) hoặc đơn vào hàng chờ nhận (CTV) -> phát âm thanh.
       if (
         (n.type === "order_new" || n.type === "order_claimable") &&
-        (role === "admin" || role === "ctv")
+        isStaffRole(role)
       ) {
         playOrderBeep();
       }

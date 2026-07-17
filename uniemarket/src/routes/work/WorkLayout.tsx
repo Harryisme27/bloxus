@@ -19,6 +19,7 @@ const STR = {
   vi: {
     workArea: "Khu làm việc",
     admin: "Admin",
+    adminManager: "Quản lý",
     dashboard: "Bảng làm việc",
     orders: "Đơn hàng",
     payments: "Xác nhận thanh toán",
@@ -30,6 +31,7 @@ const STR = {
   en: {
     workArea: "Work area",
     admin: "Admin",
+    adminManager: "Manager",
     dashboard: "Dashboard",
     orders: "Orders",
     payments: "Confirm payment",
@@ -46,19 +48,19 @@ interface WorkNavItem {
   to: string;
   key: NavKey;
   icon: LucideIcon;
-  /** true = chỉ admin thấy (CTV bị ẩn). */
-  adminOnly: boolean;
+  /** Các vai trò thấy mục này. */
+  roles: Array<"admin" | "manager" | "ctv">;
   end?: boolean;
 }
 
 const NAV_ITEMS: WorkNavItem[] = [
-  { to: "/work", key: "dashboard", icon: LayoutDashboard, adminOnly: false, end: true },
-  { to: "/work/orders", key: "orders", icon: Receipt, adminOnly: false },
-  { to: "/work/payments", key: "payments", icon: BadgeDollarSign, adminOnly: true },
-  { to: "/work/catalog", key: "catalog", icon: PackageSearch, adminOnly: true },
-  { to: "/work/ctv", key: "ctv", icon: Users, adminOnly: true },
-  { to: "/work/chat", key: "chat", icon: MessagesSquare, adminOnly: false },
-  { to: "/work/settings", key: "settings", icon: Settings, adminOnly: true },
+  { to: "/work", key: "dashboard", icon: LayoutDashboard, roles: ["admin", "manager", "ctv"], end: true },
+  { to: "/work/orders", key: "orders", icon: Receipt, roles: ["admin", "manager", "ctv"] },
+  { to: "/work/payments", key: "payments", icon: BadgeDollarSign, roles: ["admin"] },
+  { to: "/work/catalog", key: "catalog", icon: PackageSearch, roles: ["admin", "manager"] },
+  { to: "/work/ctv", key: "ctv", icon: Users, roles: ["admin", "manager"] },
+  { to: "/work/chat", key: "chat", icon: MessagesSquare, roles: ["admin", "manager", "ctv"] },
+  { to: "/work/settings", key: "settings", icon: Settings, roles: ["admin"] },
 ];
 
 /**
@@ -69,8 +71,12 @@ export function WorkLayout() {
   const user = useAuthStore((state) => state.user);
   const t = usePick(STR);
   const { pathname } = useLocation();
-  const isAdmin = user?.role === "admin";
-  const items = NAV_ITEMS.filter((item) => isAdmin || !item.adminOnly);
+  const role = user?.role;
+  const items = NAV_ITEMS.filter(
+    (item) => role === "admin" || role === "manager" || role === "ctv"
+      ? item.roles.includes(role as "admin" | "manager" | "ctv")
+      : false,
+  );
 
   return (
     <PageContainer className="py-8 sm:py-10">
@@ -97,9 +103,9 @@ export function WorkLayout() {
                   >
                     <Icon className="h-4 w-4 shrink-0" aria-hidden />
                     <span className="flex-1">{t[item.key]}</span>
-                    {item.adminOnly ? (
+                    {!item.roles.includes("ctv") ? (
                       <Badge variant="gold" className="px-1.5 text-[10px]">
-                        {t.admin}
+                        {item.roles.includes("manager") ? t.adminManager : t.admin}
                       </Badge>
                     ) : null}
                   </NavLink>
