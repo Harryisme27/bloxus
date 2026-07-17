@@ -15,6 +15,68 @@ import { useCartStore } from "@/store/cartStore";
 import { useAuthStore } from "@/store/authStore";
 import { placeOrder } from "@/lib/db/orders";
 import type { DbPaymentMethod } from "@/types/db";
+import { usePick } from "@/i18n";
+
+const STR = {
+  vi: {
+    orderCreated: "Đã tạo đơn hàng!",
+    orderCodePrefix: "Mã đơn: ",
+    createFailed: "Không tạo được đơn hàng.",
+    title: "Thanh toán",
+    subtitle:
+      "Hoàn tất đơn hàng — sau khi đặt, bạn trao đổi trực tiếp với người bán ngay trong trang đơn hàng.",
+    deliveryInfo: "Thông tin nhận hàng",
+    accountEmail: "Email tài khoản",
+    gameUsernameLabel: "Tên tài khoản trong game ",
+    optional: "(không bắt buộc)",
+    gameUsernamePlaceholder: "Username / ID nhận hàng trong game",
+    gameUsernameHint:
+      "Người xử lý đơn sẽ giao hàng hoặc thực hiện dịch vụ trên tài khoản này. Bạn có thể bổ sung sau qua khung chat của đơn.",
+    noteLabel: "Ghi chú ",
+    notePlaceholder: "Yêu cầu thêm cho đơn hàng...",
+    chatNotice:
+      "Sau khi đặt, bạn trao đổi trực tiếp với người bán ngay trong trang đơn hàng — không cần cung cấp liên hệ bên ngoài.",
+    paymentMethod: "Phương thức thanh toán",
+    manualPayment: "Thanh toán thủ công",
+    manualPaymentDesc:
+      "Sau khi tạo đơn, bạn sẽ thấy thông tin chuyển khoản kèm mã đơn. Shop xác nhận nhận được tiền rồi mới bắt đầu xử lý — mọi trao đổi diễn ra ngay trong trang đơn hàng.",
+    badgeCodeTitle: "Có mã đơn riêng",
+    badgeCodeDesc: "Ghi mã khi chuyển khoản",
+    badgeChatTitle: "Chat trực tiếp",
+    badgeChatDesc: "Trao đổi với người xử lý đơn",
+    creatingOrder: "Đang tạo đơn...",
+    placeOrder: "Đặt hàng",
+  },
+  en: {
+    orderCreated: "Order created!",
+    orderCodePrefix: "Order code: ",
+    createFailed: "Couldn't create the order.",
+    title: "Checkout",
+    subtitle:
+      "Complete your order — after placing it, you'll chat directly with the seller right on the order page.",
+    deliveryInfo: "Delivery details",
+    accountEmail: "Account email",
+    gameUsernameLabel: "In-game username ",
+    optional: "(optional)",
+    gameUsernamePlaceholder: "Username / ID to receive items in game",
+    gameUsernameHint:
+      "The person handling your order will deliver or perform the service on this account. You can add it later through the order chat.",
+    noteLabel: "Note ",
+    notePlaceholder: "Any extra requests for your order...",
+    chatNotice:
+      "After you place the order, you'll chat directly with the seller on the order page — no external contact needed.",
+    paymentMethod: "Payment method",
+    manualPayment: "Manual payment",
+    manualPaymentDesc:
+      "After creating the order, you'll see the transfer details along with your order code. The shop starts processing only after confirming payment — all communication happens on the order page.",
+    badgeCodeTitle: "Your own order code",
+    badgeCodeDesc: "Include the code when transferring",
+    badgeChatTitle: "Direct chat",
+    badgeChatDesc: "Talk with the person handling your order",
+    creatingOrder: "Creating order...",
+    placeOrder: "Place order",
+  },
+};
 
 export function Checkout() {
   return (
@@ -25,6 +87,7 @@ export function Checkout() {
 }
 
 function CheckoutContent() {
+  const t = usePick(STR);
   const navigate = useNavigate();
   const items = useCartStore((state) => state.items);
   const subtotal = useCartStore((state) => state.subtotal);
@@ -63,11 +126,11 @@ function CheckoutContent() {
     onSuccess: (order) => {
       placedRef.current = true;
       clear();
-      toast.success("Đã tạo đơn hàng!", { description: `Mã đơn: ${order.order_code}` });
+      toast.success(t.orderCreated, { description: `${t.orderCodePrefix}${order.order_code}` });
       navigate(`/orders/${order.id}`);
     },
     onError: (err) => {
-      toast.error(err instanceof Error ? err.message : "Không tạo được đơn hàng.");
+      toast.error(err instanceof Error ? err.message : t.createFailed);
     },
   });
 
@@ -83,11 +146,8 @@ function CheckoutContent() {
   return (
     <PageContainer className="py-10 sm:py-14">
       <div className="mb-8">
-        <h1 className="font-heading text-3xl font-bold text-text sm:text-4xl">Thanh toán</h1>
-        <p className="mt-2 text-text-muted">
-          Hoàn tất đơn hàng — sau khi đặt, bạn trao đổi trực tiếp với người bán ngay trong trang đơn
-          hàng.
-        </p>
+        <h1 className="font-heading text-3xl font-bold text-text sm:text-4xl">{t.title}</h1>
+        <p className="mt-2 text-text-muted">{t.subtitle}</p>
       </div>
 
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-[1fr_380px]">
@@ -97,12 +157,12 @@ function CheckoutContent() {
             <CardHeader className="border-b border-border">
               <CardTitle className="flex items-center gap-2 text-base">
                 <Gamepad2 className="h-4 w-4 text-yellow" aria-hidden="true" />
-                Thông tin nhận hàng
+                {t.deliveryInfo}
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4 pt-5">
               <div>
-                <Label htmlFor="email">Email tài khoản</Label>
+                <Label htmlFor="email">{t.accountEmail}</Label>
                 <div className="relative">
                   <AtSign
                     className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-subtle"
@@ -114,8 +174,8 @@ function CheckoutContent() {
 
               <div>
                 <Label htmlFor="game-username">
-                  Tên tài khoản trong game{" "}
-                  <span className="font-normal text-text-subtle">(không bắt buộc)</span>
+                  {t.gameUsernameLabel}
+                  <span className="font-normal text-text-subtle">{t.optional}</span>
                 </Label>
                 <div className="relative">
                   <Gamepad2
@@ -125,37 +185,32 @@ function CheckoutContent() {
                   <Input
                     id="game-username"
                     className="pl-9"
-                    placeholder="Username / ID nhận hàng trong game"
+                    placeholder={t.gameUsernamePlaceholder}
                     value={gameUsername}
                     onChange={(e) => setGameUsername(e.target.value)}
                   />
                 </div>
-                <p className="mt-1.5 text-xs text-text-subtle">
-                  Người xử lý đơn sẽ giao hàng hoặc thực hiện dịch vụ trên tài khoản này. Bạn có thể
-                  bổ sung sau qua khung chat của đơn.
-                </p>
+                <p className="mt-1.5 text-xs text-text-subtle">{t.gameUsernameHint}</p>
               </div>
 
               <div>
                 <Label htmlFor="note">
-                  Ghi chú <span className="font-normal text-text-subtle">(không bắt buộc)</span>
+                  {t.noteLabel}
+                  <span className="font-normal text-text-subtle">{t.optional}</span>
                 </Label>
                 <textarea
                   id="note"
                   rows={3}
                   value={note}
                   onChange={(e) => setNote(e.target.value)}
-                  placeholder="Yêu cầu thêm cho đơn hàng..."
+                  placeholder={t.notePlaceholder}
                   className="mt-1.5 w-full rounded-lg border border-border bg-surface-3 px-3 py-2 text-sm text-text placeholder:text-text-subtle focus-visible:border-yellow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-yellow"
                 />
               </div>
 
               <div className="flex items-start gap-2.5 rounded-xl border border-dashed border-border-strong bg-surface-2 p-3.5 text-sm text-text-muted">
                 <MessageSquare className="mt-0.5 h-4 w-4 shrink-0 text-green" aria-hidden="true" />
-                <p>
-                  Sau khi đặt, bạn trao đổi trực tiếp với người bán ngay trong trang đơn hàng — không
-                  cần cung cấp liên hệ bên ngoài.
-                </p>
+                <p>{t.chatNotice}</p>
               </div>
             </CardContent>
           </Card>
@@ -165,25 +220,22 @@ function CheckoutContent() {
             <CardHeader className="border-b border-border">
               <CardTitle className="flex items-center gap-2 text-base">
                 <Landmark className="h-4 w-4 text-yellow" aria-hidden="true" />
-                Phương thức thanh toán
+                {t.paymentMethod}
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4 pt-5">
               <PaymentMethodSelector value={method} onChange={setMethod} />
               <div className="rounded-xl border border-dashed border-border-strong bg-surface-2 p-4 text-sm text-text-muted">
-                <p className="font-semibold text-text">Thanh toán thủ công</p>
-                <p className="mt-1">
-                  Sau khi tạo đơn, bạn sẽ thấy thông tin chuyển khoản kèm mã đơn. Shop xác nhận nhận
-                  được tiền rồi mới bắt đầu xử lý — mọi trao đổi diễn ra ngay trong trang đơn hàng.
-                </p>
+                <p className="font-semibold text-text">{t.manualPayment}</p>
+                <p className="mt-1">{t.manualPaymentDesc}</p>
               </div>
             </CardContent>
           </Card>
 
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             {[
-              { icon: ShieldCheck, title: "Có mã đơn riêng", desc: "Ghi mã khi chuyển khoản" },
-              { icon: MessageSquare, title: "Chat trực tiếp", desc: "Trao đổi với người xử lý đơn" },
+              { icon: ShieldCheck, title: t.badgeCodeTitle, desc: t.badgeCodeDesc },
+              { icon: MessageSquare, title: t.badgeChatTitle, desc: t.badgeChatDesc },
             ].map((badge) => {
               const Icon = badge.icon;
               return (
@@ -214,7 +266,7 @@ function CheckoutContent() {
               disabled={mutation.isPending}
             >
               <Lock className="h-4 w-4" aria-hidden="true" />
-              {mutation.isPending ? "Đang tạo đơn..." : "Đặt hàng"}
+              {mutation.isPending ? t.creatingOrder : t.placeOrder}
             </Button>
           </OrderSummary>
         </div>

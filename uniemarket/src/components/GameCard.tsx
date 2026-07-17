@@ -1,7 +1,13 @@
 import { Link } from "react-router-dom";
 import { Package } from "lucide-react";
 import type { CategoryRow } from "@/types/db";
+import { usePick } from "@/i18n";
 import { cn } from "@/lib/utils";
+
+const STR = {
+  vi: { products: "sản phẩm" },
+  en: { products: "products" },
+};
 
 export interface GameCardProps {
   category: CategoryRow;
@@ -24,6 +30,7 @@ function initialsOf(name: string): string {
 /** Clickable card linking to /games/:slug. Cover dùng icon_url thật nếu có,
  * fallback về gradient + chữ cái đầu tô màu accent của danh mục. */
 export function GameCard({ category, productCount, className }: GameCardProps) {
+  const t = usePick(STR);
   const accent = category.accent_color || DEFAULT_ACCENT;
   const cover = category.banner_url || category.icon_url;
 
@@ -78,7 +85,7 @@ export function GameCard({ category, productCount, className }: GameCardProps) {
         {typeof productCount === "number" ? (
           <div className="mt-2 flex items-center gap-1.5 text-xs text-text-subtle">
             <Package className="h-3.5 w-3.5" aria-hidden="true" />
-            <span>{productCount} sản phẩm</span>
+            <span>{productCount} {t.products}</span>
           </div>
         ) : null}
       </div>

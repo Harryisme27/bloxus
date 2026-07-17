@@ -7,6 +7,12 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { usePick } from "@/i18n";
+
+const STR = {
+  vi: { cancel: "Hủy", confirm: "Xác nhận", processing: "Đang xử lý…" },
+  en: { cancel: "Cancel", confirm: "Confirm", processing: "Processing…" },
+};
 
 export interface ConfirmDialogProps {
   open: boolean;
@@ -36,6 +42,7 @@ export function ConfirmDialog({
   onConfirm,
   children,
 }: ConfirmDialogProps) {
+  const t = usePick(STR);
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
@@ -46,10 +53,10 @@ export function ConfirmDialog({
         {children}
         <div className="mt-4 flex justify-end gap-2">
           <Button variant="secondary" onClick={() => onOpenChange(false)} disabled={loading}>
-            {cancelLabel ?? "Hủy"}
+            {cancelLabel ?? t.cancel}
           </Button>
           <Button variant={danger ? "danger" : "primary"} onClick={onConfirm} disabled={loading}>
-            {loading ? "Đang xử lý…" : (confirmLabel ?? "Xác nhận")}
+            {loading ? t.processing : (confirmLabel ?? t.confirm)}
           </Button>
         </div>
       </DialogContent>

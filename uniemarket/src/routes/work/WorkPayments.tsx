@@ -19,18 +19,64 @@ import { formatPrice, relativeTime } from "@/lib/format";
 import { isSupabaseConfigured } from "@/lib/supabase";
 import { useAuthStore } from "@/store/authStore";
 import type { OrderRow } from "@/types/db";
+import { usePick, useLangStore } from "@/i18n";
+
+const STR = {
+  vi: {
+    title: "Xác nhận thanh toán",
+    subtitle:
+      "Đối chiếu chuyển khoản theo mã đơn (nội dung CK) rồi bấm xác nhận — đơn cũ nhất lên đầu.",
+    adminOnly: "Chỉ admin",
+    adminOnlyBody: "Trang xác nhận thanh toán chỉ dành cho quản trị viên.",
+    loadError: (msg: string) => `Không tải được hàng đợi. ${msg}`,
+    retry: "Thử lại",
+    emptyTitle: "Không có đơn nào chờ xác nhận 🎉",
+    emptyBody: "Khi khách đặt đơn mới, thẻ đối chiếu sẽ hiện ở đây (realtime).",
+    confirmed: (code: string) => `Đã xác nhận thanh toán đơn ${code}.`,
+    copyOrderCode: "mã đơn",
+    transferContent: "Nội dung CK",
+    createdPrefix: (time: string) => `Tạo ${time}`,
+    amountToMatch: "Số tiền cần khớp",
+    refLabel: "Mã giao dịch / ghi chú (tùy chọn)",
+    refPlaceholder: "VD: FT2607xxxx",
+    confirming: "Đang xác nhận...",
+    confirmReceived: "Xác nhận đã nhận tiền",
+    cancelOrder: "Hủy đơn",
+  },
+  en: {
+    title: "Confirm payment",
+    subtitle:
+      "Match transfers by order code (the transfer memo), then confirm — oldest orders first.",
+    adminOnly: "Admins only",
+    adminOnlyBody: "The payment confirmation page is for administrators only.",
+    loadError: (msg: string) => `Couldn't load the queue. ${msg}`,
+    retry: "Try again",
+    emptyTitle: "No orders awaiting confirmation 🎉",
+    emptyBody:
+      "When a customer places a new order, its reconciliation card will appear here (realtime).",
+    confirmed: (code: string) => `Payment for order ${code} confirmed.`,
+    copyOrderCode: "order code",
+    transferContent: "Transfer memo",
+    createdPrefix: (time: string) => `Created ${time}`,
+    amountToMatch: "Amount to match",
+    refLabel: "Transaction ID / note (optional)",
+    refPlaceholder: "e.g. FT2607xxxx",
+    confirming: "Confirming...",
+    confirmReceived: "Confirm payment received",
+    cancelOrder: "Cancel order",
+  },
+};
 
 /** /work/payments (admin) — hàng đợi đối chiếu chuyển khoản theo mã đơn. */
 export function WorkPayments() {
   const user = useAuthStore((state) => state.user);
+  const t = usePick(STR);
 
   return (
     <div className="space-y-6">
       <header>
-        <h1 className="font-heading text-3xl font-bold text-text">Xác nhận thanh toán</h1>
-        <p className="mt-1 text-sm text-text-muted">
-          Đối chiếu chuyển khoản theo mã đơn (nội dung CK) rồi bấm xác nhận — đơn cũ nhất lên đầu.
-        </p>
+        <h1 className="font-heading text-3xl font-bold text-text">{t.title}</h1>
+        <p className="mt-1 text-sm text-text-muted">{t.subtitle}</p>
       </header>
 
       {!isSupabaseConfigured ? (
@@ -38,10 +84,8 @@ export function WorkPayments() {
       ) : user && user.role !== "admin" ? (
         <div className="rounded-2xl border border-border bg-surface p-10 text-center">
           <ShieldAlert className="mx-auto h-10 w-10 text-text-subtle" aria-hidden />
-          <p className="mt-3 font-heading text-lg font-semibold text-text">Chỉ admin</p>
-          <p className="mt-1 text-sm text-text-muted">
-            Trang xác nhận thanh toán chỉ dành cho quản trị viên.
-          </p>
+          <p className="mt-3 font-heading text-lg font-semibold text-text">{t.adminOnly}</p>
+          <p className="mt-1 text-sm text-text-muted">{t.adminOnlyBody}</p>
         </div>
       ) : user ? (
         <PaymentsQueue />
@@ -52,6 +96,7 @@ export function WorkPayments() {
 
 function PaymentsQueue() {
   useOrdersRealtime();
+  const t = usePick(STR);
 
   const ordersQuery = useQuery({
     queryKey: ["work-orders", { status: "pending_payment" }],
@@ -71,10 +116,10 @@ function PaymentsQueue() {
     return (
       <div className="rounded-2xl border border-border bg-surface p-8 text-center">
         <p className="text-sm text-text-muted">
-          Không tải được hàng đợi. {(ordersQuery.error as Error).message}
+          {t.loadError((ordersQuery.error as Error).message)}
         </p>
         <Button variant="secondary" size="sm" className="mt-4" onClick={() => void ordersQuery.refetch()}>
-          Thử lại
+          {t.retry}
         </Button>
       </div>
     );
@@ -86,12 +131,8 @@ function PaymentsQueue() {
   if (queue.length === 0) {
     return (
       <div className="rounded-2xl border border-dashed border-border-strong bg-surface p-12 text-center">
-        <p className="font-heading text-xl font-semibold text-text">
-          Không có đơn nào chờ xác nhận 🎉
-        </p>
-        <p className="mt-1 text-sm text-text-muted">
-          Khi khách đặt đơn mới, thẻ đối chiếu sẽ hiện ở đây (realtime).
-        </p>
+        <p className="font-heading text-xl font-semibold text-text">{t.emptyTitle}</p>
+        <p className="mt-1 text-sm text-text-muted">{t.emptyBody}</p>
       </div>
     );
   }
@@ -109,6 +150,8 @@ function PaymentCard({ order }: { order: OrderRow }) {
   const [ref, setRef] = useState("");
   const [cancelOpen, setCancelOpen] = useState(false);
   const queryClient = useQueryClient();
+  const t = usePick(STR);
+  const lang = useLangStore((state) => state.lang);
 
   const confirmMutation = useMutation({
     mutationFn: () => confirmPayment(order.id, ref.trim() || undefined),
@@ -116,7 +159,7 @@ function PaymentCard({ order }: { order: OrderRow }) {
       void queryClient.invalidateQueries({ queryKey: ["work-orders"] });
       void queryClient.invalidateQueries({ queryKey: ["order", updated.id] });
       void queryClient.invalidateQueries({ queryKey: ["order-events", updated.id] });
-      toast.success(`Đã xác nhận thanh toán đơn ${updated.order_code}.`);
+      toast.success(t.confirmed(updated.order_code));
     },
     onError: (err: Error) => toast.error(err.message),
   });
@@ -129,21 +172,21 @@ function PaymentCard({ order }: { order: OrderRow }) {
         {/* Mã đơn — nội dung chuyển khoản */}
         <div className="min-w-0">
           <p className="text-xs font-semibold uppercase tracking-wider text-text-subtle">
-            Nội dung CK
+            {t.transferContent}
           </p>
           <div className="mt-1 flex items-center gap-2">
             <span className="font-mono text-3xl font-bold tracking-wide text-yellow">
               {order.order_code}
             </span>
-            <CopyButton value={order.order_code} label="mã đơn" className="h-7 w-7" />
+            <CopyButton value={order.order_code} label={t.copyOrderCode} className="h-7 w-7" />
           </div>
           <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-sm text-text-muted">
             <span className="inline-flex items-center gap-1.5">
               <MethodIcon className="h-4 w-4 text-text-subtle" aria-hidden />
-              {paymentMethodLabel(order.payment_method)}
+              {paymentMethodLabel(order.payment_method, lang)}
             </span>
             <span>·</span>
-            <span>Tạo {relativeTime(order.created_at)}</span>
+            <span>{t.createdPrefix(relativeTime(order.created_at))}</span>
             <ContactChip channel={order.contact_channel} value={order.contact_value} />
           </div>
         </div>
@@ -151,7 +194,7 @@ function PaymentCard({ order }: { order: OrderRow }) {
         {/* Số tiền cần khớp */}
         <div className="text-right">
           <p className="text-xs font-semibold uppercase tracking-wider text-text-subtle">
-            Số tiền cần khớp
+            {t.amountToMatch}
           </p>
           <p className="tabular-nums-mono mt-1 text-3xl font-bold text-text">
             {formatPrice(order.total)}
@@ -161,12 +204,12 @@ function PaymentCard({ order }: { order: OrderRow }) {
 
       <div className="mt-4 flex flex-wrap items-end gap-3 border-t border-border pt-4">
         <div className="w-full max-w-sm flex-1">
-          <Label htmlFor={`ref-${order.id}`}>Mã giao dịch / ghi chú (tùy chọn)</Label>
+          <Label htmlFor={`ref-${order.id}`}>{t.refLabel}</Label>
           <Input
             id={`ref-${order.id}`}
             value={ref}
             onChange={(event) => setRef(event.target.value)}
-            placeholder="VD: FT2607xxxx"
+            placeholder={t.refPlaceholder}
             maxLength={200}
           />
         </div>
@@ -177,11 +220,11 @@ function PaymentCard({ order }: { order: OrderRow }) {
             disabled={confirmMutation.isPending}
           >
             <BadgeDollarSign className="h-4 w-4" aria-hidden />
-            {confirmMutation.isPending ? "Đang xác nhận..." : "Xác nhận đã nhận tiền"}
+            {confirmMutation.isPending ? t.confirming : t.confirmReceived}
           </Button>
           <Button variant="secondary" onClick={() => setCancelOpen(true)}>
             <Ban className="h-4 w-4" aria-hidden />
-            Hủy đơn
+            {t.cancelOrder}
           </Button>
         </div>
       </div>

@@ -11,6 +11,12 @@ import { subscribeToMyNotifications } from "@/lib/db/chat";
 import { unreadCount } from "@/lib/db/notifications";
 import { isSupabaseConfigured } from "@/lib/supabase";
 import { useAuthStore } from "@/store/authStore";
+import { usePick } from "@/i18n";
+
+const STR = {
+  vi: { view: "Xem" },
+  en: { view: "View" },
+};
 
 export interface UseNotificationsResult {
   /** Số thông báo chưa đọc (0 khi chưa đăng nhập / chưa cấu hình). */
@@ -18,6 +24,7 @@ export interface UseNotificationsResult {
 }
 
 export function useNotifications(): UseNotificationsResult {
+  const t = usePick(STR);
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const userId = useAuthStore((s) => s.session?.user.id ?? null);
@@ -34,7 +41,7 @@ export function useNotifications(): UseNotificationsResult {
       const link = notification.link;
       toast(notification.title, {
         description: notification.body ?? undefined,
-        action: link ? { label: "Xem", onClick: () => navigate(link) } : undefined,
+        action: link ? { label: t.view, onClick: () => navigate(link) } : undefined,
       });
       void queryClient.invalidateQueries({ queryKey: ["notifications-unread"] });
       void queryClient.invalidateQueries({ queryKey: ["notifications"] });

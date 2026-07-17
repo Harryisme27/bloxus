@@ -8,8 +8,61 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuthStore } from "@/store/authStore";
+import { usePick } from "@/i18n";
+
+const STR = {
+  vi: {
+    signedIn: "Đăng nhập thành công",
+    signedInDesc: "Chào mừng bạn quay lại Uniemarket!",
+    title: "Đăng nhập",
+    subtitle: "Truy cập bảng điều khiển, đơn hàng và minh chứng giao dịch của bạn.",
+    noAccount: "Chưa có tài khoản?",
+    signUpNow: "Đăng ký ngay",
+    selfRegistered: "Tài khoản do bạn tự đăng ký",
+    selfRegisteredDesc:
+      'Uniemarket dùng tài khoản thật — đăng nhập bằng email và mật khẩu bạn đã đăng ký. Chưa có tài khoản? Bấm "Đăng ký ngay" bên dưới.',
+    email: "Email",
+    emailPlaceholder: "ban@email.com",
+    password: "Mật khẩu",
+    hidePassword: "Ẩn mật khẩu",
+    showPassword: "Hiện mật khẩu",
+    remember: "Ghi nhớ đăng nhập",
+    forgotTitle: "Sắp ra mắt — liên hệ hỗ trợ nếu bạn quên mật khẩu",
+    forgot: "Quên mật khẩu?",
+    signingIn: "Đang đăng nhập…",
+    signIn: "Đăng nhập",
+    or: "HOẶC",
+    googleDisabled: "Đăng nhập Google chưa được kích hoạt.",
+    discordDisabled: "Đăng nhập Discord chưa được kích hoạt.",
+  },
+  en: {
+    signedIn: "Signed in successfully",
+    signedInDesc: "Welcome back to Uniemarket!",
+    title: "Log in",
+    subtitle: "Access your dashboard, orders, and transaction proofs.",
+    noAccount: "Don't have an account?",
+    signUpNow: "Sign up now",
+    selfRegistered: "Accounts you register yourself",
+    selfRegisteredDesc:
+      'Uniemarket uses real accounts — sign in with the email and password you registered. No account yet? Click "Sign up now" below.',
+    email: "Email",
+    emailPlaceholder: "you@email.com",
+    password: "Password",
+    hidePassword: "Hide password",
+    showPassword: "Show password",
+    remember: "Remember me",
+    forgotTitle: "Coming soon — contact support if you forgot your password",
+    forgot: "Forgot password?",
+    signingIn: "Signing in…",
+    signIn: "Log in",
+    or: "OR",
+    googleDisabled: "Google sign-in isn't enabled yet.",
+    discordDisabled: "Discord sign-in isn't enabled yet.",
+  },
+};
 
 export function Login() {
+  const t = usePick(STR);
   const user = useAuthStore((state) => state.user);
   const login = useAuthStore((state) => state.login);
   const navigate = useNavigate();
@@ -40,7 +93,7 @@ export function Login() {
 
     const result = await login(email, password);
     if (result.success) {
-      toast.success("Đăng nhập thành công", { description: "Chào mừng bạn quay lại Uniemarket!" });
+      toast.success(t.signedIn, { description: t.signedInDesc });
       navigate(from, { replace: true });
     } else {
       setError(result.error);
@@ -50,13 +103,13 @@ export function Login() {
 
   return (
     <AuthCard
-      title="Đăng nhập"
-      subtitle="Truy cập bảng điều khiển, đơn hàng và minh chứng giao dịch của bạn."
+      title={t.title}
+      subtitle={t.subtitle}
       footer={
         <>
-          Chưa có tài khoản?{" "}
+          {t.noAccount}{" "}
           <Link to="/register" className="font-semibold text-yellow hover:text-yellow-hover">
-            Đăng ký ngay
+            {t.signUpNow}
           </Link>
         </>
       }
@@ -64,17 +117,14 @@ export function Login() {
       <div className="mb-5 rounded-xl border border-yellow bg-yellow-soft p-4">
         <div className="flex items-center gap-2 text-sm font-semibold text-yellow">
           <Sparkles className="h-4 w-4" aria-hidden />
-          Tài khoản do bạn tự đăng ký
+          {t.selfRegistered}
         </div>
-        <p className="mt-2 text-sm text-text-muted">
-          Uniemarket dùng tài khoản thật — đăng nhập bằng email và mật khẩu bạn đã đăng ký. Chưa có
-          tài khoản? Bấm "Đăng ký ngay" bên dưới.
-        </p>
+        <p className="mt-2 text-sm text-text-muted">{t.selfRegisteredDesc}</p>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-4" noValidate>
         <div>
-          <Label htmlFor="login-email">Email</Label>
+          <Label htmlFor="login-email">{t.email}</Label>
           <div className="relative">
             <Mail
               className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-subtle"
@@ -84,7 +134,7 @@ export function Login() {
               id="login-email"
               type="email"
               autoComplete="email"
-              placeholder="ban@email.com"
+              placeholder={t.emailPlaceholder}
               className="pl-9"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
@@ -94,7 +144,7 @@ export function Login() {
         </div>
 
         <div>
-          <Label htmlFor="login-password">Mật khẩu</Label>
+          <Label htmlFor="login-password">{t.password}</Label>
           <div className="relative">
             <Lock
               className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-subtle"
@@ -114,7 +164,7 @@ export function Login() {
               type="button"
               onClick={() => setShowPassword((v) => !v)}
               className="absolute right-3 top-1/2 -translate-y-1/2 text-text-subtle transition-colors hover:text-text"
-              aria-label={showPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
+              aria-label={showPassword ? t.hidePassword : t.showPassword}
             >
               {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
             </button>
@@ -129,15 +179,15 @@ export function Login() {
               onChange={(e) => setRemember(e.target.checked)}
               className="h-4 w-4 rounded border-border-strong bg-surface-2 accent-yellow"
             />
-            Ghi nhớ đăng nhập
+            {t.remember}
           </label>
           <button
             type="button"
             disabled
-            title="Sắp ra mắt — liên hệ hỗ trợ nếu bạn quên mật khẩu"
+            title={t.forgotTitle}
             className="cursor-not-allowed text-sm text-text-subtle"
           >
-            Quên mật khẩu?
+            {t.forgot}
           </button>
         </div>
 
@@ -150,14 +200,14 @@ export function Login() {
 
         <Button type="submit" variant="primary" size="lg" className="w-full" disabled={submitting}>
           <LogIn className="h-4 w-4" aria-hidden />
-          {submitting ? "Đang đăng nhập…" : "Đăng nhập"}
+          {submitting ? t.signingIn : t.signIn}
         </Button>
       </form>
 
       {/* Social login (visual only) */}
       <div className="my-5 flex items-center gap-3 text-xs text-text-subtle">
         <span className="h-px flex-1 bg-border" />
-        HOẶC
+        {t.or}
         <span className="h-px flex-1 bg-border" />
       </div>
       <div className="grid grid-cols-2 gap-3">
@@ -165,7 +215,7 @@ export function Login() {
           type="button"
           variant="secondary"
           size="md"
-          onClick={() => toast("Đăng nhập Google chưa được kích hoạt.")}
+          onClick={() => toast(t.googleDisabled)}
         >
           Google
         </Button>
@@ -173,7 +223,7 @@ export function Login() {
           type="button"
           variant="secondary"
           size="md"
-          onClick={() => toast("Đăng nhập Discord chưa được kích hoạt.")}
+          onClick={() => toast(t.discordDisabled)}
         >
           Discord
         </Button>

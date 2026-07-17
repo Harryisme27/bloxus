@@ -16,7 +16,45 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { WorkOrderStatusBadge } from "@/components/work/orderStatusMeta";
 import { OrderActions } from "@/components/order/OrderActions";
 import { orderDisplayStatus } from "@/types/db";
+import { usePick } from "@/i18n";
 import type { OrderItemRow, ThreadRow } from "@/types/db";
+
+const STR = {
+  vi: {
+    internalChat: "Trao đổi nội bộ",
+    teamChannel: "Kênh của đội ngũ Uniemarket",
+    internalBody:
+      "Đây là kênh liên lạc nội bộ giữa các thành viên đội ngũ — không gắn với đơn hàng cụ thể.",
+    loadFailed: "Không tải được chi tiết đơn.",
+    retry: "Thử lại",
+    notFound: "Không tìm thấy đơn hàng.",
+    orderDetails: "Chi tiết đơn",
+    product: "Sản phẩm",
+    order: "Đơn hàng",
+    qtyPrefix: "SL",
+    moreItems: (n: number) => ` · +${n} món khác`,
+    total: "Tổng cộng",
+    status: "Trạng thái",
+    viewOrder: "Xem chi tiết đơn",
+  },
+  en: {
+    internalChat: "Internal chat",
+    teamChannel: "Uniemarket team channel",
+    internalBody:
+      "This is an internal communication channel between team members — not tied to any specific order.",
+    loadFailed: "Couldn't load order details.",
+    retry: "Try again",
+    notFound: "Order not found.",
+    orderDetails: "Order details",
+    product: "Product",
+    order: "Order",
+    qtyPrefix: "Qty",
+    moreItems: (n: number) => ` · +${n} more item${n > 1 ? "s" : ""}`,
+    total: "Total",
+    status: "Status",
+    viewOrder: "View order details",
+  },
+};
 
 export interface OrderDetailsSidebarProps {
   thread: ThreadRow;
@@ -58,6 +96,7 @@ function SidebarShell({ children, className }: { children: ReactNode; className?
 }
 
 export function OrderDetailsSidebar({ thread, className }: OrderDetailsSidebarProps) {
+  const t = usePick(STR);
   const orderId = thread.order_id;
   const isOrderThread = thread.kind === "order" && Boolean(orderId);
 
@@ -78,12 +117,12 @@ export function OrderDetailsSidebar({ thread, className }: OrderDetailsSidebarPr
             <Hash className="h-5 w-5" aria-hidden />
           </span>
           <div className="min-w-0">
-            <p className="font-heading text-sm font-semibold text-text">Trao đổi nội bộ</p>
-            <p className="text-xs text-text-subtle">Kênh của đội ngũ Uniemarket</p>
+            <p className="font-heading text-sm font-semibold text-text">{t.internalChat}</p>
+            <p className="text-xs text-text-subtle">{t.teamChannel}</p>
           </div>
         </div>
         <p className="text-sm leading-relaxed text-text-muted">
-          Đây là kênh liên lạc nội bộ giữa các thành viên đội ngũ — không gắn với đơn hàng cụ thể.
+          {t.internalBody}
         </p>
       </SidebarShell>
     );
@@ -109,13 +148,13 @@ export function OrderDetailsSidebar({ thread, className }: OrderDetailsSidebarPr
   if (orderQuery.isError) {
     return (
       <SidebarShell className={cn("items-center justify-center text-center", className)}>
-        <p className="text-sm text-text-muted">Không tải được chi tiết đơn.</p>
+        <p className="text-sm text-text-muted">{t.loadFailed}</p>
         <p className="max-w-xs text-xs text-text-subtle">
           {orderQuery.error instanceof Error ? orderQuery.error.message : ""}
         </p>
         <Button variant="secondary" size="sm" onClick={() => void orderQuery.refetch()}>
           <RefreshCw className="h-4 w-4" aria-hidden />
-          Thử lại
+          {t.retry}
         </Button>
       </SidebarShell>
     );
@@ -125,7 +164,7 @@ export function OrderDetailsSidebar({ thread, className }: OrderDetailsSidebarPr
   if (!order) {
     return (
       <SidebarShell className={cn("items-center justify-center text-center", className)}>
-        <p className="text-sm text-text-muted">Không tìm thấy đơn hàng.</p>
+        <p className="text-sm text-text-muted">{t.notFound}</p>
       </SidebarShell>
     );
   }
@@ -137,7 +176,7 @@ export function OrderDetailsSidebar({ thread, className }: OrderDetailsSidebarPr
   return (
     <SidebarShell className={className}>
       <div className="flex items-center justify-between">
-        <h2 className="font-heading text-sm font-semibold text-text">Chi tiết đơn</h2>
+        <h2 className="font-heading text-sm font-semibold text-text">{t.orderDetails}</h2>
         <span className="font-mono text-xs text-text-subtle">{order.order_code}</span>
       </div>
 
@@ -147,7 +186,7 @@ export function OrderDetailsSidebar({ thread, className }: OrderDetailsSidebarPr
           {imageUrl ? (
             <img
               src={imageUrl}
-              alt={firstItem ? firstItem.name : "Sản phẩm"}
+              alt={firstItem ? firstItem.name : t.product}
               loading="lazy"
               className="h-full w-full object-cover"
             />
@@ -163,12 +202,12 @@ export function OrderDetailsSidebar({ thread, className }: OrderDetailsSidebarPr
         </div>
         <div className="min-w-0 flex-1">
           <p className="font-heading text-sm font-semibold leading-snug text-text">
-            {firstItem ? itemLabel(firstItem) : "Đơn hàng"}
+            {firstItem ? itemLabel(firstItem) : t.order}
           </p>
           {firstItem ? (
             <p className="mt-0.5 text-xs text-text-subtle">
-              SL {firstItem.quantity}
-              {extraCount > 0 ? ` · +${extraCount} món khác` : ""}
+              {t.qtyPrefix} {firstItem.quantity}
+              {extraCount > 0 ? t.moreItems(extraCount) : ""}
             </p>
           ) : null}
         </div>
@@ -176,7 +215,7 @@ export function OrderDetailsSidebar({ thread, className }: OrderDetailsSidebarPr
 
       {/* Tổng tiền */}
       <div className="flex items-center justify-between border-t border-border pt-3">
-        <span className="text-sm text-text-muted">Tổng cộng</span>
+        <span className="text-sm text-text-muted">{t.total}</span>
         <span className="tabular-nums-mono font-heading text-base font-bold text-yellow">
           {formatPrice(order.total)}
         </span>
@@ -184,7 +223,7 @@ export function OrderDetailsSidebar({ thread, className }: OrderDetailsSidebarPr
 
       {/* Trạng thái */}
       <div className="flex items-center justify-between">
-        <span className="text-sm text-text-muted">Trạng thái</span>
+        <span className="text-sm text-text-muted">{t.status}</span>
         <WorkOrderStatusBadge status={orderDisplayStatus(order)} />
       </div>
 
@@ -197,7 +236,7 @@ export function OrderDetailsSidebar({ thread, className }: OrderDetailsSidebarPr
         className={cn(buttonVariants({ variant: "secondary", size: "sm" }), "mt-auto")}
       >
         <ExternalLink className="h-4 w-4" aria-hidden />
-        Xem chi tiết đơn
+        {t.viewOrder}
       </Link>
     </SidebarShell>
   );

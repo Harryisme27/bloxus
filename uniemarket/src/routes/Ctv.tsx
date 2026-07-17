@@ -5,8 +5,23 @@ import { Home, PauseCircle } from "lucide-react";
 import { PageContainer } from "@/components/PageContainer";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { usePick } from "@/i18n";
+
+const STR = {
+  vi: {
+    title: "Tuyển Cộng tác viên tạm đóng",
+    body: "Chương trình tuyển Cộng tác viên hiện đang tạm đóng. Vui lòng liên hệ quản trị viên nếu bạn muốn tham gia.",
+    home: "Về trang chủ",
+  },
+  en: {
+    title: "Collaborator (CTV) recruitment is paused",
+    body: "Our collaborator (CTV) recruitment program is currently paused. Please contact an administrator if you'd like to join.",
+    home: "Back to home",
+  },
+};
 
 export function Ctv() {
+  const t = usePick(STR);
   return (
     <PageContainer className="py-16 sm:py-24">
       <Card className="mx-auto max-w-lg">
@@ -16,16 +31,15 @@ export function Ctv() {
           </div>
           <div>
             <h1 className="font-heading text-2xl font-bold text-text">
-              Tuyển Cộng tác viên tạm đóng
+              {t.title}
             </h1>
             <p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-text-muted">
-              Chương trình tuyển Cộng tác viên hiện đang tạm đóng. Vui lòng liên hệ quản trị viên
-              nếu bạn muốn tham gia.
+              {t.body}
             </p>
           </div>
           <Link to="/" className={buttonVariants({ variant: "primary", size: "md" })}>
             <Home className="h-4 w-4" aria-hidden />
-            Về trang chủ
+            {t.home}
           </Link>
         </CardContent>
       </Card>

@@ -7,8 +7,25 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { StarRating } from "@/components/storefront/StarRating";
 import { listReviews } from "@/lib/db/content";
 import type { ReviewRow } from "@/types/db";
+import { usePick } from "@/i18n";
+
+const STR = {
+  vi: {
+    verifiedPurchase: "Đã mua hàng",
+    eyebrow: "Đánh giá",
+    title: "Khách hàng nói gì",
+    description: "Nhiều game thủ đã tin tưởng Uniemarket. Đây là một vài lời nhận xét.",
+  },
+  en: {
+    verifiedPurchase: "Verified purchase",
+    eyebrow: "Reviews",
+    title: "What customers say",
+    description: "Many gamers trust Uniemarket. Here are a few of their words.",
+  },
+};
 
 function ReviewCard({ review }: { review: ReviewRow }) {
+  const t = usePick(STR);
   const initials = review.author
     .split(" ")
     .map((w) => w[0])
@@ -46,7 +63,7 @@ function ReviewCard({ review }: { review: ReviewRow }) {
             ) : null}
           </p>
           <p className="truncate text-xs text-text-subtle">
-            {review.verified_purchase ? "Đã mua hàng" : ""}
+            {review.verified_purchase ? t.verifiedPurchase : ""}
             {review.verified_purchase && review.source ? " · " : ""}
             {review.source ?? ""}
           </p>
@@ -58,6 +75,7 @@ function ReviewCard({ review }: { review: ReviewRow }) {
 
 /** Homepage preview of 3 customer reviews as cards. */
 export function ReviewsPreview() {
+  const t = usePick(STR);
   const { data, isPending } = useQuery({
     queryKey: ["reviews"],
     queryFn: listReviews,
@@ -70,9 +88,9 @@ export function ReviewsPreview() {
     <section className="bg-bg-subtle py-14">
       <PageContainer>
         <SectionHeading
-          eyebrow="Đánh giá"
-          title="Khách hàng nói gì"
-          description="Nhiều game thủ đã tin tưởng Uniemarket. Đây là một vài lời nhận xét."
+          eyebrow={t.eyebrow}
+          title={t.title}
+          description={t.description}
         />
         {isPending ? (
           <div className="grid grid-cols-1 gap-4 md:grid-cols-3">

@@ -7,9 +7,32 @@ import { ProductCard } from "@/components/ProductCard";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { listProducts } from "@/lib/db/catalog";
+import { usePick } from "@/i18n";
+
+const STR = {
+  vi: {
+    eyebrow: "Bán chạy",
+    title: "Vật phẩm nổi bật",
+    description: "Những vật phẩm và dịch vụ được săn lùng nhiều nhất tuần này.",
+    explore: "Khám phá thêm",
+    loadError: "Không tải được sản phẩm. Vui lòng thử lại.",
+    retry: "Thử lại",
+    empty: "Chưa có sản phẩm nổi bật nào.",
+  },
+  en: {
+    eyebrow: "Best sellers",
+    title: "Featured items",
+    description: "The most sought-after items and services this week.",
+    explore: "Explore more",
+    loadError: "Couldn't load products. Please try again.",
+    retry: "Try again",
+    empty: "No featured products yet.",
+  },
+};
 
 /** "Vật phẩm nổi bật / bán chạy" — sản phẩm is_featured từ DB. */
 export function TrendingItems() {
+  const t = usePick(STR);
   const { data, isPending, isError, refetch } = useQuery({
     queryKey: ["products", "featured"],
     queryFn: () => listProducts({ featured: true }),
@@ -21,17 +44,17 @@ export function TrendingItems() {
     <section className="bg-bg-subtle py-14">
       <PageContainer>
         <SectionHeading
-          eyebrow="Bán chạy"
+          eyebrow={t.eyebrow}
           title={
             <span className="inline-flex items-center gap-2">
               <Flame className="h-6 w-6 text-yellow" aria-hidden="true" />
-              Vật phẩm nổi bật
+              {t.title}
             </span>
           }
-          description="Những vật phẩm và dịch vụ được săn lùng nhiều nhất tuần này."
+          description={t.description}
           action={
             <Link to="/games" className={buttonVariants({ variant: "ghost", size: "sm" })}>
-              Khám phá thêm
+              {t.explore}
             </Link>
           }
         />
@@ -43,9 +66,9 @@ export function TrendingItems() {
           </div>
         ) : isError ? (
           <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-border-strong bg-surface p-10 text-center">
-            <p className="text-sm text-text-muted">Không tải được sản phẩm. Vui lòng thử lại.</p>
+            <p className="text-sm text-text-muted">{t.loadError}</p>
             <Button type="button" variant="secondary" size="sm" onClick={() => refetch()}>
-              Thử lại
+              {t.retry}
             </Button>
           </div>
         ) : products.length > 0 ? (
@@ -55,7 +78,7 @@ export function TrendingItems() {
             ))}
           </div>
         ) : (
-          <p className="text-sm text-text-muted">Chưa có sản phẩm nổi bật nào.</p>
+          <p className="text-sm text-text-muted">{t.empty}</p>
         )}
       </PageContainer>
     </section>

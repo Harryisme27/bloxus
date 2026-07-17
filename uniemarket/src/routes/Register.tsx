@@ -8,8 +8,69 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuthStore } from "@/store/authStore";
+import { usePick } from "@/i18n";
+
+const STR = {
+  vi: {
+    mustAgree: "Bạn cần đồng ý với Điều khoản dịch vụ để tiếp tục.",
+    passwordMin: "Mật khẩu cần tối thiểu 6 ký tự.",
+    created: "Tạo tài khoản thành công",
+    createdDesc: "Chào mừng bạn đến với Uniemarket!",
+    checkEmail: "Kiểm tra email để xác nhận tài khoản",
+    checkEmailDesc: "Sau khi xác nhận, hãy đăng nhập lại.",
+    title: "Tạo tài khoản",
+    subtitle: "Đăng ký miễn phí để theo dõi đơn hàng và mua sắm nhanh hơn.",
+    haveAccount: "Đã có tài khoản?",
+    signIn: "Đăng nhập",
+    displayName: "Tên hiển thị",
+    displayNamePlaceholder: "VD: KhoiNguyen",
+    displayNameHint: "Tên in-game để nhận hàng sẽ được hỏi riêng cho từng đơn hàng.",
+    email: "Email",
+    emailPlaceholder: "ban@email.com",
+    password: "Mật khẩu",
+    passwordPlaceholder: "Tối thiểu 6 ký tự",
+    hidePassword: "Ẩn mật khẩu",
+    showPassword: "Hiện mật khẩu",
+    agreePrefix: "Tôi đồng ý với ",
+    terms: "Điều khoản dịch vụ",
+    agreeAnd: " và ",
+    privacy: "Chính sách bảo mật",
+    agreeSuffix: ".",
+    creating: "Đang tạo tài khoản…",
+    signUp: "Đăng ký",
+  },
+  en: {
+    mustAgree: "You must agree to the Terms of Service to continue.",
+    passwordMin: "Your password must be at least 6 characters.",
+    created: "Account created successfully",
+    createdDesc: "Welcome to Uniemarket!",
+    checkEmail: "Check your email to confirm your account",
+    checkEmailDesc: "Once confirmed, sign in again.",
+    title: "Create an account",
+    subtitle: "Sign up for free to track your orders and shop faster.",
+    haveAccount: "Already have an account?",
+    signIn: "Log in",
+    displayName: "Display name",
+    displayNamePlaceholder: "e.g. KhoiNguyen",
+    displayNameHint: "Your in-game name for delivery is asked separately for each order.",
+    email: "Email",
+    emailPlaceholder: "you@email.com",
+    password: "Password",
+    passwordPlaceholder: "At least 6 characters",
+    hidePassword: "Hide password",
+    showPassword: "Show password",
+    agreePrefix: "I agree to the ",
+    terms: "Terms of Service",
+    agreeAnd: " and the ",
+    privacy: "Privacy Policy",
+    agreeSuffix: ".",
+    creating: "Creating account…",
+    signUp: "Sign up",
+  },
+};
 
 export function Register() {
+  const t = usePick(STR);
   const user = useAuthStore((state) => state.user);
   const register = useAuthStore((state) => state.register);
   const navigate = useNavigate();
@@ -29,11 +90,11 @@ export function Register() {
     setError(null);
 
     if (!agree) {
-      setError("Bạn cần đồng ý với Điều khoản dịch vụ để tiếp tục.");
+      setError(t.mustAgree);
       return;
     }
     if (password.length < 6) {
-      setError("Mật khẩu cần tối thiểu 6 ký tự.");
+      setError(t.passwordMin);
       return;
     }
 
@@ -43,13 +104,13 @@ export function Register() {
       // Nếu Confirm email đang bật, đăng ký xong chưa có phiên — hướng người
       // dùng sang trang đăng nhập sau khi xác nhận email.
       if (useAuthStore.getState().session) {
-        toast.success("Tạo tài khoản thành công", {
-          description: "Chào mừng bạn đến với Uniemarket!",
+        toast.success(t.created, {
+          description: t.createdDesc,
         });
         navigate("/dashboard", { replace: true });
       } else {
-        toast.info("Kiểm tra email để xác nhận tài khoản", {
-          description: "Sau khi xác nhận, hãy đăng nhập lại.",
+        toast.info(t.checkEmail, {
+          description: t.checkEmailDesc,
         });
         navigate("/login", { replace: true });
       }
@@ -61,20 +122,20 @@ export function Register() {
 
   return (
     <AuthCard
-      title="Tạo tài khoản"
-      subtitle="Đăng ký miễn phí để theo dõi đơn hàng và mua sắm nhanh hơn."
+      title={t.title}
+      subtitle={t.subtitle}
       footer={
         <>
-          Đã có tài khoản?{" "}
+          {t.haveAccount}{" "}
           <Link to="/login" className="font-semibold text-yellow hover:text-yellow-hover">
-            Đăng nhập
+            {t.signIn}
           </Link>
         </>
       }
     >
       <form onSubmit={handleSubmit} className="space-y-4" noValidate>
         <div>
-          <Label htmlFor="reg-username">Tên hiển thị</Label>
+          <Label htmlFor="reg-username">{t.displayName}</Label>
           <div className="relative">
             <User2
               className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-subtle"
@@ -84,20 +145,18 @@ export function Register() {
               id="reg-username"
               type="text"
               autoComplete="username"
-              placeholder="VD: KhoiNguyen"
+              placeholder={t.displayNamePlaceholder}
               className="pl-9"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               required
             />
           </div>
-          <p className="mt-1 text-xs text-text-subtle">
-            Tên in-game để nhận hàng sẽ được hỏi riêng cho từng đơn hàng.
-          </p>
+          <p className="mt-1 text-xs text-text-subtle">{t.displayNameHint}</p>
         </div>
 
         <div>
-          <Label htmlFor="reg-email">Email</Label>
+          <Label htmlFor="reg-email">{t.email}</Label>
           <div className="relative">
             <Mail
               className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-subtle"
@@ -107,7 +166,7 @@ export function Register() {
               id="reg-email"
               type="email"
               autoComplete="email"
-              placeholder="ban@email.com"
+              placeholder={t.emailPlaceholder}
               className="pl-9"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
@@ -117,7 +176,7 @@ export function Register() {
         </div>
 
         <div>
-          <Label htmlFor="reg-password">Mật khẩu</Label>
+          <Label htmlFor="reg-password">{t.password}</Label>
           <div className="relative">
             <Lock
               className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-subtle"
@@ -127,7 +186,7 @@ export function Register() {
               id="reg-password"
               type={showPassword ? "text" : "password"}
               autoComplete="new-password"
-              placeholder="Tối thiểu 6 ký tự"
+              placeholder={t.passwordPlaceholder}
               className="px-9"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
@@ -137,7 +196,7 @@ export function Register() {
               type="button"
               onClick={() => setShowPassword((v) => !v)}
               className="absolute right-3 top-1/2 -translate-y-1/2 text-text-subtle transition-colors hover:text-text"
-              aria-label={showPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
+              aria-label={showPassword ? t.hidePassword : t.showPassword}
             >
               {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
             </button>
@@ -153,15 +212,15 @@ export function Register() {
             required
           />
           <span>
-            Tôi đồng ý với{" "}
+            {t.agreePrefix}
             <Link to="/terms" className="text-yellow hover:text-yellow-hover">
-              Điều khoản dịch vụ
-            </Link>{" "}
-            và{" "}
-            <Link to="/privacy" className="text-yellow hover:text-yellow-hover">
-              Chính sách bảo mật
+              {t.terms}
             </Link>
-            .
+            {t.agreeAnd}
+            <Link to="/privacy" className="text-yellow hover:text-yellow-hover">
+              {t.privacy}
+            </Link>
+            {t.agreeSuffix}
           </span>
         </label>
 
@@ -174,7 +233,7 @@ export function Register() {
 
         <Button type="submit" variant="primary" size="lg" className="w-full" disabled={submitting}>
           <UserPlus className="h-4 w-4" aria-hidden />
-          {submitting ? "Đang tạo tài khoản…" : "Đăng ký"}
+          {submitting ? t.creating : t.signUp}
         </Button>
       </form>
     </AuthCard>

@@ -6,8 +6,36 @@ import { Button } from "@/components/ui/button";
 import { useCartStore } from "@/store/cartStore";
 import { CartLine } from "@/components/commerce/CartLine";
 import { OrderSummary } from "@/components/commerce/OrderSummary";
+import { usePick } from "@/i18n";
+
+const STR = {
+  vi: {
+    emptyTitle: "Giỏ hàng trống",
+    emptyDesc: "Bạn chưa thêm sản phẩm hay dịch vụ nào. Khám phá các danh mục và bắt đầu chọn nhé!",
+    exploreStore: "Khám phá cửa hàng",
+    title: "Giỏ hàng",
+    countSuffix: " sản phẩm đang chờ được xử lý.",
+    continueShopping: "← Tiếp tục mua sắm",
+    cleared: "Đã xoá toàn bộ giỏ hàng.",
+    clearAll: "Xoá tất cả",
+    proceed: "Tiến hành thanh toán",
+  },
+  en: {
+    emptyTitle: "Your cart is empty",
+    emptyDesc:
+      "You haven't added any products or services yet. Browse the categories and start picking!",
+    exploreStore: "Explore the store",
+    title: "Cart",
+    countSuffix: " products waiting to be checked out.",
+    continueShopping: "← Continue shopping",
+    cleared: "Your entire cart has been cleared.",
+    clearAll: "Clear all",
+    proceed: "Proceed to checkout",
+  },
+};
 
 export function Cart() {
+  const t = usePick(STR);
   const items = useCartStore((state) => state.items);
   const subtotal = useCartStore((state) => state.subtotal);
   const clear = useCartStore((state) => state.clear);
@@ -27,13 +55,11 @@ export function Cart() {
               <Sparkles className="h-4 w-4" aria-hidden="true" />
             </span>
           </div>
-          <h1 className="font-heading text-2xl font-bold text-text sm:text-3xl">Giỏ hàng trống</h1>
-          <p className="mt-3 text-text-muted">
-            Bạn chưa thêm sản phẩm hay dịch vụ nào. Khám phá các danh mục và bắt đầu chọn nhé!
-          </p>
+          <h1 className="font-heading text-2xl font-bold text-text sm:text-3xl">{t.emptyTitle}</h1>
+          <p className="mt-3 text-text-muted">{t.emptyDesc}</p>
           <Link to="/games" className="mt-8">
             <Button size="lg">
-              Khám phá cửa hàng
+              {t.exploreStore}
               <ArrowRight className="h-4 w-4" aria-hidden="true" />
             </Button>
           </Link>
@@ -47,10 +73,10 @@ export function Cart() {
     <PageContainer className="py-10 sm:py-14">
       <div className="mb-8 flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="font-heading text-3xl font-bold text-text sm:text-4xl">Giỏ hàng</h1>
+          <h1 className="font-heading text-3xl font-bold text-text sm:text-4xl">{t.title}</h1>
           <p className="mt-2 text-text-muted">
-            <span className="tabular-nums-mono font-semibold text-text">{items.length}</span> sản phẩm
-            đang chờ được xử lý.
+            <span className="tabular-nums-mono font-semibold text-text">{items.length}</span>
+            {t.countSuffix}
           </p>
         </div>
       </div>
@@ -69,19 +95,19 @@ export function Cart() {
               to="/games"
               className="text-sm font-medium text-text-muted transition-colors hover:text-yellow"
             >
-              ← Tiếp tục mua sắm
+              {t.continueShopping}
             </Link>
             <Button
               variant="ghost"
               size="sm"
               onClick={() => {
                 clear();
-                toast.message("Đã xoá toàn bộ giỏ hàng.");
+                toast.message(t.cleared);
               }}
               className="text-text-subtle hover:text-danger"
             >
               <Trash2 className="h-4 w-4" aria-hidden="true" />
-              Xoá tất cả
+              {t.clearAll}
             </Button>
           </div>
         </div>
@@ -91,7 +117,7 @@ export function Cart() {
           <OrderSummary subtotal={total} total={total} lines={items}>
             <Link to="/checkout" className="block">
               <Button size="lg" className="w-full">
-                Tiến hành thanh toán
+                {t.proceed}
                 <ArrowRight className="h-4 w-4" aria-hidden="true" />
               </Button>
             </Link>

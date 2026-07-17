@@ -8,6 +8,36 @@ import { Button } from "@/components/ui/button";
 import { resolveRefund } from "@/lib/db/orders";
 import { useAuthStore } from "@/store/authStore";
 import type { OrderRow } from "@/types/db";
+import { usePick } from "@/i18n";
+
+const STR = {
+  vi: {
+    approved: (code: string) => `Đã duyệt hoàn tiền đơn ${code}.`,
+    rejected: (code: string) => `Đã từ chối yêu cầu hoàn tiền đơn ${code}.`,
+    confirmApprove: (code: string) =>
+      `Duyệt HOÀN TIỀN đơn ${code}? Đơn sẽ chuyển sang "Đã hoàn tiền". Nhớ chuyển tiền lại cho khách trước nhé.`,
+    rejectPrompt: "Lý do từ chối yêu cầu hoàn tiền (gửi cho khách, tùy chọn):",
+    heading: "⚠️ Khách YÊU CẦU HOÀN TIỀN.",
+    reasonLabel: "Lý do:",
+    noReason: "(không ghi lý do)",
+    approve: "Duyệt hoàn tiền",
+    reject: "Từ chối",
+    ctvWait: "Vui lòng chờ admin xử lý yêu cầu hoàn tiền của khách.",
+  },
+  en: {
+    approved: (code: string) => `Refund for order ${code} approved.`,
+    rejected: (code: string) => `Refund request for order ${code} declined.`,
+    confirmApprove: (code: string) =>
+      `Approve REFUND for order ${code}? The order will move to "Refunded". Remember to transfer the money back to the customer first.`,
+    rejectPrompt: "Reason for declining the refund request (sent to the customer, optional):",
+    heading: "⚠️ The customer is REQUESTING A REFUND.",
+    reasonLabel: "Reason:",
+    noReason: "(no reason given)",
+    approve: "Approve refund",
+    reject: "Decline",
+    ctvWait: "Please wait for an admin to resolve the customer's refund request.",
+  },
+};
 
 export interface RefundRequestBannerProps {
   order: Pick<OrderRow, "id" | "order_code" | "status" | "refund_requested_at" | "refund_reason">;
@@ -17,6 +47,7 @@ export interface RefundRequestBannerProps {
 export function RefundRequestBanner({ order }: RefundRequestBannerProps) {
   const queryClient = useQueryClient();
   const isAdmin = useAuthStore((state) => state.user?.role === "admin");
+  const t = usePick(STR);
 
   const resolveMutation = useMutation({
     mutationFn: (input: { approve: boolean; note?: string }) =>
@@ -27,9 +58,7 @@ export function RefundRequestBanner({ order }: RefundRequestBannerProps) {
       void queryClient.invalidateQueries({ queryKey: ["work-orders"] });
       void queryClient.invalidateQueries({ queryKey: ["my-orders"] });
       toast.success(
-        variables.approve
-          ? `Đã duyệt hoàn tiền đơn ${updated.order_code}.`
-          : `Đã từ chối yêu cầu hoàn tiền đơn ${updated.order_code}.`,
+        variables.approve ? t.approved(updated.order_code) : t.rejected(updated.order_code),
       );
     },
     onError: (err: Error) => toast.error(err.message),
@@ -45,15 +74,13 @@ export function RefundRequestBanner({ order }: RefundRequestBannerProps) {
   }
 
   const handleApprove = () => {
-    const ok = window.confirm(
-      `Duyệt HOÀN TIỀN đơn ${order.order_code}? Đơn sẽ chuyển sang "Đã hoàn tiền". Nhớ chuyển tiền lại cho khách trước nhé.`,
-    );
+    const ok = window.confirm(t.confirmApprove(order.order_code));
     if (ok) resolveMutation.mutate({ approve: true });
   };
 
   const handleReject = () => {
     // prompt trả null khi bấm Hủy -> không làm gì.
-    const note = window.prompt("Lý do từ chối yêu cầu hoàn tiền (gửi cho khách, tùy chọn):", "");
+    const note = window.prompt(t.rejectPrompt, "");
     if (note === null) return;
     resolveMutation.mutate({ approve: false, note: note.trim() || undefined });
   };
@@ -63,12 +90,10 @@ export function RefundRequestBanner({ order }: RefundRequestBannerProps) {
       <div className="flex items-start gap-3">
         <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-yellow" aria-hidden />
         <div className="min-w-0 flex-1">
-          <p className="font-heading text-base font-bold text-yellow">
-            ⚠️ Khách YÊU CẦU HOÀN TIỀN.
-          </p>
+          <p className="font-heading text-base font-bold text-yellow">{t.heading}</p>
           <p className="mt-1 text-sm text-text">
-            Lý do:{" "}
-            <span className="font-medium">{order.refund_reason || "(không ghi lý do)"}</span>
+            {t.reasonLabel}{" "}
+            <span className="font-medium">{order.refund_reason || t.noReason}</span>
           </p>
 
           {isAdmin ? (
@@ -80,7 +105,7 @@ export function RefundRequestBanner({ order }: RefundRequestBannerProps) {
                 disabled={resolveMutation.isPending}
               >
                 <RotateCcw className="h-4 w-4" aria-hidden />
-                Duyệt hoàn tiền
+                {t.approve}
               </Button>
               <Button
                 variant="secondary"
@@ -89,13 +114,11 @@ export function RefundRequestBanner({ order }: RefundRequestBannerProps) {
                 disabled={resolveMutation.isPending}
               >
                 <X className="h-4 w-4" aria-hidden />
-                Từ chối
+                {t.reject}
               </Button>
             </div>
           ) : (
-            <p className="mt-2 text-xs text-text-muted">
-              Vui lòng chờ admin xử lý yêu cầu hoàn tiền của khách.
-            </p>
+            <p className="mt-2 text-xs text-text-muted">{t.ctvWait}</p>
           )}
         </div>
       </div>

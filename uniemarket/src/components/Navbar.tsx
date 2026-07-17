@@ -20,11 +20,29 @@ import { useUnreadCount } from "@/components/nav/useUnreadCount";
 import { useHeartbeat } from "@/components/realtime/useHeartbeat";
 import { useCartStore } from "@/store/cartStore";
 import { useAuthStore } from "@/store/authStore";
-import { useT } from "@/i18n";
+import { useT, usePick } from "@/i18n";
 import { cn } from "@/lib/utils";
+
+const STR = {
+  vi: {
+    homeAria: "Uniemarket - Trang chủ",
+    closeMenu: "Đóng menu",
+    openMenu: "Mở menu",
+    notifications: "Thông báo",
+    languageLabel: "Ngôn ngữ",
+  },
+  en: {
+    homeAria: "Uniemarket - Home",
+    closeMenu: "Close menu",
+    openMenu: "Open menu",
+    notifications: "Notifications",
+    languageLabel: "Language",
+  },
+};
 
 export function Navbar() {
   const s = useT();
+  const t = usePick(STR);
   const navigate = useNavigate();
   const [mobileOpen, setMobileOpen] = useState(false);
   const cartCount = useCartStore((state) => state.items.reduce((sum, line) => sum + line.quantity, 0));
@@ -55,7 +73,7 @@ export function Navbar() {
     >
       <PageContainer className="flex h-16 items-center justify-between gap-4">
         <div className="flex items-center gap-6">
-          <Link to="/" className="flex items-center" aria-label="Uniemarket - Trang chủ">
+          <Link to="/" className="flex items-center" aria-label={t.homeAria}>
             <img src="/logo-unie.png" alt="Uniemarket" className="h-10 w-auto" />
           </Link>
 
@@ -128,7 +146,7 @@ export function Navbar() {
           <button
             type="button"
             className="flex h-10 w-10 items-center justify-center rounded-lg text-text-muted transition-colors hover:bg-surface-2 hover:text-text lg:hidden"
-            aria-label={mobileOpen ? "Đóng menu" : "Mở menu"}
+            aria-label={mobileOpen ? t.closeMenu : t.openMenu}
             aria-expanded={mobileOpen}
             onClick={() => setMobileOpen((open) => !open)}
           >
@@ -180,7 +198,7 @@ export function Navbar() {
                 >
                   <span className="flex items-center gap-2">
                     <Bell className="h-4 w-4" aria-hidden="true" />
-                    Thông báo
+                    {t.notifications}
                   </span>
                   {unread > 0 ? (
                     <span className="tabular-nums-mono flex h-5 min-w-5 items-center justify-center rounded-full bg-yellow px-1 text-[11px] font-bold text-text-on-yellow">
@@ -225,7 +243,7 @@ export function Navbar() {
                 </Link>
               )}
               <div className="flex items-center justify-between pt-1">
-                <span className="text-sm font-medium text-text-muted">Ngôn ngữ / Language</span>
+                <span className="text-sm font-medium text-text-muted">{t.languageLabel}</span>
                 <LanguageToggle />
               </div>
             </div>

@@ -11,8 +11,30 @@ import { useAuthStore } from "@/store/authStore";
 import { SetupNotice } from "@/components/SetupNotice";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { usePick } from "@/i18n";
 import { MessagePane } from "./MessagePane";
 import { resolveOrderThread } from "./resolveOrderThread";
+
+const STR = {
+  vi: {
+    loginPrompt: "Đăng nhập để trao đổi về đơn hàng này.",
+    login: "Đăng nhập",
+    loadFailed: "Không tải được kênh trao đổi.",
+    retry: "Thử lại",
+    noThread: "Chưa có kênh trao đổi cho đơn này.",
+    noThreadHint:
+      "Kênh chat được tạo tự động khi đặt đơn — nếu bạn thấy thông báo này, hãy tải lại trang hoặc liên hệ hỗ trợ.",
+  },
+  en: {
+    loginPrompt: "Log in to chat about this order.",
+    login: "Log in",
+    loadFailed: "Couldn't load the chat channel.",
+    retry: "Try again",
+    noThread: "No chat channel for this order yet.",
+    noThreadHint:
+      "The chat channel is created automatically when you place an order — if you see this message, reload the page or contact support.",
+  },
+};
 
 export interface OrderChatPanelProps {
   orderId: string;
@@ -23,6 +45,7 @@ export interface OrderChatPanelProps {
 }
 
 export function OrderChatPanel({ orderId, threadId, className }: OrderChatPanelProps) {
+  const t = usePick(STR);
   const session = useAuthStore((s) => s.session);
   const authLoading = useAuthStore((s) => s.loading);
 
@@ -63,9 +86,9 @@ export function OrderChatPanel({ orderId, threadId, className }: OrderChatPanelP
           className,
         )}
       >
-        <p className="text-sm text-text-muted">Đăng nhập để trao đổi về đơn hàng này.</p>
+        <p className="text-sm text-text-muted">{t.loginPrompt}</p>
         <Link to="/login" className={buttonVariants({ variant: "primary", size: "sm" })}>
-          Đăng nhập
+          {t.login}
         </Link>
       </div>
     );
@@ -79,13 +102,13 @@ export function OrderChatPanel({ orderId, threadId, className }: OrderChatPanelP
           className,
         )}
       >
-        <p className="text-sm text-text-muted">Không tải được kênh trao đổi.</p>
+        <p className="text-sm text-text-muted">{t.loadFailed}</p>
         <p className="max-w-xs text-xs text-text-subtle">
           {threadQuery.error instanceof Error ? threadQuery.error.message : ""}
         </p>
         <Button variant="secondary" size="sm" onClick={() => void threadQuery.refetch()}>
           <RefreshCw className="h-4 w-4" aria-hidden />
-          Thử lại
+          {t.retry}
         </Button>
       </div>
     );
@@ -101,10 +124,9 @@ export function OrderChatPanel({ orderId, threadId, className }: OrderChatPanelP
         )}
       >
         <MessageCircleOff className="h-6 w-6 text-text-subtle" aria-hidden />
-        <p className="text-sm text-text-muted">Chưa có kênh trao đổi cho đơn này.</p>
+        <p className="text-sm text-text-muted">{t.noThread}</p>
         <p className="max-w-xs text-xs text-text-subtle">
-          Kênh chat được tạo tự động khi đặt đơn — nếu bạn thấy thông báo này, hãy tải lại trang
-          hoặc liên hệ hỗ trợ.
+          {t.noThreadHint}
         </p>
       </div>
     );

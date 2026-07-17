@@ -42,7 +42,107 @@ import { isSupabaseConfigured } from "@/lib/supabase";
 import { getProductById, listCategories, listProducts } from "@/lib/db/catalog";
 import { useCartStore, computeUnitPrice } from "@/store/cartStore";
 import { formatPrice } from "@/lib/format";
+import { usePick } from "@/i18n";
 import { cn } from "@/lib/utils";
+
+const STR = {
+  vi: {
+    choosePackageAria: "Chọn gói dịch vụ",
+    from: "Từ",
+    to: "Đến",
+    rankInvalid: "Rank đích phải cao hơn rank hiện tại.",
+    stepsCount: (n: number) => `${n} bậc`,
+    perStep: "/ bậc",
+    loadErrorTitle: "Không tải được sản phẩm",
+    connectError: "Có lỗi khi kết nối máy chủ. Kiểm tra mạng rồi thử lại nhé.",
+    retry: "Thử lại",
+    notFoundTitle: "Không tìm thấy sản phẩm",
+    notFoundDesc:
+      "Sản phẩm này không tồn tại hoặc đã ngừng bán. Khám phá các sản phẩm khác nhé.",
+    backToGames: "Về danh mục trò chơi",
+    home: "Trang chủ",
+    games: "Trò chơi",
+    trustFast: "Xử lý nhanh",
+    trustSafe: "An toàn 100%",
+    trustProof: "Có minh chứng",
+    service: "Dịch vụ",
+    item: "Vật phẩm",
+    featured: "Nổi bật",
+    lowStock: (n: number) => `Sắp hết — chỉ còn ${n}`,
+    inStock: "Còn hàng",
+    outOfStock: "Hết hàng",
+    timeLabel: "Thời gian:",
+    choosePackage: "Chọn gói",
+    chooseRankRange: "Chọn khoảng rank",
+    quantity: "Số lượng",
+    decreaseQty: "Giảm số lượng",
+    increaseQty: "Tăng số lượng",
+    addToCart: "Thêm vào giỏ",
+    buyNow: "Mua ngay",
+    addedToCart: (name: string) => `Đã thêm "${name}" vào giỏ hàng`,
+    quantitySummary: (n: number) => `Số lượng: ${n}`,
+    description: "Mô tả",
+    info: "Thông tin",
+    typeLabel: "Loại",
+    rarityLabel: "Độ hiếm",
+    deliveryTime: "Thời gian giao",
+    stockLabel: "Tồn kho",
+    deliveryMethod: "Cách thức giao hàng",
+    deliveryNote:
+      "Sau khi đặt và thanh toán, đội ngũ Uniemarket sẽ liên hệ qua kênh bạn để lại và giao trong game / theo thỏa thuận. Mỗi đơn đều có ảnh/log minh chứng.",
+    relatedEyebrow: "Cùng trò chơi",
+    relatedTitle: "Sản phẩm liên quan",
+    viewAll: "Xem tất cả",
+  },
+  en: {
+    choosePackageAria: "Choose a service package",
+    from: "From",
+    to: "To",
+    rankInvalid: "The target rank must be higher than the current rank.",
+    stepsCount: (n: number) => `${n} steps`,
+    perStep: "/ step",
+    loadErrorTitle: "Couldn't load the product",
+    connectError: "There was a problem connecting to the server. Check your connection and try again.",
+    retry: "Try again",
+    notFoundTitle: "Product not found",
+    notFoundDesc:
+      "This product doesn't exist or is no longer for sale. Explore our other products.",
+    backToGames: "Back to game catalog",
+    home: "Home",
+    games: "Games",
+    trustFast: "Fast processing",
+    trustSafe: "100% safe",
+    trustProof: "Proof included",
+    service: "Service",
+    item: "Item",
+    featured: "Featured",
+    lowStock: (n: number) => `Almost gone — only ${n} left`,
+    inStock: "In stock",
+    outOfStock: "Out of stock",
+    timeLabel: "Time:",
+    choosePackage: "Choose a package",
+    chooseRankRange: "Choose a rank range",
+    quantity: "Quantity",
+    decreaseQty: "Decrease quantity",
+    increaseQty: "Increase quantity",
+    addToCart: "Add to cart",
+    buyNow: "Buy now",
+    addedToCart: (name: string) => `Added "${name}" to cart`,
+    quantitySummary: (n: number) => `Quantity: ${n}`,
+    description: "Description",
+    info: "Details",
+    typeLabel: "Type",
+    rarityLabel: "Rarity",
+    deliveryTime: "Delivery time",
+    stockLabel: "Stock",
+    deliveryMethod: "Delivery method",
+    deliveryNote:
+      "After you order and pay, the Uniemarket team will reach out via the channel you provided and deliver in-game / as agreed. Every order comes with image/log proof.",
+    relatedEyebrow: "Same game",
+    relatedTitle: "Related products",
+    viewAll: "View all",
+  },
+};
 
 const DEFAULT_ACCENT = "#F5B01E";
 
@@ -68,8 +168,9 @@ function TierPicker({
   value: string;
   onChange: (tierId: string) => void;
 }) {
+  const t = usePick(STR);
   return (
-    <div className="flex flex-col gap-2" role="radiogroup" aria-label="Chọn gói dịch vụ">
+    <div className="flex flex-col gap-2" role="radiogroup" aria-label={t.choosePackageAria}>
       {options.tiers.map((tier) => {
         const selected = tier.id === value;
         return (
@@ -127,6 +228,7 @@ function RankRangePicker({
   onFromChange: (id: string) => void;
   onToChange: (id: string) => void;
 }) {
+  const t = usePick(STR);
   const fromIdx = options.ranks.findIndex((r) => r.id === fromId);
   const toIdx = options.ranks.findIndex((r) => r.id === toId);
   const invalid = fromIdx >= 0 && toIdx >= 0 && toIdx <= fromIdx;
@@ -136,7 +238,7 @@ function RankRangePicker({
     <div className="flex flex-col gap-3">
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <Label htmlFor="rank-from">Từ</Label>
+          <Label htmlFor="rank-from">{t.from}</Label>
           <Select
             id="rank-from"
             value={fromId}
@@ -150,7 +252,7 @@ function RankRangePicker({
           </Select>
         </div>
         <div>
-          <Label htmlFor="rank-to">Đến</Label>
+          <Label htmlFor="rank-to">{t.to}</Label>
           <Select id="rank-to" value={toId} onChange={(e) => onToChange(e.target.value)}>
             {options.ranks.map((rank) => (
               <option key={rank.id} value={rank.id}>
@@ -163,12 +265,12 @@ function RankRangePicker({
       {invalid ? (
         <p className="flex items-center gap-1.5 text-xs font-medium text-danger">
           <AlertTriangle className="h-3.5 w-3.5" aria-hidden="true" />
-          Rank đích phải cao hơn rank hiện tại.
+          {t.rankInvalid}
         </p>
       ) : steps > 0 ? (
         <p className="text-xs text-text-muted">
-          {steps} bậc × <span className="tabular-nums-mono">{formatPrice(options.step_price)}</span>{" "}
-          / bậc
+          {t.stepsCount(steps)} × <span className="tabular-nums-mono">{formatPrice(options.step_price)}</span>{" "}
+          {t.perStep}
         </p>
       ) : null}
     </div>
@@ -180,6 +282,7 @@ function RankRangePicker({
 // ---------------------------------------------------------------------------
 
 export function ItemDetail() {
+  const t = usePick(STR);
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const addItem = useCartStore((state) => state.addItem);
@@ -246,11 +349,11 @@ export function ItemDetail() {
       <PageContainer className="py-20">
         <EmptyState
           icon={PackageSearch}
-          title="Không tải được sản phẩm"
-          description="Có lỗi khi kết nối máy chủ. Kiểm tra mạng rồi thử lại nhé."
+          title={t.loadErrorTitle}
+          description={t.connectError}
           action={
             <Button type="button" variant="primary" size="md" onClick={() => productQuery.refetch()}>
-              Thử lại
+              {t.retry}
             </Button>
           }
         />
@@ -264,13 +367,13 @@ export function ItemDetail() {
       <PageContainer className="py-20">
         <EmptyState
           icon={PackageSearch}
-          title="Không tìm thấy sản phẩm"
-          description="Sản phẩm này không tồn tại hoặc đã ngừng bán. Khám phá các sản phẩm khác nhé."
+          title={t.notFoundTitle}
+          description={t.notFoundDesc}
           action={
             <Link to="/games">
               <Button type="button" variant="primary" size="md">
                 <ArrowLeft className="h-4 w-4" aria-hidden="true" />
-                Về danh mục trò chơi
+                {t.backToGames}
               </Button>
             </Link>
           }
@@ -333,6 +436,7 @@ function ItemDetailContent({
   addItem: ReturnType<typeof useCartStore.getState>["addItem"];
   navigate: ReturnType<typeof useNavigate>;
 }) {
+  const t = usePick(STR);
   const isService = product.kind === "service";
   const opts = product.service_options;
   const inStock = isInStock(product);
@@ -384,8 +488,8 @@ function ItemDetailContent({
       selectedOptions,
       optionSummary,
     });
-    toast.success(`Đã thêm "${product.name}" vào giỏ hàng`, {
-      description: optionSummary ?? `Số lượng: ${isService ? 1 : qty}`,
+    toast.success(t.addedToCart(product.name), {
+      description: optionSummary ?? t.quantitySummary(isService ? 1 : qty),
     });
   };
 
@@ -400,8 +504,8 @@ function ItemDetailContent({
       <Breadcrumbs
         className="mb-6"
         items={[
-          { label: "Trang chủ", to: "/" },
-          { label: "Trò chơi", to: "/games" },
+          { label: t.home, to: "/" },
+          { label: t.games, to: "/games" },
           ...(categoryName && categorySlug
             ? [{ label: categoryName, to: `/games/${categorySlug}` }]
             : []),
@@ -450,9 +554,9 @@ function ItemDetailContent({
           {/* Trust badges */}
           <div className="mt-4 grid grid-cols-3 gap-3">
             {[
-              { icon: Zap, label: "Xử lý nhanh" },
-              { icon: ShieldCheck, label: "An toàn 100%" },
-              { icon: BadgeCheck, label: "Có minh chứng" },
+              { icon: Zap, label: t.trustFast },
+              { icon: ShieldCheck, label: t.trustSafe },
+              { icon: BadgeCheck, label: t.trustProof },
             ].map(({ icon: Icon, label }) => (
               <div
                 key={label}
@@ -471,9 +575,9 @@ function ItemDetailContent({
             <div className="flex flex-wrap items-center gap-2">
               {product.rarity ? <RarityBadge rarity={product.rarity} /> : null}
               <Badge variant={isService ? "green" : "outline"}>
-                {isService ? "Dịch vụ" : "Vật phẩm"}
+                {isService ? t.service : t.item}
               </Badge>
-              {product.is_featured ? <Badge variant="gold">Nổi bật</Badge> : null}
+              {product.is_featured ? <Badge variant="gold">{t.featured}</Badge> : null}
             </div>
             <h1 className="font-heading text-3xl font-extrabold text-text sm:text-4xl">
               {product.name}
@@ -488,25 +592,25 @@ function ItemDetailContent({
                 lowStock ? (
                   <span className="inline-flex items-center gap-1.5 font-medium text-warning">
                     <AlertTriangle className="h-4 w-4" aria-hidden="true" />
-                    Sắp hết — chỉ còn {product.stock}
+                    {t.lowStock(product.stock ?? 0)}
                   </span>
                 ) : (
                   <span className="inline-flex items-center gap-1.5 font-medium text-success">
                     <CheckCircle2 className="h-4 w-4" aria-hidden="true" />
-                    Còn hàng{product.stock !== null ? ` (${product.stock})` : ""}
+                    {t.inStock}{product.stock !== null ? ` (${product.stock})` : ""}
                   </span>
                 )
               ) : (
                 <span className="inline-flex items-center gap-1.5 font-medium text-danger">
                   <XCircle className="h-4 w-4" aria-hidden="true" />
-                  Hết hàng
+                  {t.outOfStock}
                 </span>
               )
             ) : null}
             {product.delivery_time_text ? (
               <span className="inline-flex items-center gap-1.5 text-text-muted">
                 <Zap className="h-4 w-4 text-yellow" aria-hidden="true" />
-                Thời gian: <span className="font-medium text-text">{product.delivery_time_text}</span>
+                {t.timeLabel} <span className="font-medium text-text">{product.delivery_time_text}</span>
               </span>
             ) : null}
           </div>
@@ -516,7 +620,7 @@ function ItemDetailContent({
             {isService && opts ? (
               <div>
                 <p className="mb-2.5 text-sm font-medium text-text">
-                  {opts.type === "tiers" ? "Chọn gói" : "Chọn khoảng rank"}
+                  {opts.type === "tiers" ? t.choosePackage : t.chooseRankRange}
                 </p>
                 {opts.type === "tiers" ? (
                   <TierPicker
@@ -538,13 +642,13 @@ function ItemDetailContent({
 
             {!isService ? (
               <div className="flex items-center justify-between gap-4">
-                <span className="text-sm font-medium text-text">Số lượng</span>
+                <span className="text-sm font-medium text-text">{t.quantity}</span>
                 <div className="flex items-center gap-1 rounded-lg border border-border-strong bg-surface-2 p-1">
                   <button
                     type="button"
                     onClick={() => setQty((q) => clamp(q - 1))}
                     disabled={!inStock || qty <= 1}
-                    aria-label="Giảm số lượng"
+                    aria-label={t.decreaseQty}
                     className="flex h-8 w-8 items-center justify-center rounded-md text-text-muted transition-colors hover:bg-surface-3 hover:text-text disabled:pointer-events-none disabled:opacity-40"
                   >
                     <Minus className="h-4 w-4" aria-hidden="true" />
@@ -556,7 +660,7 @@ function ItemDetailContent({
                     type="button"
                     onClick={() => setQty((q) => clamp(q + 1))}
                     disabled={!inStock || qty >= maxQty}
-                    aria-label="Tăng số lượng"
+                    aria-label={t.increaseQty}
                     className="flex h-8 w-8 items-center justify-center rounded-md text-text-muted transition-colors hover:bg-surface-3 hover:text-text disabled:pointer-events-none disabled:opacity-40"
                   >
                     <Plus className="h-4 w-4" aria-hidden="true" />
@@ -575,7 +679,7 @@ function ItemDetailContent({
                 onClick={handleAdd}
               >
                 <ShoppingCart className="h-4 w-4" aria-hidden="true" />
-                {!inStock ? "Hết hàng" : "Thêm vào giỏ"}
+                {!inStock ? t.outOfStock : t.addToCart}
               </Button>
               <Button
                 type="button"
@@ -586,7 +690,7 @@ function ItemDetailContent({
                 onClick={handleBuyNow}
               >
                 <Zap className="h-4 w-4" aria-hidden="true" />
-                Mua ngay
+                {t.buyNow}
               </Button>
             </div>
           </div>
@@ -594,7 +698,7 @@ function ItemDetailContent({
           {/* Description */}
           {product.description ? (
             <div>
-              <h2 className="mb-2 font-heading text-lg font-semibold text-text">Mô tả</h2>
+              <h2 className="mb-2 font-heading text-lg font-semibold text-text">{t.description}</h2>
               <p className="whitespace-pre-line text-sm leading-relaxed text-text-muted">
                 {product.description}
               </p>
@@ -603,22 +707,22 @@ function ItemDetailContent({
 
           {/* Attributes */}
           <div>
-            <h2 className="mb-3 font-heading text-lg font-semibold text-text">Thông tin</h2>
+            <h2 className="mb-3 font-heading text-lg font-semibold text-text">{t.info}</h2>
             <dl className="grid grid-cols-1 gap-x-6 gap-y-2 sm:grid-cols-2">
               <div className="flex items-center justify-between gap-3 border-b border-border py-2">
                 <dt className="inline-flex items-center gap-1.5 text-sm text-text-muted">
                   <Boxes className="h-4 w-4" aria-hidden="true" />
-                  Loại
+                  {t.typeLabel}
                 </dt>
                 <dd className="text-sm font-medium text-text">
-                  {isService ? "Dịch vụ" : "Vật phẩm"}
+                  {isService ? t.service : t.item}
                 </dd>
               </div>
               {product.rarity ? (
                 <div className="flex items-center justify-between gap-3 border-b border-border py-2">
                   <dt className="inline-flex items-center gap-1.5 text-sm text-text-muted">
                     <BadgeCheck className="h-4 w-4" aria-hidden="true" />
-                    Độ hiếm
+                    {t.rarityLabel}
                   </dt>
                   <dd className="text-sm font-medium text-text">{product.rarity}</dd>
                 </div>
@@ -627,7 +731,7 @@ function ItemDetailContent({
                 <div className="flex items-center justify-between gap-3 border-b border-border py-2">
                   <dt className="inline-flex items-center gap-1.5 text-sm text-text-muted">
                     <Truck className="h-4 w-4" aria-hidden="true" />
-                    Thời gian giao
+                    {t.deliveryTime}
                   </dt>
                   <dd className="text-sm font-medium text-text">{product.delivery_time_text}</dd>
                 </div>
@@ -636,7 +740,7 @@ function ItemDetailContent({
                 <div className="flex items-center justify-between gap-3 border-b border-border py-2">
                   <dt className="inline-flex items-center gap-1.5 text-sm text-text-muted">
                     <Boxes className="h-4 w-4" aria-hidden="true" />
-                    Tồn kho
+                    {t.stockLabel}
                   </dt>
                   <dd className="font-mono text-sm font-medium tabular-nums text-text">
                     {product.stock}
@@ -661,11 +765,10 @@ function ItemDetailContent({
           <div className="rounded-2xl border border-border bg-bg-subtle p-4">
             <h3 className="flex items-center gap-1.5 font-heading text-sm font-semibold text-text">
               <Truck className="h-4 w-4 text-yellow" aria-hidden="true" />
-              Cách thức giao hàng
+              {t.deliveryMethod}
             </h3>
             <p className="mt-1.5 text-sm text-text-muted">
-              Sau khi đặt và thanh toán, đội ngũ Uniemarket sẽ liên hệ qua kênh bạn để lại và giao
-              trong game / theo thỏa thuận. Mỗi đơn đều có ảnh/log minh chứng.
+              {t.deliveryNote}
             </p>
           </div>
         </div>
@@ -675,15 +778,15 @@ function ItemDetailContent({
       {related.length > 0 ? (
         <section className="mt-14">
           <SectionHeading
-            eyebrow="Cùng trò chơi"
-            title="Sản phẩm liên quan"
+            eyebrow={t.relatedEyebrow}
+            title={t.relatedTitle}
             action={
               categorySlug ? (
                 <Link
                   to={`/games/${categorySlug}`}
                   className="text-sm font-semibold text-yellow transition-colors hover:text-yellow-hover"
                 >
-                  Xem tất cả
+                  {t.viewAll}
                 </Link>
               ) : undefined
             }

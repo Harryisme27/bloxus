@@ -7,14 +7,63 @@ import { Card } from "@/components/ui/card";
 import { deleteCategory, listCategories, listProducts, upsertCategory } from "@/lib/db/catalog";
 import type { CategoryRow, CategoryUpsert } from "@/types/db";
 import { cn } from "@/lib/utils";
+import { usePick } from "@/i18n";
 import { CategoryDialog } from "./CategoryDialog";
 import { ConfirmDialog } from "./ConfirmDialog";
 import { Toggle } from "./Toggle";
 import { EmptyBlock, LoadError, TableSkeleton } from "./States";
 
+const STR = {
+  vi: {
+    hidden: "Đã ẩn danh mục khỏi cửa hàng",
+    count: (n: number) => `${n} danh mục`,
+    add: "Thêm danh mục",
+    emptyTitle: "Chưa có danh mục nào",
+    emptyHint: 'Bấm "Thêm danh mục" để tạo danh mục đầu tiên cho cửa hàng.',
+    colCategory: "Danh mục",
+    colOrder: "Thứ tự",
+    colProducts: "Sản phẩm",
+    colFeatured: "Nổi bật",
+    colVisible: "Đang hiển thị",
+    colActions: "Thao tác",
+    unfeature: "Bỏ nổi bật",
+    feature: "Đánh dấu nổi bật",
+    toggleVisible: (name: string) => `Hiển thị danh mục ${name}`,
+    edit: "Sửa",
+    hide: "Ẩn",
+    confirmTitle: (name: string) => `Ẩn danh mục "${name}"?`,
+    confirmDesc:
+      "Danh mục sẽ bị ẩn khỏi cửa hàng, không xoá dữ liệu. Sản phẩm bên trong vẫn được giữ nguyên và bạn có thể bật hiển thị lại bất cứ lúc nào.",
+    confirmLabel: "Ẩn danh mục",
+  },
+  en: {
+    hidden: "Category hidden from the store",
+    count: (n: number) => `${n} categories`,
+    add: "Add category",
+    emptyTitle: "No categories yet",
+    emptyHint: 'Click "Add category" to create the store\'s first category.',
+    colCategory: "Category",
+    colOrder: "Order",
+    colProducts: "Products",
+    colFeatured: "Featured",
+    colVisible: "Visible",
+    colActions: "Actions",
+    unfeature: "Remove featured",
+    feature: "Mark as featured",
+    toggleVisible: (name: string) => `Show category ${name}`,
+    edit: "Edit",
+    hide: "Hide",
+    confirmTitle: (name: string) => `Hide category "${name}"?`,
+    confirmDesc:
+      "The category will be hidden from the store without deleting any data. Products inside are kept and you can make it visible again anytime.",
+    confirmLabel: "Hide category",
+  },
+};
+
 /** Tab "Danh mục" trong /work/catalog — bảng danh mục + CRUD. */
 export function CategoriesTab() {
   const queryClient = useQueryClient();
+  const t = usePick(STR);
   const [dialog, setDialog] = useState<{ open: boolean; category: CategoryRow | null }>({
     open: false,
     category: null,
@@ -48,7 +97,7 @@ export function CategoriesTab() {
   const deleteMutation = useMutation({
     mutationFn: (id: string) => deleteCategory(id),
     onSuccess: () => {
-      toast.success("Đã ẩn danh mục khỏi cửa hàng");
+      toast.success(t.hidden);
       queryClient.invalidateQueries({ queryKey: ["categories"] });
       setDeleteTarget(null);
     },
@@ -61,11 +110,11 @@ export function CategoriesTab() {
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-3">
         <p className="text-sm text-text-muted">
-          {categoriesQuery.isSuccess ? `${categories.length} danh mục` : " "}
+          {categoriesQuery.isSuccess ? t.count(categories.length) : " "}
         </p>
         <Button size="sm" onClick={() => setDialog({ open: true, category: null })}>
           <Plus className="h-4 w-4" aria-hidden />
-          Thêm danh mục
+          {t.add}
         </Button>
       </div>
 
@@ -74,22 +123,19 @@ export function CategoriesTab() {
       ) : categoriesQuery.isError ? (
         <LoadError message={categoriesQuery.error.message} onRetry={() => categoriesQuery.refetch()} />
       ) : categories.length === 0 ? (
-        <EmptyBlock
-          title="Chưa có danh mục nào"
-          hint='Bấm "Thêm danh mục" để tạo danh mục đầu tiên cho cửa hàng.'
-        />
+        <EmptyBlock title={t.emptyTitle} hint={t.emptyHint} />
       ) : (
         <Card>
           <div className="overflow-x-auto">
             <table className="w-full min-w-[680px] text-sm">
               <thead>
                 <tr className="border-b border-border text-left text-xs font-semibold uppercase tracking-wider text-text-subtle">
-                  <th className="px-4 py-3">Danh mục</th>
-                  <th className="px-4 py-3 text-center">Thứ tự</th>
-                  <th className="px-4 py-3 text-center">Sản phẩm</th>
-                  <th className="px-4 py-3 text-center">Nổi bật</th>
-                  <th className="px-4 py-3 text-center">Đang hiển thị</th>
-                  <th className="px-4 py-3 text-right">Thao tác</th>
+                  <th className="px-4 py-3">{t.colCategory}</th>
+                  <th className="px-4 py-3 text-center">{t.colOrder}</th>
+                  <th className="px-4 py-3 text-center">{t.colProducts}</th>
+                  <th className="px-4 py-3 text-center">{t.colFeatured}</th>
+                  <th className="px-4 py-3 text-center">{t.colVisible}</th>
+                  <th className="px-4 py-3 text-right">{t.colActions}</th>
                 </tr>
               </thead>
               <tbody>
@@ -123,7 +169,7 @@ export function CategoriesTab() {
                     <td className="px-4 py-3 text-center">
                       <button
                         type="button"
-                        title={category.is_featured ? "Bỏ nổi bật" : "Đánh dấu nổi bật"}
+                        title={category.is_featured ? t.unfeature : t.feature}
                         disabled={quickUpdateMutation.isPending}
                         onClick={() =>
                           quickUpdateMutation.mutate({
@@ -143,7 +189,7 @@ export function CategoriesTab() {
                           aria-hidden
                         />
                         <span className="sr-only">
-                          {category.is_featured ? "Bỏ nổi bật" : "Đánh dấu nổi bật"}
+                          {category.is_featured ? t.unfeature : t.feature}
                         </span>
                       </button>
                     </td>
@@ -151,7 +197,7 @@ export function CategoriesTab() {
                       <Toggle
                         checked={category.is_active}
                         disabled={quickUpdateMutation.isPending}
-                        label={`Hiển thị danh mục ${category.name}`}
+                        label={t.toggleVisible(category.name)}
                         onCheckedChange={(active) =>
                           quickUpdateMutation.mutate({
                             id: category.id,
@@ -170,12 +216,12 @@ export function CategoriesTab() {
                           onClick={() => setDialog({ open: true, category })}
                         >
                           <Pencil className="h-3.5 w-3.5" aria-hidden />
-                          Sửa
+                          {t.edit}
                         </Button>
                         {category.is_active ? (
                           <Button variant="ghost" size="sm" onClick={() => setDeleteTarget(category)}>
                             <EyeOff className="h-3.5 w-3.5" aria-hidden />
-                            Ẩn
+                            {t.hide}
                           </Button>
                         ) : null}
                       </div>
@@ -199,9 +245,9 @@ export function CategoriesTab() {
         onOpenChange={(open) => {
           if (!open) setDeleteTarget(null);
         }}
-        title={`Ẩn danh mục "${deleteTarget?.name ?? ""}"?`}
-        description="Danh mục sẽ bị ẩn khỏi cửa hàng, không xoá dữ liệu. Sản phẩm bên trong vẫn được giữ nguyên và bạn có thể bật hiển thị lại bất cứ lúc nào."
-        confirmLabel="Ẩn danh mục"
+        title={t.confirmTitle(deleteTarget?.name ?? "")}
+        description={t.confirmDesc}
+        confirmLabel={t.confirmLabel}
         danger
         loading={deleteMutation.isPending}
         onConfirm={() => {

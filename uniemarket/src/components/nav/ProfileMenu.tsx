@@ -23,7 +23,37 @@ import {
 import type { LucideIcon } from "lucide-react";
 import { useAuthStore } from "@/store/authStore";
 import { cn } from "@/lib/utils";
+import { usePick } from "@/i18n";
 import type { UserRole } from "@/types/db";
+
+const STR = {
+  vi: {
+    dashboard: "Bảng điều khiển",
+    myOrders: "Đơn hàng của tôi",
+    messages: "Tin nhắn",
+    profile: "Hồ sơ",
+    help: "Trợ giúp",
+    contact: "Liên hệ",
+    workArea: "Khu làm việc",
+    logout: "Đăng xuất",
+    roleAdmin: "Admin",
+    roleCtv: "CTV",
+    roleCustomer: "Khách",
+  },
+  en: {
+    dashboard: "Dashboard",
+    myOrders: "My orders",
+    messages: "Messages",
+    profile: "Profile",
+    help: "Help",
+    contact: "Contact",
+    workArea: "Work area",
+    logout: "Log out",
+    roleAdmin: "Admin",
+    roleCtv: "CTV",
+    roleCustomer: "Customer",
+  },
+};
 
 interface MenuLink {
   to: string;
@@ -31,22 +61,10 @@ interface MenuLink {
   icon: LucideIcon;
 }
 
-const PRIMARY_LINKS: MenuLink[] = [
-  { to: "/dashboard", label: "Bảng điều khiển", icon: LayoutDashboard },
-  { to: "/orders", label: "Đơn hàng của tôi", icon: Package },
-  { to: "/messages", label: "Tin nhắn", icon: MessageCircle },
-  { to: "/profile", label: "Hồ sơ", icon: User },
-];
-
-const HELP_LINKS: MenuLink[] = [
-  { to: "/faq", label: "Trợ giúp", icon: HelpCircle },
-  { to: "/contact", label: "Liên hệ", icon: Mail },
-];
-
-const ROLE_CHIP: Record<UserRole, { label: string; className: string }> = {
-  admin: { label: "Admin", className: "bg-yellow text-text-on-yellow" },
-  ctv: { label: "CTV", className: "bg-green text-text-on-green" },
-  customer: { label: "Khách", className: "bg-surface-3 text-text-muted" },
+const ROLE_CHIP_CLASS: Record<UserRole, string> = {
+  admin: "bg-yellow text-text-on-yellow",
+  ctv: "bg-green text-text-on-green",
+  customer: "bg-surface-3 text-text-muted",
 };
 
 /** Up to two initials from a display name / username. */
@@ -58,12 +76,31 @@ function initials(name: string): string {
 }
 
 export function ProfileMenu() {
+  const t = usePick(STR);
   const user = useAuthStore((s) => s.user);
   const logout = useAuthStore((s) => s.logout);
   const navigate = useNavigate();
   const location = useLocation();
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+
+  const primaryLinks: MenuLink[] = [
+    { to: "/dashboard", label: t.dashboard, icon: LayoutDashboard },
+    { to: "/orders", label: t.myOrders, icon: Package },
+    { to: "/messages", label: t.messages, icon: MessageCircle },
+    { to: "/profile", label: t.profile, icon: User },
+  ];
+
+  const helpLinks: MenuLink[] = [
+    { to: "/faq", label: t.help, icon: HelpCircle },
+    { to: "/contact", label: t.contact, icon: Mail },
+  ];
+
+  const roleLabel: Record<UserRole, string> = {
+    admin: t.roleAdmin,
+    ctv: t.roleCtv,
+    customer: t.roleCustomer,
+  };
 
   // Close on route change.
   useEffect(() => {
@@ -92,7 +129,8 @@ export function ProfileMenu() {
   if (!user) return null;
 
   const name = user.display_name ?? user.username;
-  const chip = ROLE_CHIP[user.role];
+  const chipClassName = ROLE_CHIP_CLASS[user.role];
+  const chipLabel = roleLabel[user.role];
   const isStaff = user.role === "admin" || user.role === "ctv";
 
   async function handleLogout() {
@@ -133,25 +171,25 @@ export function ProfileMenu() {
               <span
                 className={cn(
                   "mt-1 inline-block rounded-full px-2 py-0.5 text-[11px] font-semibold",
-                  chip.className,
+                  chipClassName,
                 )}
               >
-                {chip.label}
+                {chipLabel}
               </span>
             </div>
           </div>
 
           <MenuSection>
-            {PRIMARY_LINKS.map((item) => (
+            {primaryLinks.map((item) => (
               <MenuItem key={item.to} {...item} onSelect={() => setOpen(false)} />
             ))}
             {isStaff ? (
-              <MenuItem to="/work" label="Khu làm việc" icon={Briefcase} onSelect={() => setOpen(false)} />
+              <MenuItem to="/work" label={t.workArea} icon={Briefcase} onSelect={() => setOpen(false)} />
             ) : null}
           </MenuSection>
 
           <MenuSection>
-            {HELP_LINKS.map((item) => (
+            {helpLinks.map((item) => (
               <MenuItem key={item.to} {...item} onSelect={() => setOpen(false)} />
             ))}
           </MenuSection>
@@ -164,7 +202,7 @@ export function ProfileMenu() {
               className="flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm font-medium text-danger transition-colors hover:bg-surface-3"
             >
               <LogOut className="h-4 w-4 shrink-0" aria-hidden="true" />
-              Đăng xuất
+              {t.logout}
             </button>
           </div>
         </div>

@@ -11,8 +11,70 @@ import { listCategories, listProducts, setProductActive, upsertProduct } from "@
 import { formatPrice } from "@/lib/format";
 import type { ProductRow, ProductUpsert } from "@/types/db";
 import { cn } from "@/lib/utils";
+import { usePick } from "@/i18n";
 import { Toggle } from "./Toggle";
 import { EmptyBlock, LoadError, TableSkeleton } from "./States";
+
+const STR = {
+  vi: {
+    opened: "Đã mở bán sản phẩm",
+    hiddenProd: "Đã ẩn sản phẩm",
+    searchPlaceholder: "Tìm theo tên sản phẩm…",
+    allCategories: "Tất cả danh mục",
+    allKinds: "Tất cả loại",
+    item: "Vật phẩm",
+    service: "Dịch vụ",
+    activeAndHidden: "Đang bán + đã ẩn",
+    activeOnly: "Đang bán",
+    hiddenOnly: "Đã ẩn",
+    add: "Thêm sản phẩm",
+    emptyNone: "Chưa có sản phẩm nào",
+    emptyNoMatch: "Không có sản phẩm khớp bộ lọc",
+    hintNone: 'Bấm "Thêm sản phẩm" để đăng bán vật phẩm hoặc dịch vụ đầu tiên.',
+    hintNoMatch: "Thử đổi bộ lọc hoặc từ khóa tìm kiếm.",
+    colProduct: "Sản phẩm",
+    colCategory: "Danh mục",
+    colKind: "Loại",
+    colPrice: "Giá",
+    colStock: "Kho",
+    colFeatured: "Nổi bật",
+    colActive: "Đang bán",
+    colEdit: "Sửa",
+    unfeature: "Bỏ nổi bật",
+    feature: "Đánh dấu nổi bật",
+    toggleActive: (name: string) => `Mở bán ${name}`,
+    edit: "Sửa",
+  },
+  en: {
+    opened: "Product is now on sale",
+    hiddenProd: "Product hidden",
+    searchPlaceholder: "Search by product name…",
+    allCategories: "All categories",
+    allKinds: "All types",
+    item: "Item",
+    service: "Service",
+    activeAndHidden: "On sale + hidden",
+    activeOnly: "On sale",
+    hiddenOnly: "Hidden",
+    add: "Add product",
+    emptyNone: "No products yet",
+    emptyNoMatch: "No products match the filters",
+    hintNone: 'Click "Add product" to list your first item or service.',
+    hintNoMatch: "Try changing the filters or search term.",
+    colProduct: "Product",
+    colCategory: "Category",
+    colKind: "Type",
+    colPrice: "Price",
+    colStock: "Stock",
+    colFeatured: "Featured",
+    colActive: "On sale",
+    colEdit: "Edit",
+    unfeature: "Remove featured",
+    feature: "Mark as featured",
+    toggleActive: (name: string) => `Put ${name} on sale`,
+    edit: "Edit",
+  },
+};
 
 export interface ProductsTabProps {
   onCreate: () => void;
@@ -22,6 +84,7 @@ export interface ProductsTabProps {
 /** Tab "Sản phẩm" trong /work/catalog — bảng sản phẩm có lọc + bật/tắt bán. */
 export function ProductsTab({ onCreate, onEdit }: ProductsTabProps) {
   const queryClient = useQueryClient();
+  const t = usePick(STR);
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [kindFilter, setKindFilter] = useState("all");
   const [activeFilter, setActiveFilter] = useState("all");
@@ -58,7 +121,7 @@ export function ProductsTab({ onCreate, onEdit }: ProductsTabProps) {
   const activeMutation = useMutation({
     mutationFn: ({ id, active }: { id: string; active: boolean }) => setProductActive(id, active),
     onSuccess: (_data, vars) => {
-      toast.success(vars.active ? "Đã mở bán sản phẩm" : "Đã ẩn sản phẩm");
+      toast.success(vars.active ? t.opened : t.hiddenProd);
       queryClient.invalidateQueries({ queryKey: ["products"] });
     },
     onError: (err) => toast.error(err.message),
@@ -81,13 +144,13 @@ export function ProductsTab({ onCreate, onEdit }: ProductsTabProps) {
             />
             <Input
               value={search}
-              placeholder="Tìm theo tên sản phẩm…"
+              placeholder={t.searchPlaceholder}
               className="pl-9"
               onChange={(e) => setSearch(e.target.value)}
             />
           </div>
           <Select value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)}>
-            <option value="all">Tất cả danh mục</option>
+            <option value="all">{t.allCategories}</option>
             {(categoriesQuery.data ?? []).map((category) => (
               <option key={category.id} value={category.id}>
                 {category.name}
@@ -95,19 +158,19 @@ export function ProductsTab({ onCreate, onEdit }: ProductsTabProps) {
             ))}
           </Select>
           <Select value={kindFilter} onChange={(e) => setKindFilter(e.target.value)}>
-            <option value="all">Tất cả loại</option>
-            <option value="item">Vật phẩm</option>
-            <option value="service">Dịch vụ</option>
+            <option value="all">{t.allKinds}</option>
+            <option value="item">{t.item}</option>
+            <option value="service">{t.service}</option>
           </Select>
           <Select value={activeFilter} onChange={(e) => setActiveFilter(e.target.value)}>
-            <option value="all">Đang bán + đã ẩn</option>
-            <option value="active">Đang bán</option>
-            <option value="hidden">Đã ẩn</option>
+            <option value="all">{t.activeAndHidden}</option>
+            <option value="active">{t.activeOnly}</option>
+            <option value="hidden">{t.hiddenOnly}</option>
           </Select>
         </div>
         <Button size="sm" className="shrink-0" onClick={onCreate}>
           <Plus className="h-4 w-4" aria-hidden />
-          Thêm sản phẩm
+          {t.add}
         </Button>
       </div>
 
@@ -117,16 +180,8 @@ export function ProductsTab({ onCreate, onEdit }: ProductsTabProps) {
         <LoadError message={productsQuery.error.message} onRetry={() => productsQuery.refetch()} />
       ) : filtered.length === 0 ? (
         <EmptyBlock
-          title={
-            (productsQuery.data ?? []).length === 0
-              ? "Chưa có sản phẩm nào"
-              : "Không có sản phẩm khớp bộ lọc"
-          }
-          hint={
-            (productsQuery.data ?? []).length === 0
-              ? 'Bấm "Thêm sản phẩm" để đăng bán vật phẩm hoặc dịch vụ đầu tiên.'
-              : "Thử đổi bộ lọc hoặc từ khóa tìm kiếm."
-          }
+          title={(productsQuery.data ?? []).length === 0 ? t.emptyNone : t.emptyNoMatch}
+          hint={(productsQuery.data ?? []).length === 0 ? t.hintNone : t.hintNoMatch}
         />
       ) : (
         <Card>
@@ -134,14 +189,14 @@ export function ProductsTab({ onCreate, onEdit }: ProductsTabProps) {
             <table className="w-full min-w-[860px] text-sm">
               <thead>
                 <tr className="border-b border-border text-left text-xs font-semibold uppercase tracking-wider text-text-subtle">
-                  <th className="px-4 py-3">Sản phẩm</th>
-                  <th className="px-4 py-3">Danh mục</th>
-                  <th className="px-4 py-3">Loại</th>
-                  <th className="px-4 py-3 text-right">Giá</th>
-                  <th className="px-4 py-3 text-center">Kho</th>
-                  <th className="px-4 py-3 text-center">Nổi bật</th>
-                  <th className="px-4 py-3 text-center">Đang bán</th>
-                  <th className="px-4 py-3 text-right">Sửa</th>
+                  <th className="px-4 py-3">{t.colProduct}</th>
+                  <th className="px-4 py-3">{t.colCategory}</th>
+                  <th className="px-4 py-3">{t.colKind}</th>
+                  <th className="px-4 py-3 text-right">{t.colPrice}</th>
+                  <th className="px-4 py-3 text-center">{t.colStock}</th>
+                  <th className="px-4 py-3 text-center">{t.colFeatured}</th>
+                  <th className="px-4 py-3 text-center">{t.colActive}</th>
+                  <th className="px-4 py-3 text-right">{t.colEdit}</th>
                 </tr>
               </thead>
               <tbody>
@@ -179,9 +234,9 @@ export function ProductsTab({ onCreate, onEdit }: ProductsTabProps) {
                     </td>
                     <td className="px-4 py-3">
                       {product.kind === "service" ? (
-                        <Badge variant="gold">Dịch vụ</Badge>
+                        <Badge variant="gold">{t.service}</Badge>
                       ) : (
-                        <Badge>Vật phẩm</Badge>
+                        <Badge>{t.item}</Badge>
                       )}
                     </td>
                     <td className="px-4 py-3 text-right font-mono tabular-nums-mono text-text">
@@ -193,7 +248,7 @@ export function ProductsTab({ onCreate, onEdit }: ProductsTabProps) {
                     <td className="px-4 py-3 text-center">
                       <button
                         type="button"
-                        title={product.is_featured ? "Bỏ nổi bật" : "Đánh dấu nổi bật"}
+                        title={product.is_featured ? t.unfeature : t.feature}
                         disabled={featuredMutation.isPending}
                         onClick={() =>
                           featuredMutation.mutate({
@@ -216,7 +271,7 @@ export function ProductsTab({ onCreate, onEdit }: ProductsTabProps) {
                           aria-hidden
                         />
                         <span className="sr-only">
-                          {product.is_featured ? "Bỏ nổi bật" : "Đánh dấu nổi bật"}
+                          {product.is_featured ? t.unfeature : t.feature}
                         </span>
                       </button>
                     </td>
@@ -224,7 +279,7 @@ export function ProductsTab({ onCreate, onEdit }: ProductsTabProps) {
                       <Toggle
                         checked={product.is_active}
                         disabled={activeMutation.isPending}
-                        label={`Mở bán ${product.name}`}
+                        label={t.toggleActive(product.name)}
                         onCheckedChange={(active) => activeMutation.mutate({ id: product.id, active })}
                       />
                     </td>
@@ -232,7 +287,7 @@ export function ProductsTab({ onCreate, onEdit }: ProductsTabProps) {
                       <div className="flex justify-end">
                         <Button variant="ghost" size="sm" onClick={() => onEdit(product)}>
                           <Pencil className="h-3.5 w-3.5" aria-hidden />
-                          Sửa
+                          {t.edit}
                         </Button>
                       </div>
                     </td>

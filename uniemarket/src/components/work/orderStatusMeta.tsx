@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { Badge, type BadgeProps } from "@/components/ui/badge";
 import type { DbOrderStatus, OrderDisplayStatus } from "@/types/db";
+import { useT } from "@/i18n";
 import { cn } from "@/lib/utils";
 
 export interface WorkStatusMeta {
@@ -48,12 +49,13 @@ export function WorkOrderStatusBadge({
   status: OrderDisplayStatus;
   className?: string;
 }) {
+  const s = useT();
   const meta = WORK_STATUS_META[status];
   const Icon = meta.icon;
   return (
     <Badge variant={meta.variant} className={cn("whitespace-nowrap", className)}>
       <Icon className="h-3 w-3" aria-hidden />
-      {meta.label}
+      {s.status[status]}
     </Badge>
   );
 }

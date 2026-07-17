@@ -4,6 +4,24 @@ import type { CartLine as CartLineType } from "@/store/cartStore";
 import { useCartStore } from "@/store/cartStore";
 import { formatPrice } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import { usePick } from "@/i18n";
+
+const STR = {
+  vi: {
+    decrease: "Giảm số lượng",
+    increase: "Tăng số lượng",
+    perPackage: " / gói",
+    perProduct: " / sản phẩm",
+    removeAria: (name: string) => `Xoá ${name} khỏi giỏ`,
+  },
+  en: {
+    decrease: "Decrease quantity",
+    increase: "Increase quantity",
+    perPackage: " / package",
+    perProduct: " / product",
+    removeAria: (name: string) => `Remove ${name} from cart`,
+  },
+};
 
 function initialsOf(name: string): string {
   return name
@@ -23,6 +41,7 @@ export interface CartLineProps {
  * tóm tắt lựa chọn dịch vụ, stepper số lượng (khoá với dịch vụ), nút xoá và
  * thành tiền. */
 export function CartLine({ line, className }: CartLineProps) {
+  const t = usePick(STR);
   const setQty = useCartStore((state) => state.setQty);
   const removeItem = useCartStore((state) => state.removeItem);
 
@@ -60,7 +79,7 @@ export function CartLine({ line, className }: CartLineProps) {
           ) : null}
           <p className="tabular-nums-mono mt-1 text-xs text-text-subtle">
             {formatPrice(line.unitPrice)}
-            {isService ? " / gói" : " / sản phẩm"}
+            {isService ? t.perPackage : t.perProduct}
           </p>
         </div>
       </div>
@@ -70,7 +89,7 @@ export function CartLine({ line, className }: CartLineProps) {
         <div className="inline-flex items-center rounded-lg border border-border-strong bg-surface-2">
           <button
             type="button"
-            aria-label="Giảm số lượng"
+            aria-label={t.decrease}
             onClick={() => setQty(line.id, line.quantity - 1)}
             disabled={isService}
             className="flex h-9 w-9 items-center justify-center rounded-l-lg text-text-muted transition-colors hover:bg-surface-3 hover:text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-yellow disabled:pointer-events-none disabled:opacity-40"
@@ -82,7 +101,7 @@ export function CartLine({ line, className }: CartLineProps) {
           </span>
           <button
             type="button"
-            aria-label="Tăng số lượng"
+            aria-label={t.increase}
             onClick={() => setQty(line.id, line.quantity + 1)}
             disabled={isService}
             className="flex h-9 w-9 items-center justify-center rounded-r-lg text-text-muted transition-colors hover:bg-surface-3 hover:text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-yellow disabled:pointer-events-none disabled:opacity-40"
@@ -101,7 +120,7 @@ export function CartLine({ line, className }: CartLineProps) {
         {/* Remove */}
         <button
           type="button"
-          aria-label={`Xoá ${line.name} khỏi giỏ`}
+          aria-label={t.removeAria(line.name)}
           onClick={() => removeItem(line.id)}
           className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-border text-text-subtle transition-colors hover:border-danger hover:bg-danger-soft hover:text-danger focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-danger"
         >

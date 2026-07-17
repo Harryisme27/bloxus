@@ -13,8 +13,53 @@ import { MessagePane, threadTitle } from "@/components/chat/MessagePane";
 import { listMyThreads } from "@/lib/db/chat";
 import { isSupabaseConfigured } from "@/lib/supabase";
 import { useAuthStore } from "@/store/authStore";
+import { usePick } from "@/i18n";
+
+const STR = {
+  vi: {
+    staffChannel: "# Chung",
+    orderThread: "Trao đổi đơn hàng",
+    loginPrompt: "Đăng nhập để nhắn tin với đội ngũ Uniemarket về đơn hàng của bạn.",
+    login: "Đăng nhập",
+    faq: "Câu hỏi thường gặp",
+    demoNotice: "(Web đang ở chế độ demo — chưa kết nối cơ sở dữ liệu, xem SETUP.md.)",
+    staffPrompt: "Bạn là thành viên đội ngũ — trao đổi nội bộ diễn ra trong khu làm việc.",
+    openInternalChat: "Mở chat nội bộ",
+    inbox: "Hộp tin nhắn",
+    viewAllMessages: "Xem tất cả tin nhắn →",
+    noConversations: "Bạn chưa có cuộc trò chuyện nào. Kênh trao đổi sẽ mở tự động khi bạn đặt đơn.",
+    dialogAria: "Khung chat hỗ trợ Uniemarket",
+    supportTitle: "Hỗ trợ Uniemarket",
+    latestOrder: "Đơn hàng gần nhất của bạn",
+    teamReady: "Đội ngũ luôn sẵn sàng giúp bạn",
+    closeChat: "Đóng khung chat",
+    closeSupportChat: "Đóng khung chat hỗ trợ",
+    openSupportChat: "Mở khung chat hỗ trợ",
+  },
+  en: {
+    staffChannel: "# General",
+    orderThread: "Order chat",
+    loginPrompt: "Log in to message the Uniemarket team about your order.",
+    login: "Log in",
+    faq: "Frequently asked questions",
+    demoNotice: "(The site is in demo mode — no database connected, see SETUP.md.)",
+    staffPrompt: "You're a team member — internal chats happen in the work area.",
+    openInternalChat: "Open internal chat",
+    inbox: "Inbox",
+    viewAllMessages: "View all messages →",
+    noConversations: "You don't have any conversations yet. A channel opens automatically when you place an order.",
+    dialogAria: "Uniemarket support chat",
+    supportTitle: "Uniemarket support",
+    latestOrder: "Your latest order",
+    teamReady: "Our team is always ready to help",
+    closeChat: "Close chat",
+    closeSupportChat: "Close support chat",
+    openSupportChat: "Open support chat",
+  },
+};
 
 export function ChatWidget() {
+  const t = usePick(STR);
   const [open, setOpen] = useState(false);
   const session = useAuthStore((s) => s.session);
   const user = useAuthStore((s) => s.user);
@@ -27,7 +72,7 @@ export function ChatWidget() {
     enabled: open && isSupabaseConfigured && Boolean(session) && !isStaff,
   });
   const latestOrderThread =
-    (threadsQuery.data ?? []).find((t) => t.kind === "order") ?? null;
+    (threadsQuery.data ?? []).find((thread) => thread.kind === "order") ?? null;
 
   const close = () => setOpen(false);
 
@@ -37,14 +82,14 @@ export function ChatWidget() {
     panelBody = (
       <div className="flex flex-1 flex-col justify-center gap-3 p-4 text-center">
         <p className="text-sm text-text-muted">
-          Đăng nhập để nhắn tin với đội ngũ Uniemarket về đơn hàng của bạn.
+          {t.loginPrompt}
         </p>
         <Link
           to="/login"
           onClick={close}
           className={buttonVariants({ variant: "primary", size: "md" })}
         >
-          Đăng nhập
+          {t.login}
         </Link>
         <Link
           to="/faq"
@@ -52,11 +97,11 @@ export function ChatWidget() {
           className={buttonVariants({ variant: "secondary", size: "md" })}
         >
           <HelpCircle className="h-4 w-4" aria-hidden />
-          Câu hỏi thường gặp
+          {t.faq}
         </Link>
         {!isSupabaseConfigured ? (
           <p className="text-xs text-text-subtle">
-            (Web đang ở chế độ demo — chưa kết nối cơ sở dữ liệu, xem SETUP.md.)
+            {t.demoNotice}
           </p>
         ) : null}
       </div>
@@ -65,7 +110,7 @@ export function ChatWidget() {
     panelBody = (
       <div className="flex flex-1 flex-col justify-center gap-3 p-4 text-center">
         <p className="text-sm text-text-muted">
-          Bạn là thành viên đội ngũ — trao đổi nội bộ diễn ra trong khu làm việc.
+          {t.staffPrompt}
         </p>
         <Link
           to="/work/chat"
@@ -73,14 +118,14 @@ export function ChatWidget() {
           className={buttonVariants({ variant: "primary", size: "md" })}
         >
           <MessagesSquare className="h-4 w-4" aria-hidden />
-          Mở chat nội bộ
+          {t.openInternalChat}
         </Link>
         <Link
           to="/messages"
           onClick={close}
           className={buttonVariants({ variant: "secondary", size: "md" })}
         >
-          Hộp tin nhắn
+          {t.inbox}
         </Link>
       </div>
     );
@@ -107,7 +152,7 @@ export function ChatWidget() {
             onClick={close}
             className="text-xs font-semibold text-yellow hover:text-yellow-hover"
           >
-            Xem tất cả tin nhắn →
+            {t.viewAllMessages}
           </Link>
         </div>
       </>
@@ -119,14 +164,14 @@ export function ChatWidget() {
           <Inbox className="h-5 w-5" aria-hidden />
         </div>
         <p className="text-sm text-text-muted">
-          Bạn chưa có cuộc trò chuyện nào. Kênh trao đổi sẽ mở tự động khi bạn đặt đơn.
+          {t.noConversations}
         </p>
         <Link
           to="/messages"
           onClick={close}
           className={buttonVariants({ variant: "secondary", size: "md" })}
         >
-          Hộp tin nhắn
+          {t.inbox}
         </Link>
       </div>
     );
@@ -137,7 +182,7 @@ export function ChatWidget() {
       {open ? (
         <div
           role="dialog"
-          aria-label="Khung chat hỗ trợ Uniemarket"
+          aria-label={t.dialogAria}
           className="flex h-[28rem] max-h-[calc(100vh-6rem)] w-[min(22rem,calc(100vw-2.5rem))] flex-col overflow-hidden rounded-2xl border border-border bg-surface shadow-2xl"
         >
           {/* Header */}
@@ -149,13 +194,13 @@ export function ChatWidget() {
               <div className="min-w-0">
                 <p className="truncate font-heading text-sm font-semibold text-text">
                   {session && !isStaff && latestOrderThread
-                    ? threadTitle(latestOrderThread)
-                    : "Hỗ trợ Uniemarket"}
+                    ? threadTitle(latestOrderThread, { staff: t.staffChannel, order: t.orderThread })
+                    : t.supportTitle}
                 </p>
                 <p className="text-xs text-text-subtle">
                   {session && !isStaff && latestOrderThread
-                    ? "Đơn hàng gần nhất của bạn"
-                    : "Đội ngũ luôn sẵn sàng giúp bạn"}
+                    ? t.latestOrder
+                    : t.teamReady}
                 </p>
               </div>
             </div>
@@ -163,7 +208,7 @@ export function ChatWidget() {
               type="button"
               onClick={close}
               className="rounded-md p-1 text-text-subtle transition-colors hover:text-text"
-              aria-label="Đóng khung chat"
+              aria-label={t.closeChat}
             >
               <X className="h-5 w-5" />
             </button>
@@ -177,7 +222,7 @@ export function ChatWidget() {
         type="button"
         onClick={() => setOpen((o) => !o)}
         className="relative flex h-14 w-14 items-center justify-center rounded-full bg-yellow text-text-on-yellow shadow-glow-amber transition-transform hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-yellow focus-visible:ring-offset-2 focus-visible:ring-offset-bg"
-        aria-label={open ? "Đóng khung chat hỗ trợ" : "Mở khung chat hỗ trợ"}
+        aria-label={open ? t.closeSupportChat : t.openSupportChat}
         aria-expanded={open}
       >
         {open ? (

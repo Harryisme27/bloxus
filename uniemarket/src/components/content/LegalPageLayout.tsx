@@ -1,6 +1,26 @@
 import { ShieldAlert, FileText } from "lucide-react";
 import { PageContainer } from "@/components/PageContainer";
 import { cn } from "@/lib/utils";
+import { usePick } from "@/i18n";
+
+const STR = {
+  vi: {
+    legal: "Pháp lý",
+    lastUpdated: "Cập nhật lần cuối:",
+    demoTitle: "Đây là nội dung demo.",
+    demoBody:
+      " Uniemarket là website trình diễn, không bán hàng và không thu tiền thật. Các điều khoản dưới đây chỉ mang tính minh hoạ, không có giá trị pháp lý.",
+    toc: "Mục lục",
+  },
+  en: {
+    legal: "Legal",
+    lastUpdated: "Last updated:",
+    demoTitle: "This is demo content.",
+    demoBody:
+      " Uniemarket is a showcase website — it does not sell anything and never collects real money. The terms below are for illustration only and carry no legal force.",
+    toc: "Contents",
+  },
+};
 
 export interface LegalSection {
   id: string;
@@ -30,24 +50,23 @@ export function LegalPageLayout({
   sections,
   className,
 }: LegalPageLayoutProps) {
+  const t = usePick(STR);
   return (
     <PageContainer className={cn("py-12 sm:py-16", className)}>
       <div className="mx-auto max-w-4xl">
         {/* Header */}
         <div className="flex items-center gap-2 text-yellow">
           <FileText className="h-5 w-5" aria-hidden="true" />
-          <span className="text-xs font-semibold uppercase tracking-wider">Pháp lý</span>
+          <span className="text-xs font-semibold uppercase tracking-wider">{t.legal}</span>
         </div>
         <h1 className="mt-2 font-heading text-3xl font-bold text-text sm:text-4xl">{title}</h1>
-        <p className="mt-2 text-sm text-text-subtle">Cập nhật lần cuối: {lastUpdated}</p>
+        <p className="mt-2 text-sm text-text-subtle">{t.lastUpdated} {lastUpdated}</p>
 
         {/* Demo notice */}
         <div className="mt-6 flex items-start gap-3 rounded-xl border border-yellow-soft bg-yellow-soft p-4">
           <ShieldAlert className="mt-0.5 h-5 w-5 shrink-0 text-gold-deep" aria-hidden="true" />
           <p className="text-sm text-text-muted">
-            <span className="font-semibold text-text">Đây là nội dung demo.</span> Uniemarket là website
-            trình diễn, không bán hàng và không thu tiền thật. Các điều khoản dưới đây chỉ mang tính minh
-            hoạ, không có giá trị pháp lý.
+            <span className="font-semibold text-text">{t.demoTitle}</span>{t.demoBody}
           </p>
         </div>
 
@@ -57,7 +76,7 @@ export function LegalPageLayout({
           {/* Table of contents */}
           <aside className="lg:sticky lg:top-24 lg:self-start">
             <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-text-subtle">
-              Mục lục
+              {t.toc}
             </p>
             <nav className="flex flex-col gap-1">
               {sections.map((section, i) => (

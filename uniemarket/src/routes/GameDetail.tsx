@@ -12,10 +12,48 @@ import { ItemFilters, type KindFilter, type SortKey } from "@/components/storefr
 import { SetupNotice } from "@/components/SetupNotice";
 import { isSupabaseConfigured } from "@/lib/supabase";
 import { getCategoryBySlug, listProducts } from "@/lib/db/catalog";
+import { usePick } from "@/i18n";
+
+const STR = {
+  vi: {
+    home: "Trang chủ",
+    games: "Trò chơi",
+    loadGameErrorTitle: "Không tải được trò chơi",
+    connectError: "Có lỗi khi kết nối máy chủ. Kiểm tra mạng rồi thử lại nhé.",
+    retry: "Thử lại",
+    notFoundTitle: "Không tìm thấy trò chơi",
+    notFoundDesc:
+      "Trò chơi bạn tìm không tồn tại hoặc đã bị gỡ. Quay lại danh mục để khám phá thêm.",
+    backToGames: "Về danh mục trò chơi",
+    products: "sản phẩm",
+    loadProductsErrorTitle: "Không tải được sản phẩm",
+    emptyTitle: "Không có sản phẩm phù hợp",
+    emptyDesc:
+      "Không tìm thấy sản phẩm nào khớp với bộ lọc hiện tại. Thử điều chỉnh lại nhé.",
+    clearFilters: "Xoá bộ lọc",
+  },
+  en: {
+    home: "Home",
+    games: "Games",
+    loadGameErrorTitle: "Couldn't load the game",
+    connectError: "There was a problem connecting to the server. Check your connection and try again.",
+    retry: "Try again",
+    notFoundTitle: "Game not found",
+    notFoundDesc:
+      "The game you're looking for doesn't exist or has been removed. Go back to the catalog to explore more.",
+    backToGames: "Back to game catalog",
+    products: "products",
+    loadProductsErrorTitle: "Couldn't load products",
+    emptyTitle: "No matching products",
+    emptyDesc: "No products match the current filters. Try adjusting them.",
+    clearFilters: "Clear filters",
+  },
+};
 
 const DEFAULT_ACCENT = "#F5B01E";
 
 export function GameDetail() {
+  const t = usePick(STR);
   const { slug } = useParams<{ slug: string }>();
 
   const [search, setSearch] = useState("");
@@ -97,11 +135,11 @@ export function GameDetail() {
       <PageContainer className="py-20">
         <EmptyState
           icon={PackageSearch}
-          title="Không tải được trò chơi"
-          description="Có lỗi khi kết nối máy chủ. Kiểm tra mạng rồi thử lại nhé."
+          title={t.loadGameErrorTitle}
+          description={t.connectError}
           action={
             <Button type="button" variant="primary" size="md" onClick={() => categoryQuery.refetch()}>
-              Thử lại
+              {t.retry}
             </Button>
           }
         />
@@ -117,13 +155,13 @@ export function GameDetail() {
       <PageContainer className="py-20">
         <EmptyState
           icon={PackageSearch}
-          title="Không tìm thấy trò chơi"
-          description="Trò chơi bạn tìm không tồn tại hoặc đã bị gỡ. Quay lại danh mục để khám phá thêm."
+          title={t.notFoundTitle}
+          description={t.notFoundDesc}
           action={
             <Link to="/games">
               <Button type="button" variant="primary" size="md">
                 <ArrowLeft className="h-4 w-4" aria-hidden="true" />
-                Về danh mục trò chơi
+                {t.backToGames}
               </Button>
             </Link>
           }
@@ -161,8 +199,8 @@ export function GameDetail() {
           <Breadcrumbs
             className="mb-6"
             items={[
-              { label: "Trang chủ", to: "/" },
-              { label: "Trò chơi", to: "/games" },
+              { label: t.home, to: "/" },
+              { label: t.games, to: "/games" },
               { label: category.name },
             ]}
           />
@@ -177,7 +215,7 @@ export function GameDetail() {
                 }}
               >
                 <Layers className="h-3.5 w-3.5" aria-hidden="true" />
-                {products.length} sản phẩm
+                {products.length} {t.products}
               </span>
               <h1 className="mt-3 font-heading text-3xl font-extrabold text-text sm:text-4xl lg:text-5xl">
                 {category.name}
@@ -218,8 +256,8 @@ export function GameDetail() {
         ) : productsQuery.isError ? (
           <EmptyState
             icon={PackageSearch}
-            title="Không tải được sản phẩm"
-            description="Có lỗi khi kết nối máy chủ. Kiểm tra mạng rồi thử lại nhé."
+            title={t.loadProductsErrorTitle}
+            description={t.connectError}
             action={
               <Button
                 type="button"
@@ -227,7 +265,7 @@ export function GameDetail() {
                 size="sm"
                 onClick={() => productsQuery.refetch()}
               >
-                Thử lại
+                {t.retry}
               </Button>
             }
           />
@@ -235,7 +273,7 @@ export function GameDetail() {
           <>
             <p className="mb-4 flex items-center gap-1.5 text-sm text-text-subtle">
               <Package className="h-4 w-4" aria-hidden="true" />
-              {filtered.length} / {products.length} sản phẩm
+              {filtered.length} / {products.length} {t.products}
             </p>
             <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
               {filtered.map((product) => (
@@ -246,11 +284,11 @@ export function GameDetail() {
         ) : (
           <EmptyState
             icon={PackageSearch}
-            title="Không có sản phẩm phù hợp"
-            description="Không tìm thấy sản phẩm nào khớp với bộ lọc hiện tại. Thử điều chỉnh lại nhé."
+            title={t.emptyTitle}
+            description={t.emptyDesc}
             action={
               <Button type="button" variant="secondary" size="sm" onClick={resetFilters}>
-                Xoá bộ lọc
+                {t.clearFilters}
               </Button>
             }
           />

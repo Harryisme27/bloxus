@@ -12,7 +12,7 @@
 export { vi } from "./vi";
 export { en } from "./en";
 export type { Strings } from "./vi";
-export { useLangStore, useT, CATALOG } from "./store";
+export { useLangStore, useT, usePick, CATALOG } from "./store";
 export type { Lang } from "./store";
 
 import { vi } from "./vi";

@@ -2,8 +2,22 @@
 import { Hash, ShoppingBag } from "lucide-react";
 import { relativeTime } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import { usePick } from "@/i18n";
 import { threadTitle } from "./MessagePane";
 import type { ThreadRow } from "@/types/db";
+
+const STR = {
+  vi: {
+    staffChannel: "# Chung",
+    orderThread: "Trao đổi đơn hàng",
+    noMessages: "Chưa có tin nhắn",
+  },
+  en: {
+    staffChannel: "# General",
+    orderThread: "Order chat",
+    noMessages: "No messages yet",
+  },
+};
 
 export interface ThreadListProps {
   threads: ThreadRow[];
@@ -14,6 +28,7 @@ export interface ThreadListProps {
 }
 
 export function ThreadList({ threads, selectedId, onSelect, className }: ThreadListProps) {
+  const t = usePick(STR);
   // Sắp xếp: nhắn gần nhất lên đầu (fallback created_at khi chưa có tin nào).
   const sorted = [...threads].sort((a, b) => {
     const ta = new Date(a.last_message_at ?? a.created_at).getTime();
@@ -55,12 +70,12 @@ export function ThreadList({ threads, selectedId, onSelect, className }: ThreadL
                   active ? "text-yellow" : "text-text",
                 )}
               >
-                {threadTitle(thread)}
+                {threadTitle(thread, { staff: t.staffChannel, order: t.orderThread })}
               </span>
               <span className="block text-xs text-text-subtle">
                 {thread.last_message_at
                   ? relativeTime(thread.last_message_at)
-                  : "Chưa có tin nhắn"}
+                  : t.noMessages}
               </span>
             </span>
           </button>

@@ -30,22 +30,85 @@ import { useAuthStore } from "@/store/authStore";
 import { orderDisplayStatus } from "@/types/db";
 import type { OrderRow } from "@/types/db";
 import { cn } from "@/lib/utils";
+import { usePick, useLangStore } from "@/i18n";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
+
+const STR = {
+  vi: {
+    title: "Bảng làm việc",
+    subtitleAdmin: "Tổng quan hàng đợi: xác nhận tiền, giao đơn cho CTV và tiến độ hôm nay.",
+    subtitleCtv: "Các đơn được giao cho bạn — mở đơn để xem chi tiết và chat với khách.",
+    statPendingPay: "Chờ xác nhận tiền",
+    statPendingAssign: "Chờ giao CTV",
+    statInProgress: "Đang thực hiện",
+    statCompletedToday: "Hoàn thành hôm nay",
+    strip: (n: number) => `${n} đơn đang chờ xác nhận thanh toán.`,
+    reconcileNow: "Đối chiếu ngay",
+    queueTitle: "Hàng đợi xử lý",
+    queueCount: (n: number) => `${n} đơn đã thanh toán, chưa giao CTV`,
+    queueEmpty: "Không có đơn nào chờ giao — hàng đợi sạch bong.",
+    assign: "Giao đơn",
+    open: "Mở",
+    ctvEmptyTitle: "Chưa có đơn nào được giao cho bạn",
+    ctvEmptyBody: "Khi admin giao đơn, đơn sẽ hiện ở đây kèm thông báo realtime.",
+    groupNew: "Mới giao",
+    groupNewHint: "Được giao trong 24 giờ qua",
+    groupNewEmpty: "Không có đơn mới trong 24 giờ qua.",
+    groupDoing: "Đang thực hiện",
+    groupDoingEmpty: "Không còn đơn nào đang dang dở — quá đỉnh!",
+    groupDone: "Hoàn thành gần đây",
+    groupDoneEmpty: "Chưa có đơn hoàn thành nào gần đây.",
+    assignedPrefix: (time: string) => `Giao ${time}`,
+    openOrder: "Mở đơn",
+    loadError: (msg: string) => `Không tải được dữ liệu. ${msg}`,
+    retry: "Thử lại",
+  },
+  en: {
+    title: "Dashboard",
+    subtitleAdmin:
+      "Queue overview: confirm payments, assign orders to collaborators, and track today's progress.",
+    subtitleCtv: "Orders assigned to you — open one to see details and chat with the customer.",
+    statPendingPay: "Awaiting payment",
+    statPendingAssign: "Awaiting assignment",
+    statInProgress: "In progress",
+    statCompletedToday: "Completed today",
+    strip: (n: number) => `${n} order${n === 1 ? "" : "s"} awaiting payment confirmation.`,
+    reconcileNow: "Reconcile now",
+    queueTitle: "Processing queue",
+    queueCount: (n: number) => `${n} paid order${n === 1 ? "" : "s"} not yet assigned`,
+    queueEmpty: "No orders waiting to be assigned — the queue is clear.",
+    assign: "Assign order",
+    open: "Open",
+    ctvEmptyTitle: "No orders assigned to you yet",
+    ctvEmptyBody:
+      "When an admin assigns an order, it will show up here with a realtime notification.",
+    groupNew: "Newly assigned",
+    groupNewHint: "Assigned in the last 24 hours",
+    groupNewEmpty: "No new orders in the last 24 hours.",
+    groupDoing: "In progress",
+    groupDoingEmpty: "No orders in progress — nicely done!",
+    groupDone: "Recently completed",
+    groupDoneEmpty: "No recently completed orders.",
+    assignedPrefix: (time: string) => `Assigned ${time}`,
+    openOrder: "Open order",
+    loadError: (msg: string) => `Couldn't load data. ${msg}`,
+    retry: "Try again",
+  },
+};
 
 /** /work — dashboard khu làm việc (hàng đợi thanh toán, đơn chờ giao, thống kê). */
 export function WorkDashboard() {
   const user = useAuthStore((state) => state.user);
+  const t = usePick(STR);
   const isAdmin = user?.role === "admin";
 
   return (
     <div className="space-y-6">
       <header>
-        <h1 className="font-heading text-3xl font-bold text-text">Bảng làm việc</h1>
+        <h1 className="font-heading text-3xl font-bold text-text">{t.title}</h1>
         <p className="mt-1 text-sm text-text-muted">
-          {isAdmin
-            ? "Tổng quan hàng đợi: xác nhận tiền, giao đơn cho CTV và tiến độ hôm nay."
-            : "Các đơn được giao cho bạn — mở đơn để xem chi tiết và chat với khách."}
+          {isAdmin ? t.subtitleAdmin : t.subtitleCtv}
         </p>
       </header>
 
@@ -66,6 +129,7 @@ export function WorkDashboard() {
 
 function AdminDashboard() {
   useOrdersRealtime();
+  const t = usePick(STR);
   const [assignTarget, setAssignTarget] = useState<Pick<OrderRow, "id" | "order_code"> | null>(
     null,
   );
@@ -113,24 +177,24 @@ function AdminDashboard() {
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard
           icon={BadgeDollarSign}
-          label="Chờ xác nhận tiền"
+          label={t.statPendingPay}
           value={pendingPayment.length}
           to="/work/payments"
           accent={pendingPayment.length > 0}
         />
-        <StatCard icon={UserPlus} label="Chờ giao CTV" value={unassigned.length} to="/work/orders" />
-        <StatCard icon={Loader} label="Đang thực hiện" value={inProgress.length} to="/work/orders" />
-        <StatCard icon={BadgeCheck} label="Hoàn thành hôm nay" value={completedToday.length} />
+        <StatCard icon={UserPlus} label={t.statPendingAssign} value={unassigned.length} to="/work/orders" />
+        <StatCard icon={Loader} label={t.statInProgress} value={inProgress.length} to="/work/orders" />
+        <StatCard icon={BadgeCheck} label={t.statCompletedToday} value={completedToday.length} />
       </div>
 
       {pendingPayment.length > 0 ? (
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-yellow bg-yellow-soft px-4 py-3">
           <p className="text-sm font-semibold text-yellow">
             <Clock className="mr-1.5 inline h-4 w-4" aria-hidden />
-            {pendingPayment.length} đơn đang chờ xác nhận thanh toán.
+            {t.strip(pendingPayment.length)}
           </p>
           <Link to="/work/payments" className={cn(buttonVariants({ variant: "primary", size: "sm" }))}>
-            Đối chiếu ngay
+            {t.reconcileNow}
             <ArrowRight className="h-4 w-4" aria-hidden />
           </Link>
         </div>
@@ -138,14 +202,12 @@ function AdminDashboard() {
 
       <section className="rounded-2xl border border-border bg-surface">
         <div className="flex items-center justify-between border-b border-border px-5 py-4">
-          <h2 className="font-heading text-lg font-semibold text-text">Hàng đợi xử lý</h2>
-          <span className="text-sm text-text-muted">
-            {unassigned.length} đơn đã thanh toán, chưa giao CTV
-          </span>
+          <h2 className="font-heading text-lg font-semibold text-text">{t.queueTitle}</h2>
+          <span className="text-sm text-text-muted">{t.queueCount(unassigned.length)}</span>
         </div>
 
         {unassigned.length === 0 ? (
-          <EmptyBlock text="Không có đơn nào chờ giao — hàng đợi sạch bong." />
+          <EmptyBlock text={t.queueEmpty} />
         ) : (
           <ul className="divide-y divide-border">
             {unassigned.map((order) => (
@@ -178,13 +240,13 @@ function AdminDashboard() {
                     onClick={() => setAssignTarget({ id: order.id, order_code: order.order_code })}
                   >
                     <UserPlus className="h-4 w-4" aria-hidden />
-                    Giao đơn
+                    {t.assign}
                   </Button>
                   <Link
                     to={`/work/orders/${order.id}`}
                     className={cn(buttonVariants({ variant: "secondary", size: "sm" }))}
                   >
-                    Mở
+                    {t.open}
                   </Link>
                 </div>
               </li>
@@ -235,6 +297,7 @@ function StatCard({
 
 function CtvDashboard({ userId }: { userId: string }) {
   useOrdersRealtime();
+  const t = usePick(STR);
 
   const ordersQuery = useQuery({
     queryKey: ["work-orders", { assignedTo: userId }],
@@ -284,12 +347,8 @@ function CtvDashboard({ userId }: { userId: string }) {
     return (
       <div className="rounded-2xl border border-dashed border-border-strong bg-surface p-10 text-center">
         <Inbox className="mx-auto h-10 w-10 text-text-subtle" aria-hidden />
-        <p className="mt-3 font-heading text-lg font-semibold text-text">
-          Chưa có đơn nào được giao cho bạn
-        </p>
-        <p className="mt-1 text-sm text-text-muted">
-          Khi admin giao đơn, đơn sẽ hiện ở đây kèm thông báo realtime.
-        </p>
+        <p className="mt-3 font-heading text-lg font-semibold text-text">{t.ctvEmptyTitle}</p>
+        <p className="mt-1 text-sm text-text-muted">{t.ctvEmptyBody}</p>
       </div>
     );
   }
@@ -299,24 +358,24 @@ function CtvDashboard({ userId }: { userId: string }) {
   return (
     <div className="space-y-8">
       <CtvOrderGroup
-        title="Mới giao"
-        hint="Được giao trong 24 giờ qua"
+        title={t.groupNew}
+        hint={t.groupNewHint}
         orders={fresh}
         itemsMap={itemsMap}
         highlight
-        emptyText="Không có đơn mới trong 24 giờ qua."
+        emptyText={t.groupNewEmpty}
       />
       <CtvOrderGroup
-        title="Đang thực hiện"
+        title={t.groupDoing}
         orders={doing}
         itemsMap={itemsMap}
-        emptyText="Không còn đơn nào đang dang dở — quá đỉnh!"
+        emptyText={t.groupDoingEmpty}
       />
       <CtvOrderGroup
-        title="Hoàn thành gần đây"
+        title={t.groupDone}
         orders={doneRecent}
         itemsMap={itemsMap}
-        emptyText="Chưa có đơn hoàn thành nào gần đây."
+        emptyText={t.groupDoneEmpty}
       />
     </div>
   );
@@ -337,6 +396,8 @@ function CtvOrderGroup({
   highlight?: boolean;
   emptyText: string;
 }) {
+  const t = usePick(STR);
+  const lang = useLangStore((state) => state.lang);
   return (
     <section>
       <div className="mb-3 flex items-baseline gap-2">
@@ -363,7 +424,7 @@ function CtvOrderGroup({
                 <WorkOrderStatusBadge status={orderDisplayStatus(order)} />
               </div>
               <p className="line-clamp-2 text-sm text-text-muted">
-                {summarizeItems(itemsMap[order.id])}
+                {summarizeItems(itemsMap[order.id], lang)}
               </p>
               <div className="flex flex-wrap items-center gap-2">
                 <ContactChip channel={order.contact_channel} value={order.contact_value} />
@@ -371,14 +432,14 @@ function CtvOrderGroup({
               <div className="mt-auto flex items-center justify-between gap-2 pt-1">
                 <span className="text-xs text-text-subtle">
                   {order.assigned_at
-                    ? `Giao ${relativeTime(order.assigned_at)}`
+                    ? t.assignedPrefix(relativeTime(order.assigned_at))
                     : relativeTime(order.created_at)}
                 </span>
                 <Link
                   to={`/work/orders/${order.id}`}
                   className={cn(buttonVariants({ variant: "secondary", size: "sm" }))}
                 >
-                  Mở đơn
+                  {t.openOrder}
                   <ArrowRight className="h-3.5 w-3.5" aria-hidden />
                 </Link>
               </div>
@@ -395,11 +456,12 @@ function CtvOrderGroup({
 // ---------------------------------------------------------------------------
 
 function QueryErrorBlock({ message, onRetry }: { message: string; onRetry: () => void }) {
+  const t = usePick(STR);
   return (
     <div className="rounded-2xl border border-border bg-surface p-8 text-center">
-      <p className="text-sm text-text-muted">Không tải được dữ liệu. {message}</p>
+      <p className="text-sm text-text-muted">{t.loadError(message)}</p>
       <Button variant="secondary" size="sm" className="mt-4" onClick={onRetry}>
-        Thử lại
+        {t.retry}
       </Button>
     </div>
   );

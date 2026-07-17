@@ -18,7 +18,8 @@ interface LangState {
 export const useLangStore = create<LangState>()(
   persist(
     (set, get) => ({
-      lang: "vi",
+      // Mặc định tiếng Anh (đổi được bằng nút VI/EN, lựa chọn được ghi nhớ).
+      lang: "en",
       setLang: (lang) => set({ lang }),
       toggle: () => set({ lang: get().lang === "vi" ? "en" : "vi" }),
     }),
@@ -37,4 +38,14 @@ export const CATALOG: Record<Lang, Strings> = { vi, en };
 export function useT(): Strings {
   const lang = useLangStore((state) => state.lang);
   return CATALOG[lang];
+}
+
+/**
+ * Chọn bản dịch cho một CATALOG cục bộ của trang/thành phần. Mỗi trang tự khai
+ * `const STR = { vi: {...}, en: {...} }` rồi `const t = usePick(STR)` — không
+ * cần đụng vào file catalog chung, nên dịch từng trang độc lập, không xung đột.
+ */
+export function usePick<T>(catalog: { vi: T; en: T }): T {
+  const lang = useLangStore((state) => state.lang);
+  return catalog[lang];
 }

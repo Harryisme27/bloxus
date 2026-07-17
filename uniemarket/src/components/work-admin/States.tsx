@@ -1,16 +1,23 @@
 import { AlertTriangle, Inbox } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { usePick } from "@/i18n";
+
+const STR = {
+  vi: { loadError: "Không tải được dữ liệu", retry: "Thử lại" },
+  en: { loadError: "Couldn't load data", retry: "Try again" },
+};
 
 /** Khối báo lỗi tải dữ liệu + nút thử lại (dùng cho isError của useQuery). */
 export function LoadError({ message, onRetry }: { message?: string; onRetry: () => void }) {
+  const t = usePick(STR);
   return (
     <div className="rounded-2xl border border-border-strong bg-surface p-8 text-center">
       <AlertTriangle className="mx-auto h-8 w-8 text-danger" aria-hidden />
-      <p className="mt-3 font-heading text-base font-semibold text-text">Không tải được dữ liệu</p>
+      <p className="mt-3 font-heading text-base font-semibold text-text">{t.loadError}</p>
       {message ? <p className="mx-auto mt-1 max-w-md text-sm text-text-muted">{message}</p> : null}
       <Button variant="secondary" size="sm" className="mt-4" onClick={onRetry}>
-        Thử lại
+        {t.retry}
       </Button>
     </div>
   );

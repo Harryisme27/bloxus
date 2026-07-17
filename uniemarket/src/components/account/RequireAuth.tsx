@@ -1,6 +1,18 @@
 import type { ReactNode } from "react";
 import { Navigate, useLocation } from "react-router-dom";
 import { useAuthStore } from "@/store/authStore";
+import { usePick } from "@/i18n";
+
+const STR = {
+  vi: {
+    checkingAuth: "Đang kiểm tra đăng nhập…",
+    loadingProfile: "Đang tải hồ sơ…",
+  },
+  en: {
+    checkingAuth: "Checking your sign-in…",
+    loadingProfile: "Loading your profile…",
+  },
+};
 
 /** Wraps auth-only buyer pages. Chờ authStore xác định xong phiên đăng nhập
  * (loading), sau đó: chưa đăng nhập → chuyển tới /login (kèm `from` để quay
@@ -8,6 +20,7 @@ import { useAuthStore } from "@/store/authStore";
  * Routing itself is untouched — the guard lives inside the page component per
  * the app's convention. */
 export function RequireAuth({ children }: { children: ReactNode }) {
+  const t = usePick(STR);
   const session = useAuthStore((state) => state.session);
   const user = useAuthStore((state) => state.user);
   const loading = useAuthStore((state) => state.loading);
@@ -16,7 +29,7 @@ export function RequireAuth({ children }: { children: ReactNode }) {
   if (loading) {
     return (
       <div className="flex min-h-[40vh] items-center justify-center">
-        <p className="animate-pulse text-sm text-text-muted">Đang kiểm tra đăng nhập…</p>
+        <p className="animate-pulse text-sm text-text-muted">{t.checkingAuth}</p>
       </div>
     );
   }
@@ -35,7 +48,7 @@ export function RequireAuth({ children }: { children: ReactNode }) {
   if (!user) {
     return (
       <div className="flex min-h-[40vh] items-center justify-center">
-        <p className="animate-pulse text-sm text-text-muted">Đang tải hồ sơ…</p>
+        <p className="animate-pulse text-sm text-text-muted">{t.loadingProfile}</p>
       </div>
     );
   }

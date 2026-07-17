@@ -7,9 +7,32 @@ import { GameCard } from "@/components/GameCard";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { listCategories } from "@/lib/db/catalog";
+import { usePick } from "@/i18n";
+
+const STR = {
+  vi: {
+    eyebrow: "Danh mục",
+    title: "Trò chơi nổi bật",
+    description: "Chọn trò chơi để xem toàn bộ vật phẩm và dịch vụ đang bán.",
+    viewAll: "Xem tất cả",
+    loadError: "Không tải được danh mục. Vui lòng thử lại.",
+    retry: "Thử lại",
+    empty: "Chưa có danh mục nào — quay lại sau nhé.",
+  },
+  en: {
+    eyebrow: "Categories",
+    title: "Featured games",
+    description: "Pick a game to see all the items and services on sale.",
+    viewAll: "View all",
+    loadError: "Couldn't load categories. Please try again.",
+    retry: "Try again",
+    empty: "No categories yet — check back soon.",
+  },
+};
 
 /** "Trò chơi nổi bật" grid — danh mục nổi bật từ DB, fallback về tất cả. */
 export function FeaturedGames() {
+  const t = usePick(STR);
   const { data, isPending, isError, refetch } = useQuery({
     queryKey: ["categories"],
     queryFn: () => listCategories({ activeOnly: true }),
@@ -21,12 +44,12 @@ export function FeaturedGames() {
   return (
     <PageContainer className="py-14">
       <SectionHeading
-        eyebrow="Danh mục"
-        title="Trò chơi nổi bật"
-        description="Chọn trò chơi để xem toàn bộ vật phẩm và dịch vụ đang bán."
+        eyebrow={t.eyebrow}
+        title={t.title}
+        description={t.description}
         action={
           <Link to="/games" className={buttonVariants({ variant: "ghost", size: "sm" })}>
-            Xem tất cả
+            {t.viewAll}
             <ArrowRight className="h-4 w-4" aria-hidden="true" />
           </Link>
         }
@@ -39,9 +62,9 @@ export function FeaturedGames() {
         </div>
       ) : isError ? (
         <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-border-strong bg-surface p-10 text-center">
-          <p className="text-sm text-text-muted">Không tải được danh mục. Vui lòng thử lại.</p>
+          <p className="text-sm text-text-muted">{t.loadError}</p>
           <Button type="button" variant="secondary" size="sm" onClick={() => refetch()}>
-            Thử lại
+            {t.retry}
           </Button>
         </div>
       ) : categories.length > 0 ? (
@@ -51,7 +74,7 @@ export function FeaturedGames() {
           ))}
         </div>
       ) : (
-        <p className="text-sm text-text-muted">Chưa có danh mục nào — quay lại sau nhé.</p>
+        <p className="text-sm text-text-muted">{t.empty}</p>
       )}
     </PageContainer>
   );

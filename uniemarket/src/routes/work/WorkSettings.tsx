@@ -9,21 +9,80 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getSettings, updateSetting } from "@/lib/db/settings";
 import { prepareImage, uploadSiteAsset } from "@/components/work-admin/uploads";
+import { usePick, useLangStore } from "@/i18n";
 
-const FIELDS: { key: string; label: string; placeholder: string }[] = [
-  { key: "brand", label: "Tên shop", placeholder: "Uniemarket" },
-  { key: "bank_name", label: "Ngân hàng", placeholder: "Vietcombank" },
-  { key: "bank_account", label: "Số tài khoản", placeholder: "0123456789" },
-  { key: "bank_holder", label: "Chủ tài khoản", placeholder: "NGUYEN VAN A" },
-  { key: "momo_number", label: "Số Momo", placeholder: "0900000000" },
+const STR = {
+  vi: {
+    fieldBrand: "Tên shop",
+    fieldBank: "Ngân hàng",
+    fieldAccount: "Số tài khoản",
+    fieldHolder: "Chủ tài khoản",
+    fieldMomo: "Số Momo",
+    saved: "Đã lưu cài đặt.",
+    saveFail: "Không lưu được.",
+    qrUploaded: "Đã tải ảnh QR — nhớ bấm Lưu.",
+    uploadFail: "Tải ảnh thất bại.",
+    title: "Cài đặt thanh toán",
+    subtitle: "Các thông tin này hiện ở bước thanh toán của khách. Cập nhật đúng để nhận được tiền.",
+    receiveInfo: "Thông tin nhận tiền",
+    momoQrLabel: "Ảnh QR Momo",
+    momoQrAlt: "QR Momo",
+    uploadQr: "Tải ảnh QR",
+    removeImage: "Xoá ảnh",
+    saving: "Đang lưu...",
+    save: "Lưu cài đặt",
+    customerSees: "Khách sẽ thấy",
+    previewNote: "Kèm mã đơn (nội dung chuyển khoản) và số tiền của từng đơn.",
+  },
+  en: {
+    fieldBrand: "Shop name",
+    fieldBank: "Bank",
+    fieldAccount: "Account number",
+    fieldHolder: "Account holder",
+    fieldMomo: "Momo number",
+    saved: "Settings saved.",
+    saveFail: "Couldn't save.",
+    qrUploaded: "QR image uploaded — remember to click Save.",
+    uploadFail: "Image upload failed.",
+    title: "Payment settings",
+    subtitle:
+      "This information appears at the customer's checkout step. Keep it accurate to receive payments.",
+    receiveInfo: "Payout details",
+    momoQrLabel: "Momo QR image",
+    momoQrAlt: "Momo QR",
+    uploadQr: "Upload QR image",
+    removeImage: "Remove image",
+    saving: "Saving...",
+    save: "Save settings",
+    customerSees: "What the customer sees",
+    previewNote: "Includes the order code (transfer memo) and each order's amount.",
+  },
+};
+
+const FIELDS: { key: string; placeholder: string }[] = [
+  { key: "brand", placeholder: "Uniemarket" },
+  { key: "bank_name", placeholder: "Vietcombank" },
+  { key: "bank_account", placeholder: "0123456789" },
+  { key: "bank_holder", placeholder: "NGUYEN VAN A" },
+  { key: "momo_number", placeholder: "0900000000" },
 ];
 
 export function WorkSettings() {
   const queryClient = useQueryClient();
+  const t = usePick(STR);
+  const lang = useLangStore((state) => state.lang);
   const fileRef = useRef<HTMLInputElement>(null);
   const [form, setForm] = useState<Record<string, string>>({});
   const [qrUrl, setQrUrl] = useState("");
   const [uploading, setUploading] = useState(false);
+
+  const fieldLabels: Record<string, string> = {
+    brand: t.fieldBrand,
+    bank_name: t.fieldBank,
+    bank_account: t.fieldAccount,
+    bank_holder: t.fieldHolder,
+    momo_number: t.fieldMomo,
+  };
 
   const query = useQuery({ queryKey: ["settings"], queryFn: getSettings });
 
@@ -43,21 +102,21 @@ export function WorkSettings() {
       await updateSetting("momo_qr_url", qrUrl);
     },
     onSuccess: () => {
-      toast.success("Đã lưu cài đặt.");
+      toast.success(t.saved);
       void queryClient.invalidateQueries({ queryKey: ["settings"] });
     },
-    onError: (err) => toast.error(err instanceof Error ? err.message : "Không lưu được."),
+    onError: (err) => toast.error(err instanceof Error ? err.message : t.saveFail),
   });
 
   async function handleQrUpload(file: File) {
     setUploading(true);
     try {
-      const prepared = await prepareImage(file);
+      const prepared = await prepareImage(file, lang);
       const { publicUrl } = await uploadSiteAsset(prepared);
       setQrUrl(publicUrl);
-      toast.success("Đã tải ảnh QR — nhớ bấm Lưu.");
+      toast.success(t.qrUploaded);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Tải ảnh thất bại.");
+      toast.error(err instanceof Error ? err.message : t.uploadFail);
     } finally {
       setUploading(false);
     }
@@ -66,7 +125,7 @@ export function WorkSettings() {
   if (query.isPending) {
     return (
       <div>
-        <h1 className="mb-6 font-heading text-2xl font-bold text-text">Cài đặt thanh toán</h1>
+        <h1 className="mb-6 font-heading text-2xl font-bold text-text">{t.title}</h1>
         <Skeleton className="h-96 rounded-2xl" />
       </div>
     );
@@ -75,21 +134,19 @@ export function WorkSettings() {
   return (
     <div>
       <div className="mb-6">
-        <h1 className="font-heading text-2xl font-bold text-text">Cài đặt thanh toán</h1>
-        <p className="mt-1 text-sm text-text-muted">
-          Các thông tin này hiện ở bước thanh toán của khách. Cập nhật đúng để nhận được tiền.
-        </p>
+        <h1 className="font-heading text-2xl font-bold text-text">{t.title}</h1>
+        <p className="mt-1 text-sm text-text-muted">{t.subtitle}</p>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
         <Card>
           <CardHeader className="border-b border-border">
-            <CardTitle className="text-base">Thông tin nhận tiền</CardTitle>
+            <CardTitle className="text-base">{t.receiveInfo}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4 pt-5">
             {FIELDS.map((f) => (
               <div key={f.key}>
-                <Label htmlFor={f.key}>{f.label}</Label>
+                <Label htmlFor={f.key}>{fieldLabels[f.key]}</Label>
                 <Input
                   id={f.key}
                   value={form[f.key] ?? ""}
@@ -100,12 +157,12 @@ export function WorkSettings() {
             ))}
 
             <div>
-              <Label>Ảnh QR Momo</Label>
+              <Label>{t.momoQrLabel}</Label>
               <div className="flex items-center gap-4">
                 {qrUrl ? (
                   <img
                     src={qrUrl}
-                    alt="QR Momo"
+                    alt={t.momoQrAlt}
                     className="h-24 w-24 rounded-lg border border-border object-contain"
                   />
                 ) : (
@@ -137,7 +194,7 @@ export function WorkSettings() {
                     ) : (
                       <ImageUp className="h-4 w-4" aria-hidden />
                     )}
-                    Tải ảnh QR
+                    {t.uploadQr}
                   </Button>
                   {qrUrl ? (
                     <button
@@ -145,7 +202,7 @@ export function WorkSettings() {
                       onClick={() => setQrUrl("")}
                       className="block text-xs text-text-subtle hover:text-danger"
                     >
-                      Xoá ảnh
+                      {t.removeImage}
                     </button>
                   ) : null}
                 </div>
@@ -154,7 +211,7 @@ export function WorkSettings() {
 
             <Button onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending}>
               <Save className="h-4 w-4" aria-hidden />
-              {saveMutation.isPending ? "Đang lưu..." : "Lưu cài đặt"}
+              {saveMutation.isPending ? t.saving : t.save}
             </Button>
           </CardContent>
         </Card>
@@ -162,16 +219,14 @@ export function WorkSettings() {
         {/* Preview */}
         <Card className="h-fit">
           <CardHeader className="border-b border-border">
-            <CardTitle className="text-base">Khách sẽ thấy</CardTitle>
+            <CardTitle className="text-base">{t.customerSees}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2 pt-4 text-sm">
-            <Preview label="Ngân hàng" value={form.bank_name} />
-            <Preview label="Số tài khoản" value={form.bank_account} />
-            <Preview label="Chủ tài khoản" value={form.bank_holder} />
-            <Preview label="Số Momo" value={form.momo_number} />
-            <p className="pt-2 text-xs text-text-subtle">
-              Kèm mã đơn (nội dung chuyển khoản) và số tiền của từng đơn.
-            </p>
+            <Preview label={t.fieldBank} value={form.bank_name} />
+            <Preview label={t.fieldAccount} value={form.bank_account} />
+            <Preview label={t.fieldHolder} value={form.bank_holder} />
+            <Preview label={t.fieldMomo} value={form.momo_number} />
+            <p className="pt-2 text-xs text-text-subtle">{t.previewNote}</p>
           </CardContent>
         </Card>
       </div>

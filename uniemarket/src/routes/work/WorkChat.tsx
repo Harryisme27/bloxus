@@ -12,11 +12,44 @@ import { ThreadList } from "@/components/chat/ThreadList";
 import { listMyThreads } from "@/lib/db/chat";
 import { isSupabaseConfigured } from "@/lib/supabase";
 import { cn } from "@/lib/utils";
+import { usePick } from "@/i18n";
 
 const PANE_HEIGHT = "h-[62vh] min-h-[26rem]";
 
+const STR = {
+  vi: {
+    loadError: "Không tải được kênh chat nội bộ.",
+    retry: "Thử lại",
+    emptyTitle: "Chưa thấy kênh nội bộ nào",
+    emptyBodyPre: "Kênh",
+    emptyBodyMid: "được tạo sẵn khi chạy file",
+    emptyBodyPost:
+      ". Nếu bạn vừa được duyệt CTV, thử tải lại trang; nếu vẫn không thấy, báo admin kiểm tra bước cài đặt.",
+    backToChannels: "Danh sách kênh",
+    pickChannel: "Chọn một kênh để bắt đầu.",
+    title: "Chat nội bộ",
+    subtitle:
+      "Kênh # Chung của đội ngũ — khách hàng không thấy nội dung ở đây. Tên người gửi kèm nhãn vai trò (Admin / CTV).",
+  },
+  en: {
+    loadError: "Couldn't load the team chat channels.",
+    retry: "Try again",
+    emptyTitle: "No internal channels found",
+    emptyBodyPre: "The",
+    emptyBodyMid: "channel is created automatically when you run",
+    emptyBodyPost:
+      ". If you were just approved as a CTV, try reloading the page; if it still doesn't appear, ask an admin to check the setup step.",
+    backToChannels: "Channel list",
+    pickChannel: "Pick a channel to get started.",
+    title: "Team chat",
+    subtitle:
+      "The team's # Chung channel — customers can't see anything here. Sender names include a role label (Admin / CTV).",
+  },
+};
+
 export function WorkChat() {
   const [searchParams, setSearchParams] = useSearchParams();
+  const t = usePick(STR);
   const selectedId = searchParams.get("thread");
 
   const threadsQuery = useQuery({
@@ -46,13 +79,13 @@ export function WorkChat() {
   } else if (threadsQuery.isError) {
     content = (
       <div className="flex flex-col items-center gap-3 rounded-2xl border border-border bg-surface p-10 text-center">
-        <p className="text-sm text-text-muted">Không tải được kênh chat nội bộ.</p>
+        <p className="text-sm text-text-muted">{t.loadError}</p>
         <p className="max-w-sm text-xs text-text-subtle">
           {threadsQuery.error instanceof Error ? threadsQuery.error.message : ""}
         </p>
         <Button variant="secondary" size="sm" onClick={() => void threadsQuery.refetch()}>
           <RefreshCw className="h-4 w-4" aria-hidden />
-          Thử lại
+          {t.retry}
         </Button>
       </div>
     );
@@ -63,14 +96,12 @@ export function WorkChat() {
           <Hash className="h-6 w-6" aria-hidden />
         </div>
         <div>
-          <p className="font-heading text-lg font-semibold text-text">
-            Chưa thấy kênh nội bộ nào
-          </p>
+          <p className="font-heading text-lg font-semibold text-text">{t.emptyTitle}</p>
           <p className="mx-auto mt-1 max-w-md text-sm text-text-muted">
-            Kênh <span className="font-semibold text-text"># Chung</span> được tạo sẵn khi chạy
-            file <code className="rounded bg-surface-2 px-1.5 py-0.5 text-xs">supabase/01-schema.sql</code>.
-            Nếu bạn vừa được duyệt CTV, thử tải lại trang; nếu vẫn không thấy, báo admin kiểm tra
-            bước cài đặt.
+            {t.emptyBodyPre} <span className="font-semibold text-text"># Chung</span>{" "}
+            {t.emptyBodyMid}{" "}
+            <code className="rounded bg-surface-2 px-1.5 py-0.5 text-xs">supabase/01-schema.sql</code>
+            {t.emptyBodyPost}
           </p>
         </div>
       </div>
@@ -101,7 +132,7 @@ export function WorkChat() {
               onClick={() => setSearchParams({})}
             >
               <ArrowLeft className="h-4 w-4" aria-hidden />
-              Danh sách kênh
+              {t.backToChannels}
             </Button>
           ) : null}
           {activeThread ? (
@@ -113,7 +144,7 @@ export function WorkChat() {
                 PANE_HEIGHT,
               )}
             >
-              <p className="text-sm text-text-subtle">Chọn một kênh để bắt đầu.</p>
+              <p className="text-sm text-text-subtle">{t.pickChannel}</p>
             </div>
           )}
         </div>
@@ -124,11 +155,8 @@ export function WorkChat() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="font-heading text-3xl font-bold text-text">Chat nội bộ</h1>
-        <p className="mt-1 text-sm text-text-muted">
-          Kênh # Chung của đội ngũ — khách hàng không thấy nội dung ở đây. Tên người gửi kèm nhãn
-          vai trò (Admin / CTV).
-        </p>
+        <h1 className="font-heading text-3xl font-bold text-text">{t.title}</h1>
+        <p className="mt-1 text-sm text-text-muted">{t.subtitle}</p>
       </div>
       {content}
     </div>

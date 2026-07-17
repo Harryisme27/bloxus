@@ -2,6 +2,7 @@
 // listWorkOrders() chỉ trả OrderRow (không kèm dòng hàng) — hook/hàm ở đây
 // tải gọn order_items theo lô cho bảng đơn + card dashboard.
 import { requireSupabase } from "@/lib/supabase";
+import type { Lang } from "@/i18n";
 
 /** Dòng hàng rút gọn — đủ để hiển thị tóm tắt + đếm số món. */
 export interface OrderItemLite {
@@ -37,21 +38,27 @@ export function countItems(items: OrderItemLite[] | undefined): number {
 }
 
 /** Tóm tắt dòng hàng: "Tên A ×2, Tên B +1 món khác". */
-export function summarizeItems(items: OrderItemLite[] | undefined): string {
+export function summarizeItems(items: OrderItemLite[] | undefined, lang: Lang): string {
   if (!items || items.length === 0) return "—";
   const parts = items
     .slice(0, 2)
     .map((item) => (item.quantity > 1 ? `${item.name} ×${item.quantity}` : item.name));
   const rest = items.length - 2;
-  return rest > 0 ? `${parts.join(", ")} +${rest} món khác` : parts.join(", ");
+  if (rest <= 0) return parts.join(", ");
+  return lang === "vi"
+    ? `${parts.join(", ")} +${rest} món khác`
+    : `${parts.join(", ")} +${rest} more`;
 }
 
 /** Mô tả selected_options của 1 dòng hàng service (tier hoặc kéo rank). */
 export function describeSelectedOptions(
   opts: Record<string, unknown> | null,
+  lang: Lang,
 ): string | null {
   if (!opts) return null;
-  if (typeof opts.tier_id === "string") return `Gói: ${opts.tier_id}`;
+  if (typeof opts.tier_id === "string") {
+    return `${lang === "vi" ? "Gói" : "Package"}: ${opts.tier_id}`;
+  }
   if (typeof opts.from === "string" && typeof opts.to === "string") {
     return `Rank: ${opts.from} → ${opts.to}`;
   }
@@ -59,16 +66,17 @@ export function describeSelectedOptions(
 }
 
 /** Nhãn kênh liên hệ của khách ("discord" -> "Discord"...). */
-export function contactChannelLabel(channel: string | null): string {
-  if (!channel) return "Liên hệ";
+export function contactChannelLabel(channel: string | null, lang: Lang): string {
+  if (!channel) return lang === "vi" ? "Liên hệ" : "Contact";
   const key = channel.trim().toLowerCase();
+  const phone = lang === "vi" ? "SĐT" : "Phone";
   const known: Record<string, string> = {
     discord: "Discord",
     zalo: "Zalo",
     facebook: "Facebook",
     messenger: "Messenger",
-    phone: "SĐT",
-    sdt: "SĐT",
+    phone,
+    sdt: phone,
     email: "Email",
     telegram: "Telegram",
   };
@@ -76,8 +84,8 @@ export function contactChannelLabel(channel: string | null): string {
 }
 
 /** Nhãn phương thức thanh toán. */
-export function paymentMethodLabel(method: string | null): string {
-  if (method === "bank_transfer") return "Chuyển khoản";
+export function paymentMethodLabel(method: string | null, lang: Lang): string {
+  if (method === "bank_transfer") return lang === "vi" ? "Chuyển khoản" : "Bank transfer";
   if (method === "momo") return "MoMo";
   return "—";
 }

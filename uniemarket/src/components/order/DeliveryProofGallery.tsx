@@ -3,6 +3,12 @@
 // path trong bucket 'proof-images' — tự dựng public URL khi cần.
 import { supabase } from "@/lib/supabase";
 import { cn } from "@/lib/utils";
+import { usePick } from "@/i18n";
+
+const STR = {
+  vi: { proofAlt: (n: number) => `Ảnh giao hàng ${n}` },
+  en: { proofAlt: (n: number) => `Delivery image ${n}` },
+};
 
 /** Trả về URL hiển thị: giữ nguyên nếu đã là http(s), nếu không thì dựng public URL từ bucket. */
 function resolveProofUrl(pathOrUrl: string): string {
@@ -18,6 +24,7 @@ export function DeliveryProofGallery({
   images: string[];
   className?: string;
 }) {
+  const t = usePick(STR);
   if (!images || images.length === 0) return null;
   return (
     <div className={cn("grid grid-cols-2 gap-2 sm:grid-cols-3", className)}>
@@ -33,7 +40,7 @@ export function DeliveryProofGallery({
           >
             <img
               src={url}
-              alt={`Ảnh giao hàng ${index + 1}`}
+              alt={t.proofAlt(index + 1)}
               loading="lazy"
               className="aspect-square w-full object-cover transition-transform duration-200 group-hover:scale-105"
             />

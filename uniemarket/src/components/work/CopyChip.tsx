@@ -3,7 +3,27 @@ import { useState } from "react";
 import { Check, Copy } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { usePick, useLangStore } from "@/i18n";
 import { contactChannelLabel } from "./workData";
+
+const STR = {
+  vi: {
+    copiedWith: (l: string) => `Đã sao chép ${l}.`,
+    copied: "Đã sao chép.",
+    copyFail: "Không sao chép được — hãy copy thủ công.",
+    copyWith: (l: string) => `Sao chép ${l}`,
+    copy: "Sao chép",
+    contact: "liên hệ",
+  },
+  en: {
+    copiedWith: (l: string) => `Copied ${l}.`,
+    copied: "Copied.",
+    copyFail: "Couldn't copy — please copy manually.",
+    copyWith: (l: string) => `Copy ${l}`,
+    copy: "Copy",
+    contact: "contact",
+  },
+};
 
 /** Nút sao chép nhỏ (icon), toast xác nhận khi copy xong. */
 export function CopyButton({
@@ -17,15 +37,16 @@ export function CopyButton({
   className?: string;
 }) {
   const [copied, setCopied] = useState(false);
+  const t = usePick(STR);
 
   const handleCopy = async () => {
     try {
       await navigator.clipboard.writeText(value);
       setCopied(true);
-      toast.success(label ? `Đã sao chép ${label}.` : "Đã sao chép.");
+      toast.success(label ? t.copiedWith(label) : t.copied);
       window.setTimeout(() => setCopied(false), 1500);
     } catch {
-      toast.error("Không sao chép được — hãy copy thủ công.");
+      toast.error(t.copyFail);
     }
   };
 
@@ -37,8 +58,8 @@ export function CopyButton({
         "inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-text-subtle transition-colors hover:bg-surface-2 hover:text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-yellow",
         className,
       )}
-      aria-label={label ? `Sao chép ${label}` : "Sao chép"}
-      title={label ? `Sao chép ${label}` : "Sao chép"}
+      aria-label={label ? t.copyWith(label) : t.copy}
+      title={label ? t.copyWith(label) : t.copy}
     >
       {copied ? (
         <Check className="h-3.5 w-3.5 text-success" aria-hidden />
@@ -59,6 +80,8 @@ export function ContactChip({
   value: string | null;
   className?: string;
 }) {
+  const t = usePick(STR);
+  const lang = useLangStore((state) => state.lang);
   if (!value) return <span className="text-sm text-text-subtle">—</span>;
   return (
     <span
@@ -68,10 +91,10 @@ export function ContactChip({
       )}
     >
       <span className="shrink-0 font-semibold text-text-muted">
-        {contactChannelLabel(channel)}
+        {contactChannelLabel(channel, lang)}
       </span>
       <span className="truncate font-mono text-text">{value}</span>
-      <CopyButton value={value} label="liên hệ" className="h-5 w-5" />
+      <CopyButton value={value} label={t.contact} className="h-5 w-5" />
     </span>
   );
 }

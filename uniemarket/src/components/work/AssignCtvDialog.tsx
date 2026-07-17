@@ -17,6 +17,34 @@ import { assignOrder } from "@/lib/db/orders";
 import { listCtvs } from "@/lib/db/profiles";
 import type { OrderRow } from "@/types/db";
 import { cn } from "@/lib/utils";
+import { usePick } from "@/i18n";
+
+const STR = {
+  vi: {
+    assigned: (code: string) => `Đã giao đơn ${code} cho CTV.`,
+    title: "Giao đơn cho CTV",
+    descPrefix: "Chọn CTV thực hiện đơn",
+    descSuffix: "Đơn sẽ chuyển sang trạng thái “Đang thực hiện”.",
+    loadError: "Không tải được danh sách CTV.",
+    retry: "Thử lại",
+    noCtv: "Chưa có CTV nào được duyệt. Duyệt đơn ứng tuyển trong mục CTV trước nhé.",
+    close: "Đóng",
+    assigning: "Đang giao...",
+    assign: "Giao đơn",
+  },
+  en: {
+    assigned: (code: string) => `Order ${code} assigned to a collaborator.`,
+    title: "Assign to a collaborator",
+    descPrefix: "Choose a collaborator to handle order",
+    descSuffix: "The order will move to the “In progress” status.",
+    loadError: "Couldn't load the collaborator list.",
+    retry: "Try again",
+    noCtv: "No collaborators have been approved yet. Approve an application in the CTV section first.",
+    close: "Close",
+    assigning: "Assigning...",
+    assign: "Assign order",
+  },
+};
 
 export interface AssignCtvDialogProps {
   /** Đơn cần giao — truyền null để đóng dialog. */
@@ -29,6 +57,7 @@ export interface AssignCtvDialogProps {
 export function AssignCtvDialog({ order, onClose, onAssigned }: AssignCtvDialogProps) {
   const [selected, setSelected] = useState<string | null>(null);
   const queryClient = useQueryClient();
+  const t = usePick(STR);
   const open = order !== null;
 
   const ctvsQuery = useQuery({
@@ -44,7 +73,7 @@ export function AssignCtvDialog({ order, onClose, onAssigned }: AssignCtvDialogP
       void queryClient.invalidateQueries({ queryKey: ["work-orders"] });
       void queryClient.invalidateQueries({ queryKey: ["order", updated.id] });
       void queryClient.invalidateQueries({ queryKey: ["order-events", updated.id] });
-      toast.success(`Đã giao đơn ${updated.order_code} cho CTV.`);
+      toast.success(t.assigned(updated.order_code));
       setSelected(null);
       onAssigned?.(updated);
       onClose();
@@ -65,11 +94,11 @@ export function AssignCtvDialog({ order, onClose, onAssigned }: AssignCtvDialogP
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Giao đơn cho CTV</DialogTitle>
+          <DialogTitle>{t.title}</DialogTitle>
           <DialogDescription>
-            Chọn CTV thực hiện đơn{" "}
-            <span className="font-mono font-semibold text-text">{order?.order_code}</span>. Đơn sẽ
-            chuyển sang trạng thái “Đang thực hiện”.
+            {t.descPrefix}{" "}
+            <span className="font-mono font-semibold text-text">{order?.order_code}</span>.{" "}
+            {t.descSuffix}
           </DialogDescription>
         </DialogHeader>
 
@@ -81,19 +110,19 @@ export function AssignCtvDialog({ order, onClose, onAssigned }: AssignCtvDialogP
           </div>
         ) : ctvsQuery.isError ? (
           <div className="rounded-lg border border-border bg-surface-2 p-4 text-sm text-text-muted">
-            <p>Không tải được danh sách CTV. {(ctvsQuery.error as Error).message}</p>
+            <p>{t.loadError} {(ctvsQuery.error as Error).message}</p>
             <Button
               variant="secondary"
               size="sm"
               className="mt-3"
               onClick={() => void ctvsQuery.refetch()}
             >
-              Thử lại
+              {t.retry}
             </Button>
           </div>
         ) : ctvs.length === 0 ? (
           <p className="rounded-lg border border-dashed border-border-strong bg-surface-2 p-4 text-sm text-text-muted">
-            Chưa có CTV nào được duyệt. Duyệt đơn ứng tuyển trong mục CTV trước nhé.
+            {t.noCtv}
           </p>
         ) : (
           <div className="max-h-64 space-y-1.5 overflow-y-auto pr-1" role="radiogroup">
@@ -133,7 +162,7 @@ export function AssignCtvDialog({ order, onClose, onAssigned }: AssignCtvDialogP
 
         <div className="mt-5 flex justify-end gap-2">
           <Button variant="ghost" onClick={() => handleOpenChange(false)}>
-            Đóng
+            {t.close}
           </Button>
           <Button
             variant="primary"
@@ -145,7 +174,7 @@ export function AssignCtvDialog({ order, onClose, onAssigned }: AssignCtvDialogP
             }}
           >
             <UserCheck className="h-4 w-4" aria-hidden />
-            {assignMutation.isPending ? "Đang giao..." : "Giao đơn"}
+            {assignMutation.isPending ? t.assigning : t.assign}
           </Button>
         </div>
       </DialogContent>

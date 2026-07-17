@@ -25,6 +25,56 @@ import { isSupabaseConfigured } from "@/lib/supabase";
 import { formatPrice, relativeTime } from "@/lib/format";
 import { orderDisplayStatus } from "@/types/db";
 import { SetupNotice } from "@/components/SetupNotice";
+import { usePick } from "@/i18n";
+
+const STR = {
+  vi: {
+    dashboard: "Bảng điều khiển",
+    welcome: (name: string) => `Chào mừng, ${name}!`,
+    workArea: "Khu vực làm việc",
+    shop: "Mua sắm",
+    totalOrders: "Tổng số đơn",
+    totalSpent: "Tổng chi tiêu",
+    activeOrders: "Đơn đang xử lý",
+    recentOrders: "Đơn hàng gần đây",
+    recentOrdersDesc: "5 giao dịch mới nhất của bạn.",
+    viewAll: "Xem tất cả",
+    noOrders: "Chưa có đơn hàng nào",
+    noOrdersDesc: "Bắt đầu mua sắm để thấy đơn hàng và tiến trình xử lý tại đây.",
+    exploreStore: "Khám phá cửa hàng",
+    shortcuts: "Lối tắt",
+    shopDesc: "Duyệt danh mục",
+    ordersTitle: "Đơn hàng",
+    ordersDesc: "Lịch sử & trạng thái",
+    proofsTitle: "Minh chứng",
+    proofsDesc: "Bằng chứng giao dịch",
+    supportTitle: "Hỗ trợ",
+    supportDesc: "Liên hệ đội ngũ",
+  },
+  en: {
+    dashboard: "Dashboard",
+    welcome: (name: string) => `Welcome, ${name}!`,
+    workArea: "Work area",
+    shop: "Shop",
+    totalOrders: "Total orders",
+    totalSpent: "Total spent",
+    activeOrders: "Orders in progress",
+    recentOrders: "Recent orders",
+    recentOrdersDesc: "Your 5 most recent transactions.",
+    viewAll: "View all",
+    noOrders: "No orders yet",
+    noOrdersDesc: "Start shopping to see your orders and their progress here.",
+    exploreStore: "Explore the store",
+    shortcuts: "Shortcuts",
+    shopDesc: "Browse categories",
+    ordersTitle: "Orders",
+    ordersDesc: "History & status",
+    proofsTitle: "Proofs",
+    proofsDesc: "Transaction proofs",
+    supportTitle: "Support",
+    supportDesc: "Contact the team",
+  },
+};
 
 export function Dashboard() {
   return (
@@ -35,6 +85,7 @@ export function Dashboard() {
 }
 
 function DashboardContent() {
+  const t = usePick(STR);
   const user = useAuthStore((state) => state.user)!;
   const isStaff = user.role === "admin" || user.role === "ctv";
 
@@ -66,22 +117,22 @@ function DashboardContent() {
           <div>
             <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-yellow">
               <Sparkles className="h-3.5 w-3.5" aria-hidden />
-              Bảng điều khiển
+              {t.dashboard}
             </p>
             <h1 className="mt-2 font-heading text-3xl font-bold text-text sm:text-4xl">
-              Chào mừng, {user.display_name || user.username}!
+              {t.welcome(user.display_name || user.username)}
             </h1>
           </div>
           <div className="flex shrink-0 gap-2">
             {isStaff ? (
               <Link to="/work" className={buttonVariants({ variant: "gold", size: "lg" })}>
                 <Briefcase className="h-4 w-4" aria-hidden />
-                Khu vực làm việc
+                {t.workArea}
               </Link>
             ) : null}
             <Link to="/games" className={buttonVariants({ variant: "primary", size: "lg" })}>
               <ShoppingBag className="h-4 w-4" aria-hidden />
-              Mua sắm
+              {t.shop}
             </Link>
           </div>
         </div>
@@ -95,23 +146,23 @@ function DashboardContent() {
 
       {/* Stats */}
       <div className="mt-6 grid gap-4 sm:grid-cols-3">
-        <StatCard label="Tổng số đơn" value={String(orders.length)} icon={Package} tone="green" />
-        <StatCard label="Tổng chi tiêu" value={formatPrice(totalSpent)} icon={Wallet} tone="gold" />
-        <StatCard label="Đơn đang xử lý" value={String(activeCount)} icon={Loader} tone="neutral" />
+        <StatCard label={t.totalOrders} value={String(orders.length)} icon={Package} tone="green" />
+        <StatCard label={t.totalSpent} value={formatPrice(totalSpent)} icon={Wallet} tone="gold" />
+        <StatCard label={t.activeOrders} value={String(activeCount)} icon={Loader} tone="neutral" />
       </div>
 
       {/* Recent orders */}
       <div className="mt-10">
         <SectionHeading
-          title="Đơn hàng gần đây"
-          description="5 giao dịch mới nhất của bạn."
+          title={t.recentOrders}
+          description={t.recentOrdersDesc}
           action={
             orders.length > 0 ? (
               <Link
                 to="/orders"
                 className="inline-flex items-center gap-1 text-sm font-semibold text-yellow hover:text-yellow-hover"
               >
-                Xem tất cả
+                {t.viewAll}
                 <ArrowRight className="h-4 w-4" aria-hidden />
               </Link>
             ) : undefined
@@ -145,13 +196,11 @@ function DashboardContent() {
             <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-surface-2 text-text-subtle">
               <Package className="h-6 w-6" aria-hidden />
             </div>
-            <h3 className="mt-4 font-heading text-lg font-semibold text-text">Chưa có đơn hàng nào</h3>
-            <p className="mx-auto mt-1 max-w-sm text-sm text-text-muted">
-              Bắt đầu mua sắm để thấy đơn hàng và tiến trình xử lý tại đây.
-            </p>
+            <h3 className="mt-4 font-heading text-lg font-semibold text-text">{t.noOrders}</h3>
+            <p className="mx-auto mt-1 max-w-sm text-sm text-text-muted">{t.noOrdersDesc}</p>
             <Link to="/games" className={buttonVariants({ variant: "primary", size: "md" }) + " mt-5"}>
               <ShoppingBag className="h-4 w-4" aria-hidden />
-              Khám phá cửa hàng
+              {t.exploreStore}
             </Link>
           </div>
         )}
@@ -159,12 +208,12 @@ function DashboardContent() {
 
       {/* Quick links */}
       <div className="mt-10">
-        <SectionHeading title="Lối tắt" />
+        <SectionHeading title={t.shortcuts} />
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <QuickLink to="/games" icon={ShoppingBag} title="Mua sắm" description="Duyệt danh mục" />
-          <QuickLink to="/orders" icon={Receipt} title="Đơn hàng" description="Lịch sử & trạng thái" />
-          <QuickLink to="/proofs" icon={ShieldCheck} title="Minh chứng" description="Bằng chứng giao dịch" />
-          <QuickLink to="/contact" icon={LifeBuoy} title="Hỗ trợ" description="Liên hệ đội ngũ" />
+          <QuickLink to="/games" icon={ShoppingBag} title={t.shop} description={t.shopDesc} />
+          <QuickLink to="/orders" icon={Receipt} title={t.ordersTitle} description={t.ordersDesc} />
+          <QuickLink to="/proofs" icon={ShieldCheck} title={t.proofsTitle} description={t.proofsDesc} />
+          <QuickLink to="/contact" icon={LifeBuoy} title={t.supportTitle} description={t.supportDesc} />
         </div>
       </div>
     </PageContainer>

@@ -18,10 +18,45 @@ import { listMyThreads } from "@/lib/db/chat";
 import { isSupabaseConfigured } from "@/lib/supabase";
 import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/store/authStore";
+import { usePick } from "@/i18n";
 
 const PANE_HEIGHT = "h-[65vh] min-h-[28rem]";
 
+const STR = {
+  vi: {
+    loginTitle: "Đăng nhập để xem tin nhắn",
+    loginBody: "Mỗi đơn hàng có một kênh trao đổi riêng với đội ngũ Uniemarket.",
+    login: "Đăng nhập",
+    loadFailed: "Không tải được danh sách tin nhắn.",
+    retry: "Thử lại",
+    emptyTitle: "Chưa có cuộc trò chuyện",
+    emptyBody:
+      "Tin nhắn sẽ xuất hiện khi bạn có đơn hàng — mỗi đơn có một kênh trao đổi riêng với đội ngũ hỗ trợ.",
+    exploreStore: "Khám phá cửa hàng",
+    threadListBack: "Danh sách hội thoại",
+    selectThread: "Chọn một hội thoại để bắt đầu.",
+    title: "Tin nhắn",
+    subtitle: "Trao đổi với đội ngũ Uniemarket về các đơn hàng của bạn.",
+  },
+  en: {
+    loginTitle: "Log in to see your messages",
+    loginBody: "Every order has its own chat channel with the Uniemarket team.",
+    login: "Log in",
+    loadFailed: "Couldn't load your messages.",
+    retry: "Try again",
+    emptyTitle: "No conversations yet",
+    emptyBody:
+      "Messages appear once you have an order — each order has its own chat channel with the support team.",
+    exploreStore: "Explore the store",
+    threadListBack: "Conversation list",
+    selectThread: "Select a conversation to start.",
+    title: "Messages",
+    subtitle: "Chat with the Uniemarket team about your orders.",
+  },
+};
+
 export function Messages() {
+  const t = usePick(STR);
   const session = useAuthStore((s) => s.session);
   const authLoading = useAuthStore((s) => s.loading);
   const [searchParams, setSearchParams] = useSearchParams();
@@ -35,7 +70,7 @@ export function Messages() {
 
   const threads = threadsQuery.data ?? [];
   // Thread đang mở: theo URL, fallback thread mới nhất (desktop).
-  const activeThread = threads.find((t) => t.id === selectedId) ?? threads[0] ?? null;
+  const activeThread = threads.find((thread) => thread.id === selectedId) ?? threads[0] ?? null;
 
   let content: ReactNode;
 
@@ -56,17 +91,17 @@ export function Messages() {
         </div>
         <div>
           <p className="font-heading text-lg font-semibold text-text">
-            Đăng nhập để xem tin nhắn
+            {t.loginTitle}
           </p>
           <p className="mx-auto mt-1 max-w-sm text-sm text-text-muted">
-            Mỗi đơn hàng có một kênh trao đổi riêng với đội ngũ Uniemarket.
+            {t.loginBody}
           </p>
         </div>
         <Link
           to="/login?next=/messages"
           className={buttonVariants({ variant: "primary", size: "md" })}
         >
-          Đăng nhập
+          {t.login}
         </Link>
       </div>
     );
@@ -84,13 +119,13 @@ export function Messages() {
   } else if (threadsQuery.isError) {
     content = (
       <div className="flex flex-col items-center gap-3 rounded-2xl border border-border bg-surface p-10 text-center">
-        <p className="text-sm text-text-muted">Không tải được danh sách tin nhắn.</p>
+        <p className="text-sm text-text-muted">{t.loadFailed}</p>
         <p className="max-w-sm text-xs text-text-subtle">
           {threadsQuery.error instanceof Error ? threadsQuery.error.message : ""}
         </p>
         <Button variant="secondary" size="sm" onClick={() => void threadsQuery.refetch()}>
           <RefreshCw className="h-4 w-4" aria-hidden />
-          Thử lại
+          {t.retry}
         </Button>
       </div>
     );
@@ -101,14 +136,13 @@ export function Messages() {
           <Inbox className="h-6 w-6" aria-hidden />
         </div>
         <div>
-          <p className="font-heading text-lg font-semibold text-text">Chưa có cuộc trò chuyện</p>
+          <p className="font-heading text-lg font-semibold text-text">{t.emptyTitle}</p>
           <p className="mx-auto mt-1 max-w-sm text-sm text-text-muted">
-            Tin nhắn sẽ xuất hiện khi bạn có đơn hàng — mỗi đơn có một kênh trao đổi riêng với đội
-            ngũ hỗ trợ.
+            {t.emptyBody}
           </p>
         </div>
         <Link to="/games" className={buttonVariants({ variant: "primary", size: "md" })}>
-          Khám phá cửa hàng
+          {t.exploreStore}
         </Link>
       </div>
     );
@@ -141,7 +175,7 @@ export function Messages() {
               onClick={() => setSearchParams({})}
             >
               <ArrowLeft className="h-4 w-4" aria-hidden />
-              Danh sách hội thoại
+              {t.threadListBack}
             </Button>
           ) : null}
           {activeThread ? (
@@ -153,7 +187,7 @@ export function Messages() {
                 PANE_HEIGHT,
               )}
             >
-              <p className="text-sm text-text-subtle">Chọn một hội thoại để bắt đầu.</p>
+              <p className="text-sm text-text-subtle">{t.selectThread}</p>
             </div>
           )}
         </div>
@@ -175,9 +209,9 @@ export function Messages() {
   return (
     <PageContainer className="py-8 sm:py-12">
       <div className="mb-6">
-        <h1 className="font-heading text-2xl font-bold text-text sm:text-3xl">Tin nhắn</h1>
+        <h1 className="font-heading text-2xl font-bold text-text sm:text-3xl">{t.title}</h1>
         <p className="mt-1 text-sm text-text-muted">
-          Trao đổi với đội ngũ Uniemarket về các đơn hàng của bạn.
+          {t.subtitle}
         </p>
       </div>
       {content}

@@ -13,10 +13,38 @@ import { PageContainer } from "@/components/PageContainer";
 import { Badge } from "@/components/ui/badge";
 import { useAuthStore } from "@/store/authStore";
 import { cn } from "@/lib/utils";
+import { usePick } from "@/i18n";
+
+const STR = {
+  vi: {
+    workArea: "Khu làm việc",
+    admin: "Admin",
+    dashboard: "Bảng làm việc",
+    orders: "Đơn hàng",
+    payments: "Xác nhận thanh toán",
+    catalog: "Danh mục & sản phẩm",
+    ctv: "CTV",
+    chat: "Chat nội bộ",
+    settings: "Cài đặt",
+  },
+  en: {
+    workArea: "Work area",
+    admin: "Admin",
+    dashboard: "Dashboard",
+    orders: "Orders",
+    payments: "Confirm payment",
+    catalog: "Categories & products",
+    ctv: "CTV",
+    chat: "Team chat",
+    settings: "Settings",
+  },
+};
+
+type NavKey = "dashboard" | "orders" | "payments" | "catalog" | "ctv" | "chat" | "settings";
 
 interface WorkNavItem {
   to: string;
-  label: string;
+  key: NavKey;
   icon: LucideIcon;
   /** true = chỉ admin thấy (CTV bị ẩn). */
   adminOnly: boolean;
@@ -24,13 +52,13 @@ interface WorkNavItem {
 }
 
 const NAV_ITEMS: WorkNavItem[] = [
-  { to: "/work", label: "Bảng làm việc", icon: LayoutDashboard, adminOnly: false, end: true },
-  { to: "/work/orders", label: "Đơn hàng", icon: Receipt, adminOnly: false },
-  { to: "/work/payments", label: "Xác nhận thanh toán", icon: BadgeDollarSign, adminOnly: true },
-  { to: "/work/catalog", label: "Danh mục & sản phẩm", icon: PackageSearch, adminOnly: true },
-  { to: "/work/ctv", label: "CTV", icon: Users, adminOnly: true },
-  { to: "/work/chat", label: "Chat nội bộ", icon: MessagesSquare, adminOnly: false },
-  { to: "/work/settings", label: "Cài đặt", icon: Settings, adminOnly: true },
+  { to: "/work", key: "dashboard", icon: LayoutDashboard, adminOnly: false, end: true },
+  { to: "/work/orders", key: "orders", icon: Receipt, adminOnly: false },
+  { to: "/work/payments", key: "payments", icon: BadgeDollarSign, adminOnly: true },
+  { to: "/work/catalog", key: "catalog", icon: PackageSearch, adminOnly: true },
+  { to: "/work/ctv", key: "ctv", icon: Users, adminOnly: true },
+  { to: "/work/chat", key: "chat", icon: MessagesSquare, adminOnly: false },
+  { to: "/work/settings", key: "settings", icon: Settings, adminOnly: true },
 ];
 
 /**
@@ -39,6 +67,7 @@ const NAV_ITEMS: WorkNavItem[] = [
  */
 export function WorkLayout() {
   const user = useAuthStore((state) => state.user);
+  const t = usePick(STR);
   const isAdmin = user?.role === "admin";
   const items = NAV_ITEMS.filter((item) => isAdmin || !item.adminOnly);
 
@@ -48,7 +77,7 @@ export function WorkLayout() {
         <aside>
           <div className="rounded-2xl border border-border bg-surface p-3 lg:sticky lg:top-24">
             <p className="px-3 pb-2 pt-1 text-xs font-semibold uppercase tracking-wider text-text-subtle">
-              Khu làm việc
+              {t.workArea}
             </p>
             <nav className="flex flex-col gap-1">
               {items.map((item) => {
@@ -66,10 +95,10 @@ export function WorkLayout() {
                     }
                   >
                     <Icon className="h-4 w-4 shrink-0" aria-hidden />
-                    <span className="flex-1">{item.label}</span>
+                    <span className="flex-1">{t[item.key]}</span>
                     {item.adminOnly ? (
                       <Badge variant="gold" className="px-1.5 text-[10px]">
-                        Admin
+                        {t.admin}
                       </Badge>
                     ) : null}
                   </NavLink>

@@ -5,14 +5,21 @@
 import { Link } from "react-router-dom";
 import { MessageCircle } from "lucide-react";
 import { useUnreadCount } from "@/components/nav/useUnreadCount";
+import { usePick } from "@/i18n";
+
+const STR = {
+  vi: { messages: "Tin nhắn" },
+  en: { messages: "Messages" },
+};
 
 export function ChatIconLink() {
+  const t = usePick(STR);
   const hasUnread = useUnreadCount() > 0;
 
   return (
     <Link
       to="/messages"
-      aria-label="Tin nhắn"
+      aria-label={t.messages}
       className="relative flex h-10 w-10 items-center justify-center rounded-lg text-text-muted transition-colors hover:bg-surface-2 hover:text-text"
     >
       <MessageCircle className="h-5 w-5" aria-hidden="true" />

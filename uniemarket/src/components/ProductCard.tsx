@@ -7,7 +7,27 @@ import { RarityBadge } from "@/components/RarityBadge";
 import { PriceTag } from "@/components/PriceTag";
 import { Button } from "@/components/ui/button";
 import { useCartStore } from "@/store/cartStore";
+import { usePick } from "@/i18n";
 import { cn } from "@/lib/utils";
+
+const STR = {
+  vi: {
+    service: "Dịch vụ",
+    outOfStock: "Hết hàng",
+    choosePackage: "Chọn gói",
+    addToCart: "Thêm vào giỏ",
+    addedToCart: (name: string) => `Đã thêm "${name}" vào giỏ hàng`,
+    quantityOne: "Số lượng: 1",
+  },
+  en: {
+    service: "Service",
+    outOfStock: "Out of stock",
+    choosePackage: "Choose package",
+    addToCart: "Add to cart",
+    addedToCart: (name: string) => `Added "${name}" to cart`,
+    quantityOne: "Quantity: 1",
+  },
+};
 
 export interface ProductCardProps {
   product: ProductRow;
@@ -33,6 +53,7 @@ export function isInStock(product: ProductRow): boolean {
  * fallback chữ cái đầu. Item: nút thêm giỏ; dịch vụ: nút "Chọn gói" mở trang
  * chi tiết để cấu hình lựa chọn. */
 export function ProductCard({ product, className }: ProductCardProps) {
+  const t = usePick(STR);
   const addItem = useCartStore((state) => state.addItem);
   const navigate = useNavigate();
 
@@ -56,8 +77,8 @@ export function ProductCard({ product, className }: ProductCardProps) {
     }
     if (!inStock) return;
     addItem(product, 1);
-    toast.success(`Đã thêm "${product.name}" vào giỏ hàng`, {
-      description: "Số lượng: 1",
+    toast.success(t.addedToCart(product.name), {
+      description: t.quantityOne,
     });
   }
 
@@ -85,14 +106,14 @@ export function ProductCard({ product, className }: ProductCardProps) {
         )}
         {isService ? (
           <span className="absolute right-2 top-2 rounded-full bg-green-soft px-2 py-0.5 text-[10px] font-semibold text-green">
-            Dịch vụ
+            {t.service}
           </span>
         ) : !inStock ? (
           <span
             className="absolute right-2 top-2 rounded-full border border-border-strong px-2 py-0.5 text-[10px] font-semibold text-text-disabled"
             style={{ backgroundColor: "rgba(16, 14, 9, 0.8)" }}
           >
-            Hết hàng
+            {t.outOfStock}
           </span>
         ) : null}
         {discountPercent > 0 ? (
@@ -124,12 +145,12 @@ export function ProductCard({ product, className }: ProductCardProps) {
           {isService ? (
             <>
               <Settings2 className="h-3.5 w-3.5" aria-hidden="true" />
-              Chọn gói
+              {t.choosePackage}
             </>
           ) : (
             <>
               <ShoppingCart className="h-3.5 w-3.5" aria-hidden="true" />
-              {inStock ? "Thêm vào giỏ" : "Hết hàng"}
+              {inStock ? t.addToCart : t.outOfStock}
             </>
           )}
         </Button>

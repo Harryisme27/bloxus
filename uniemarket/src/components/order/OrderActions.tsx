@@ -10,7 +10,45 @@ import { confirmReceived, finalizeRefund } from "@/lib/db/orders";
 import { orderDisplayStatus } from "@/types/db";
 import type { OrderRow } from "@/types/db";
 import { useAuthStore } from "@/store/authStore";
+import { usePick } from "@/i18n";
 import { RefundDialog } from "./RefundDialog";
+
+const STR = {
+  vi: {
+    receiptConfirmed: "Đã xác nhận nhận hàng — đơn hoàn thành!",
+    refundFinalized: "Đã chốt hoàn tiền.",
+    orderActions: "Thao tác đơn hàng",
+    refundPendingTitle: "Đang yêu cầu hoàn tiền — chờ admin duyệt hoặc tự động sau 1 giờ",
+    reason: "Lý do:",
+    confirmFinalizeRefund: "Chốt hoàn tiền ngay bây giờ?",
+    processing: "Đang xử lý...",
+    finalizeRefundNow: "Chốt hoàn tiền ngay",
+    finalizeRefundHint:
+      "Sau 1 giờ kể từ lúc gửi yêu cầu, bạn có thể tự chốt hoàn tiền nếu chưa được xử lý.",
+    confirmReceived: "Xác nhận đã nhận đúng hàng?",
+    confirming: "Đang xác nhận...",
+    completeOrder: "Hoàn tất đơn",
+    waitingDelivery: "Chờ người bán giao hàng",
+    requestRefund: "Yêu cầu hoàn tiền",
+  },
+  en: {
+    receiptConfirmed: "Receipt confirmed — order completed!",
+    refundFinalized: "Refund finalized.",
+    orderActions: "Order actions",
+    refundPendingTitle: "Refund requested — awaiting admin approval or automatic after 1 hour",
+    reason: "Reason:",
+    confirmFinalizeRefund: "Finalize the refund right now?",
+    processing: "Processing...",
+    finalizeRefundNow: "Finalize refund now",
+    finalizeRefundHint:
+      "One hour after your request, you can finalize the refund yourself if it hasn't been handled.",
+    confirmReceived: "Confirm you received the correct items?",
+    confirming: "Confirming...",
+    completeOrder: "Complete order",
+    waitingDelivery: "Waiting for the seller to deliver",
+    requestRefund: "Request a refund",
+  },
+};
 
 export interface OrderActionsProps {
   order: OrderRow;
@@ -19,6 +57,7 @@ export interface OrderActionsProps {
 }
 
 export function OrderActions({ order, compact = false }: OrderActionsProps) {
+  const t = usePick(STR);
   const user = useAuthStore((s) => s.user);
   const queryClient = useQueryClient();
   const [refundOpen, setRefundOpen] = useState(false);
@@ -34,7 +73,7 @@ export function OrderActions({ order, compact = false }: OrderActionsProps) {
   const completeMutation = useMutation({
     mutationFn: () => confirmReceived(order.id),
     onSuccess: () => {
-      toast.success("Đã xác nhận nhận hàng — đơn hoàn thành!");
+      toast.success(t.receiptConfirmed);
       invalidate();
     },
     onError: (err: Error) => toast.error(err.message),
@@ -43,7 +82,7 @@ export function OrderActions({ order, compact = false }: OrderActionsProps) {
   const finalizeRefundMutation = useMutation({
     mutationFn: () => finalizeRefund(order.id),
     onSuccess: () => {
-      toast.success("Đã chốt hoàn tiền.");
+      toast.success(t.refundFinalized);
       invalidate();
     },
     onError: (err: Error) => toast.error(err.message),
@@ -90,7 +129,7 @@ export function OrderActions({ order, compact = false }: OrderActionsProps) {
       }
     >
       {!compact ? (
-        <p className="font-heading text-base font-semibold text-text">Thao tác đơn hàng</p>
+        <p className="font-heading text-base font-semibold text-text">{t.orderActions}</p>
       ) : null}
 
       {/* Đang yêu cầu hoàn tiền — panel hổ phách (amber) */}
@@ -100,11 +139,11 @@ export function OrderActions({ order, compact = false }: OrderActionsProps) {
             <Clock3 className="mt-0.5 h-5 w-5 shrink-0 text-yellow" aria-hidden />
             <div className="min-w-0 flex-1">
               <p className="font-heading text-sm font-semibold text-text">
-                Đang yêu cầu hoàn tiền — chờ admin duyệt hoặc tự động sau 1 giờ
+                {t.refundPendingTitle}
               </p>
               {order.refund_reason ? (
                 <p className="mt-1 text-sm text-text-muted">
-                  Lý do: <span className="text-text">{order.refund_reason}</span>
+                  {t.reason} <span className="text-text">{order.refund_reason}</span>
                 </p>
               ) : null}
               {canFinalizeRefund ? (
@@ -114,16 +153,16 @@ export function OrderActions({ order, compact = false }: OrderActionsProps) {
                   className="mt-3"
                   disabled={finalizeRefundMutation.isPending}
                   onClick={() => {
-                    if (window.confirm("Chốt hoàn tiền ngay bây giờ?"))
+                    if (window.confirm(t.confirmFinalizeRefund))
                       finalizeRefundMutation.mutate();
                   }}
                 >
                   <RotateCcw className="h-4 w-4" aria-hidden />
-                  {finalizeRefundMutation.isPending ? "Đang xử lý..." : "Chốt hoàn tiền ngay"}
+                  {finalizeRefundMutation.isPending ? t.processing : t.finalizeRefundNow}
                 </Button>
               ) : (
                 <p className="mt-2 text-xs text-text-subtle">
-                  Sau 1 giờ kể từ lúc gửi yêu cầu, bạn có thể tự chốt hoàn tiền nếu chưa được xử lý.
+                  {t.finalizeRefundHint}
                 </p>
               )}
             </div>
@@ -142,15 +181,15 @@ export function OrderActions({ order, compact = false }: OrderActionsProps) {
                 className="w-full"
                 disabled={!isDelivered || completeMutation.isPending}
                 onClick={() => {
-                  if (window.confirm("Xác nhận đã nhận đúng hàng?")) completeMutation.mutate();
+                  if (window.confirm(t.confirmReceived)) completeMutation.mutate();
                 }}
               >
                 <PackageCheck className="h-4 w-4" aria-hidden />
-                {completeMutation.isPending ? "Đang xác nhận..." : "Hoàn tất đơn"}
+                {completeMutation.isPending ? t.confirming : t.completeOrder}
               </Button>
               {!isDelivered && !compact ? (
                 <p className="mt-1.5 flex items-center gap-1 text-xs text-text-subtle">
-                  <Clock3 className="h-3.5 w-3.5" aria-hidden /> Chờ người bán giao hàng
+                  <Clock3 className="h-3.5 w-3.5" aria-hidden /> {t.waitingDelivery}
                 </p>
               ) : null}
             </div>
@@ -164,7 +203,7 @@ export function OrderActions({ order, compact = false }: OrderActionsProps) {
                 className="w-full text-danger hover:border-danger"
                 onClick={() => setRefundOpen(true)}
               >
-                <RotateCcw className="h-4 w-4" aria-hidden /> Yêu cầu hoàn tiền
+                <RotateCcw className="h-4 w-4" aria-hidden /> {t.requestRefund}
               </Button>
             </div>
           ) : null}

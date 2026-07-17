@@ -1,11 +1,31 @@
 // Upload ảnh cho khu quản trị: validate + thu nhỏ về tối đa 1200px qua canvas
 // trước khi tải lên để tiết kiệm dung lượng storage (gói miễn phí 1GB).
 import { requireSupabase } from "@/lib/supabase";
+import type { Lang } from "@/i18n";
 
 const MAX_DIMENSION = 1200;
 const MAX_SIZE_BYTES = 2 * 1024 * 1024;
 
-function loadImage(file: File): Promise<HTMLImageElement> {
+// Thông báo lỗi hiển thị qua toast — chọn theo ngôn ngữ do component truyền vào.
+const MSG = {
+  vi: {
+    readFail: (name: string) => `Không đọc được file ảnh "${name}".`,
+    notImage: (name: string) => `"${name}" không phải file ảnh (chỉ nhận PNG, JPG, WebP…).`,
+    canvasUnsupported: "Trình duyệt không hỗ trợ xử lý ảnh (canvas).",
+    compressFail: "Không nén được ảnh — hãy thử ảnh khác.",
+    stillTooBig: (name: string) => `"${name}" vẫn lớn hơn 2MB sau khi nén — hãy chọn ảnh nhỏ hơn.`,
+  },
+  en: {
+    readFail: (name: string) => `Couldn't read the image file "${name}".`,
+    notImage: (name: string) => `"${name}" is not an image file (only PNG, JPG, WebP…).`,
+    canvasUnsupported: "Your browser doesn't support image processing (canvas).",
+    compressFail: "Couldn't compress the image — please try a different one.",
+    stillTooBig: (name: string) =>
+      `"${name}" is still larger than 2MB after compression — please pick a smaller image.`,
+  },
+};
+
+function loadImage(file: File, lang: Lang): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
     const url = URL.createObjectURL(file);
     const img = new Image();
@@ -15,7 +35,7 @@ function loadImage(file: File): Promise<HTMLImageElement> {
     };
     img.onerror = () => {
       URL.revokeObjectURL(url);
-      reject(new Error(`Không đọc được file ảnh "${file.name}".`));
+      reject(new Error(MSG[lang].readFail(file.name)));
     };
     img.src = url;
   });
@@ -29,12 +49,13 @@ function toBlob(canvas: HTMLCanvasElement, type: string, quality: number): Promi
  * Kiểm tra file là ảnh, thu nhỏ về tối đa 1200px (cạnh dài) và nén lại nếu cần.
  * Ném Error tiếng Việt nếu file không hợp lệ hoặc vẫn quá 2MB sau khi nén.
  */
-export async function prepareImage(file: File): Promise<File> {
+export async function prepareImage(file: File, lang: Lang): Promise<File> {
+  const msg = MSG[lang];
   if (!file.type.startsWith("image/")) {
-    throw new Error(`"${file.name}" không phải file ảnh (chỉ nhận PNG, JPG, WebP…).`);
+    throw new Error(msg.notImage(file.name));
   }
 
-  const img = await loadImage(file);
+  const img = await loadImage(file, lang);
   const maxSide = Math.max(img.naturalWidth, img.naturalHeight);
 
   // Ảnh đã nhỏ gọn — giữ nguyên file gốc.
@@ -45,14 +66,14 @@ export async function prepareImage(file: File): Promise<File> {
   canvas.width = Math.max(1, Math.round(img.naturalWidth * scale));
   canvas.height = Math.max(1, Math.round(img.naturalHeight * scale));
   const ctx = canvas.getContext("2d");
-  if (!ctx) throw new Error("Trình duyệt không hỗ trợ xử lý ảnh (canvas).");
+  if (!ctx) throw new Error(msg.canvasUnsupported);
   ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
 
   const blob =
     (await toBlob(canvas, "image/webp", 0.85)) ?? (await toBlob(canvas, "image/jpeg", 0.85));
-  if (!blob) throw new Error("Không nén được ảnh — hãy thử ảnh khác.");
+  if (!blob) throw new Error(msg.compressFail);
   if (blob.size > MAX_SIZE_BYTES) {
-    throw new Error(`"${file.name}" vẫn lớn hơn 2MB sau khi nén — hãy chọn ảnh nhỏ hơn.`);
+    throw new Error(msg.stillTooBig(file.name));
   }
 
   const ext = blob.type === "image/webp" ? "webp" : "jpg";

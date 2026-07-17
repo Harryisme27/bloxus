@@ -1,5 +1,11 @@
 import { Star } from "lucide-react";
+import { usePick } from "@/i18n";
 import { cn } from "@/lib/utils";
+
+const STR = {
+  vi: { rating: (s: number) => `${s}/5 sao` },
+  en: { rating: (s: number) => `${s}/5 stars` },
+};
 
 export interface StarRatingProps {
   /** Number of filled stars (0-5). */
@@ -10,9 +16,10 @@ export interface StarRatingProps {
 
 /** Row of 5 stars with `stars` filled in gold. */
 export function StarRating({ stars, className, size = "sm" }: StarRatingProps) {
+  const t = usePick(STR);
   const dim = size === "sm" ? "h-3.5 w-3.5" : "h-5 w-5";
   return (
-    <div className={cn("flex items-center gap-0.5", className)} aria-label={`${stars}/5 sao`}>
+    <div className={cn("flex items-center gap-0.5", className)} aria-label={t.rating(stars)}>
       {Array.from({ length: 5 }).map((_, i) => (
         <Star
           key={i}

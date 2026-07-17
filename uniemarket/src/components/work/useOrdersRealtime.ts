@@ -5,8 +5,22 @@ import { useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
+import { useLangStore } from "@/i18n";
 import { useAuthStore } from "@/store/authStore";
 import type { OrderRow } from "@/types/db";
+
+// Toast realtime được sinh trong callback sự kiện — đọc ngôn ngữ hiện tại qua
+// useLangStore.getState() tại thời điểm phát toast để luôn đúng ngôn ngữ.
+const STR = {
+  vi: {
+    newOrder: (code: string) => `Đơn mới ${code}`,
+    orderUpdated: (code: string) => `Đơn ${code} được cập nhật`,
+  },
+  en: {
+    newOrder: (code: string) => `New order ${code}`,
+    orderUpdated: (code: string) => `Order ${code} updated`,
+  },
+};
 
 /**
  * Subscribe kênh 'work-orders' (Supabase Realtime). Chỉ chạy khi đã cấu hình
@@ -42,7 +56,7 @@ export function useOrdersRealtime(): void {
         (payload) => {
           const row = payload.new as OrderRow;
           invalidate(row.id);
-          toast.info(`Đơn mới ${row.order_code}`);
+          toast.info(STR[useLangStore.getState().lang].newOrder(row.order_code));
         },
       )
       .on(
@@ -51,7 +65,7 @@ export function useOrdersRealtime(): void {
         (payload) => {
           const row = payload.new as OrderRow;
           invalidate(row.id);
-          toast.message(`Đơn ${row.order_code} được cập nhật`);
+          toast.message(STR[useLangStore.getState().lang].orderUpdated(row.order_code));
         },
       )
       .subscribe();

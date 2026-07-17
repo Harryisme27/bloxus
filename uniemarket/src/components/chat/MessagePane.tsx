@@ -17,13 +17,58 @@ import { lastSeenText } from "@/components/realtime/lastSeen";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { usePick } from "@/i18n";
 import { useSenderProfiles } from "./useSenderProfiles";
 import type { MessageRow, ThreadRow } from "@/types/db";
 
+const STR = {
+  vi: {
+    staffChannel: "# Chung",
+    orderThread: "Trao đổi đơn hàng",
+    supportTeam: "Đội hỗ trợ",
+    customer: "Khách hàng",
+    replyFast: "⚡ Phản hồi: vài giây",
+    teamChannel: "Kênh nội bộ đội ngũ",
+    sendFailed: "Không gửi được tin nhắn.",
+    loadFailed: "Không tải được tin nhắn.",
+    retry: "Thử lại",
+    emptyThread: "Chưa có tin nhắn — hãy bắt đầu trao đổi",
+    you: "Bạn",
+    member: "Thành viên",
+    sending: "đang gửi…",
+    inputPlaceholder: "Nhập tin nhắn… (Enter để gửi)",
+    inputAria: "Nhập tin nhắn",
+    sendAria: "Gửi tin nhắn",
+    send: "Gửi",
+  },
+  en: {
+    staffChannel: "# General",
+    orderThread: "Order chat",
+    supportTeam: "Support team",
+    customer: "Customer",
+    replyFast: "⚡ Replies in seconds",
+    teamChannel: "Internal team channel",
+    sendFailed: "Couldn't send the message.",
+    loadFailed: "Couldn't load messages.",
+    retry: "Try again",
+    emptyThread: "No messages yet — start the conversation",
+    you: "You",
+    member: "Member",
+    sending: "sending…",
+    inputPlaceholder: "Type a message… (Enter to send)",
+    inputAria: "Type a message",
+    sendAria: "Send message",
+    send: "Send",
+  },
+};
+
 /** Tiêu đề hiển thị của thread (cột title đã lưu sẵn, có fallback). */
-export function threadTitle(thread: ThreadRow): string {
+export function threadTitle(
+  thread: ThreadRow,
+  fallback: { staff: string; order: string },
+): string {
   if (thread.title) return thread.title;
-  return thread.kind === "staff" ? "# Chung" : "Trao đổi đơn hàng";
+  return thread.kind === "staff" ? fallback.staff : fallback.order;
 }
 
 export interface MessagePaneProps {
@@ -36,6 +81,7 @@ export interface MessagePaneProps {
 }
 
 export function MessagePane({ thread, className, compact, hideHeader }: MessagePaneProps) {
+  const t = usePick(STR);
   const myId = useAuthStore((s) => s.session?.user.id ?? null);
   const queryClient = useQueryClient();
   const [draft, setDraft] = useState("");
@@ -82,8 +128,8 @@ export function MessagePane({ thread, className, compact, hideHeader }: MessageP
   const counterparty = counterpartyQuery.data ?? null;
 
   const counterpartyName = iAmBuyer
-    ? (counterparty?.display_name ?? counterparty?.username ?? "Đội hỗ trợ")
-    : (counterparty?.display_name ?? counterparty?.username ?? "Khách hàng");
+    ? (counterparty?.display_name ?? counterparty?.username ?? t.supportTeam)
+    : (counterparty?.display_name ?? counterparty?.username ?? t.customer);
   const counterpartyAvatar =
     counterparty?.avatar_url && /^https?:\/\//i.test(counterparty.avatar_url)
       ? counterparty.avatar_url
@@ -91,8 +137,8 @@ export function MessagePane({ thread, className, compact, hideHeader }: MessageP
   // "⚡ Phản hồi: vài giây · 🕓 Hoạt động 3 giờ trước" (bỏ phần hoạt động khi
   // chưa có hồ sơ người đối diện, vd "Đội hỗ trợ").
   const orderSubtitle = counterparty
-    ? `⚡ Phản hồi: vài giây · 🕓 ${lastSeenText(counterparty.last_seen_at)}`
-    : "⚡ Phản hồi: vài giây";
+    ? `${t.replyFast} · 🕓 ${lastSeenText(counterparty.last_seen_at)}`
+    : t.replyFast;
 
   // Realtime: tin mới -> thêm vào cache (chống trùng id) + cập nhật inbox.
   useEffect(() => {
@@ -138,7 +184,7 @@ export function MessagePane({ thread, className, compact, hideHeader }: MessageP
           (old ?? []).filter((m) => m.id !== ctx.tempId),
         );
       }
-      toast.error(err instanceof Error ? err.message : "Không gửi được tin nhắn.");
+      toast.error(err instanceof Error ? err.message : t.sendFailed);
     },
     onSuccess: (row, _body, ctx) => {
       queryClient.setQueryData<MessageRow[]>(["messages", thread.id], (old) => {
@@ -198,10 +244,12 @@ export function MessagePane({ thread, className, compact, hideHeader }: MessageP
           )}
           <div className="min-w-0">
             <p className="truncate font-heading text-sm font-semibold text-text">
-              {isOrderThread && order ? counterpartyName : threadTitle(thread)}
+              {isOrderThread && order
+                ? counterpartyName
+                : threadTitle(thread, { staff: t.staffChannel, order: t.orderThread })}
             </p>
             <p className="truncate text-xs text-text-subtle">
-              {isOrderThread ? orderSubtitle : "Kênh nội bộ đội ngũ"}
+              {isOrderThread ? orderSubtitle : t.teamChannel}
             </p>
           </div>
         </div>
@@ -220,19 +268,19 @@ export function MessagePane({ thread, className, compact, hideHeader }: MessageP
           </div>
         ) : messagesQuery.isError ? (
           <div className="flex h-full flex-col items-center justify-center gap-3 text-center">
-            <p className="text-sm text-text-muted">Không tải được tin nhắn.</p>
+            <p className="text-sm text-text-muted">{t.loadFailed}</p>
             <p className="max-w-xs text-xs text-text-subtle">
               {messagesQuery.error instanceof Error ? messagesQuery.error.message : ""}
             </p>
             <Button variant="secondary" size="sm" onClick={() => void messagesQuery.refetch()}>
               <RefreshCw className="h-4 w-4" aria-hidden />
-              Thử lại
+              {t.retry}
             </Button>
           </div>
         ) : messages.length === 0 ? (
           <div className="flex h-full items-center justify-center">
             <p className="max-w-xs text-center text-sm text-text-subtle">
-              Chưa có tin nhắn — hãy bắt đầu trao đổi
+              {t.emptyThread}
             </p>
           </div>
         ) : (
@@ -241,8 +289,8 @@ export function MessagePane({ thread, className, compact, hideHeader }: MessageP
             const isTemp = msg.id.startsWith("temp-");
             const profile = isOwn ? undefined : senderProfiles[msg.sender_id];
             const name = isOwn
-              ? "Bạn"
-              : (profile?.display_name ?? profile?.username ?? "Thành viên");
+              ? t.you
+              : (profile?.display_name ?? profile?.username ?? t.member);
             return (
               <div
                 key={msg.id}
@@ -271,7 +319,7 @@ export function MessagePane({ thread, className, compact, hideHeader }: MessageP
                       CTV
                     </Badge>
                   ) : null}
-                  <span>· {isTemp ? "đang gửi…" : relativeTime(msg.created_at)}</span>
+                  <span>· {isTemp ? t.sending : relativeTime(msg.created_at)}</span>
                 </span>
               </div>
             );
@@ -292,8 +340,8 @@ export function MessagePane({ thread, className, compact, hideHeader }: MessageP
           onChange={(e) => setDraft(e.target.value)}
           onKeyDown={handleKeyDown}
           rows={1}
-          placeholder="Nhập tin nhắn… (Enter để gửi)"
-          aria-label="Nhập tin nhắn"
+          placeholder={t.inputPlaceholder}
+          aria-label={t.inputAria}
           className={cn(
             "max-h-32 flex-1 resize-none rounded-lg border border-border-strong bg-surface-2 px-3 py-2 text-sm text-text placeholder:text-text-subtle",
             "focus-visible:border-yellow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-yellow",
@@ -303,11 +351,11 @@ export function MessagePane({ thread, className, compact, hideHeader }: MessageP
           type="submit"
           variant="primary"
           size={compact ? "sm" : "md"}
-          aria-label="Gửi tin nhắn"
+          aria-label={t.sendAria}
           disabled={!draft.trim() || sendMutation.isPending || messagesQuery.isPending}
         >
           <Send className="h-4 w-4" aria-hidden />
-          {!compact ? <span className="hidden sm:inline">Gửi</span> : null}
+          {!compact ? <span className="hidden sm:inline">{t.send}</span> : null}
         </Button>
       </form>
     </div>

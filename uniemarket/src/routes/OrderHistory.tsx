@@ -10,7 +10,6 @@ import { RequireAuth } from "@/components/account/RequireAuth";
 import { SetupNotice } from "@/components/SetupNotice";
 import {
   WorkOrderStatusBadge,
-  WORK_STATUS_META,
   WORK_STATUS_ORDER,
 } from "@/components/work/orderStatusMeta";
 import { listMyOrders } from "@/lib/db/orders";
@@ -19,6 +18,33 @@ import { formatPrice, relativeTime } from "@/lib/format";
 import { orderDisplayStatus } from "@/types/db";
 import type { DbOrderStatus } from "@/types/db";
 import { cn } from "@/lib/utils";
+import { usePick, useT } from "@/i18n";
+
+const STR = {
+  vi: {
+    eyebrow: "Tài khoản",
+    title: "Lịch sử đơn hàng",
+    description: "Theo dõi trạng thái và xem chi tiết các đơn đã đặt.",
+    all: "Tất cả",
+    emptyTitle: "Bạn chưa có đơn hàng nào",
+    emptyDesc: "Khi bạn đặt hàng, toàn bộ đơn và tiến trình xử lý sẽ được lưu tại đây để tra cứu.",
+    startShopping: "Bắt đầu mua sắm",
+    noneInStatusTitle: "Không có đơn nào ở trạng thái này",
+    noneInStatusDesc: "Thử chọn một bộ lọc khác để xem các đơn hàng của bạn.",
+  },
+  en: {
+    eyebrow: "Account",
+    title: "Order history",
+    description: "Track the status and view the details of your orders.",
+    all: "All",
+    emptyTitle: "You don't have any orders yet",
+    emptyDesc:
+      "When you place an order, all your orders and their progress are saved here for reference.",
+    startShopping: "Start shopping",
+    noneInStatusTitle: "No orders in this status",
+    noneInStatusDesc: "Try choosing a different filter to see your orders.",
+  },
+};
 
 type Filter = "all" | DbOrderStatus;
 
@@ -31,6 +57,8 @@ export function OrderHistory() {
 }
 
 function OrderHistoryContent() {
+  const t = usePick(STR);
+  const s = useT();
   const [filter, setFilter] = useState<Filter>("all");
 
   const ordersQuery = useQuery({
@@ -46,8 +74,8 @@ function OrderHistoryContent() {
   );
 
   const filters: { value: Filter; label: string }[] = [
-    { value: "all", label: "Tất cả" },
-    ...WORK_STATUS_ORDER.map((s) => ({ value: s, label: WORK_STATUS_META[s].label })),
+    { value: "all", label: t.all },
+    ...WORK_STATUS_ORDER.map((status) => ({ value: status, label: s.status[status] })),
   ];
 
   function countFor(value: Filter): number {
@@ -57,7 +85,7 @@ function OrderHistoryContent() {
   if (!isSupabaseConfigured) {
     return (
       <PageContainer className="py-10 sm:py-14">
-        <SectionHeading eyebrow="Tài khoản" title="Lịch sử đơn hàng" />
+        <SectionHeading eyebrow={t.eyebrow} title={t.title} />
         <div className="mt-6">
           <SetupNotice />
         </div>
@@ -68,7 +96,7 @@ function OrderHistoryContent() {
   if (ordersQuery.isPending) {
     return (
       <PageContainer className="py-10 sm:py-14">
-        <SectionHeading eyebrow="Tài khoản" title="Lịch sử đơn hàng" />
+        <SectionHeading eyebrow={t.eyebrow} title={t.title} />
         <Skeleton className="h-64 rounded-2xl" />
       </PageContainer>
     );
@@ -77,18 +105,16 @@ function OrderHistoryContent() {
   if (orders.length === 0) {
     return (
       <PageContainer className="py-10 sm:py-14">
-        <SectionHeading eyebrow="Tài khoản" title="Lịch sử đơn hàng" />
+        <SectionHeading eyebrow={t.eyebrow} title={t.title} />
         <div className="rounded-2xl border border-dashed border-border-strong bg-surface p-12 text-center">
           <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-surface-2 text-text-subtle">
             <Receipt className="h-7 w-7" aria-hidden />
           </div>
-          <h3 className="mt-4 font-heading text-xl font-semibold text-text">Bạn chưa có đơn hàng nào</h3>
-          <p className="mx-auto mt-2 max-w-md text-sm text-text-muted">
-            Khi bạn đặt hàng, toàn bộ đơn và tiến trình xử lý sẽ được lưu tại đây để tra cứu.
-          </p>
+          <h3 className="mt-4 font-heading text-xl font-semibold text-text">{t.emptyTitle}</h3>
+          <p className="mx-auto mt-2 max-w-md text-sm text-text-muted">{t.emptyDesc}</p>
           <Link to="/games" className={cn(buttonVariants({ variant: "primary", size: "lg" }), "mt-6")}>
             <ShoppingBag className="h-4 w-4" aria-hidden />
-            Bắt đầu mua sắm
+            {t.startShopping}
           </Link>
         </div>
       </PageContainer>
@@ -98,9 +124,9 @@ function OrderHistoryContent() {
   return (
     <PageContainer className="py-10 sm:py-14">
       <SectionHeading
-        eyebrow="Tài khoản"
-        title="Lịch sử đơn hàng"
-        description="Theo dõi trạng thái và xem chi tiết các đơn đã đặt."
+        eyebrow={t.eyebrow}
+        title={t.title}
+        description={t.description}
       />
 
       {/* Status filter */}
@@ -161,11 +187,9 @@ function OrderHistoryContent() {
             <Package className="h-6 w-6" aria-hidden />
           </div>
           <h3 className="mt-4 font-heading text-lg font-semibold text-text">
-            Không có đơn nào ở trạng thái này
+            {t.noneInStatusTitle}
           </h3>
-          <p className="mx-auto mt-1 max-w-sm text-sm text-text-muted">
-            Thử chọn một bộ lọc khác để xem các đơn hàng của bạn.
-          </p>
+          <p className="mx-auto mt-1 max-w-sm text-sm text-text-muted">{t.noneInStatusDesc}</p>
         </div>
       )}
     </PageContainer>

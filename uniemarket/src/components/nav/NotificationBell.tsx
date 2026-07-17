@@ -21,12 +21,31 @@ import { relativeTime } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { playOrderBeep } from "@/components/nav/OrderSound";
 import { useUnreadCount } from "@/components/nav/useUnreadCount";
+import { usePick } from "@/i18n";
 import type { NotificationRow } from "@/types/db";
 
 const UNREAD_KEY = ["notifications-unread"];
 const LIST_KEY = ["notifications"];
 
+const STR = {
+  vi: {
+    notifications: "Thông báo",
+    unreadSuffix: "chưa đọc",
+    loading: "Đang tải...",
+    empty: "Chưa có thông báo nào.",
+    markAllRead: "Đánh dấu đã đọc tất cả",
+  },
+  en: {
+    notifications: "Notifications",
+    unreadSuffix: "unread",
+    loading: "Loading...",
+    empty: "No notifications yet.",
+    markAllRead: "Mark all as read",
+  },
+};
+
 export function NotificationBell() {
+  const t = usePick(STR);
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const userId = useAuthStore((s) => s.session?.user.id ?? null);
@@ -114,7 +133,7 @@ export function NotificationBell() {
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        aria-label="Thông báo"
+        aria-label={t.notifications}
         aria-haspopup="menu"
         aria-expanded={open}
         className={cn(
@@ -136,20 +155,20 @@ export function NotificationBell() {
           className="absolute right-0 z-50 mt-2 w-80 max-w-[calc(100vw-1.5rem)] overflow-hidden rounded-xl border border-border bg-surface-2 shadow-2xl"
         >
           <div className="flex items-center justify-between border-b border-border px-4 py-3">
-            <span className="font-heading text-sm font-semibold text-text">Thông báo</span>
+            <span className="font-heading text-sm font-semibold text-text">{t.notifications}</span>
             {unread > 0 ? (
               <span className="tabular-nums-mono rounded-full bg-surface-3 px-2 py-0.5 text-[11px] font-semibold text-text-muted">
-                {unread} chưa đọc
+                {unread} {t.unreadSuffix}
               </span>
             ) : null}
           </div>
 
           <div className="max-h-96 overflow-y-auto">
             {listQuery.isLoading ? (
-              <p className="px-4 py-8 text-center text-sm text-text-subtle">Đang tải...</p>
+              <p className="px-4 py-8 text-center text-sm text-text-subtle">{t.loading}</p>
             ) : rows.length === 0 ? (
               <p className="px-4 py-8 text-center text-sm text-text-subtle">
-                Chưa có thông báo nào.
+                {t.empty}
               </p>
             ) : (
               <ul className="divide-y divide-border">
@@ -208,7 +227,7 @@ export function NotificationBell() {
                 className="flex w-full items-center justify-center gap-1.5 px-4 py-2.5 text-sm font-medium text-text-muted transition-colors hover:bg-surface-3 hover:text-text disabled:opacity-50"
               >
                 <CheckCheck className="h-4 w-4" aria-hidden="true" />
-                Đánh dấu đã đọc tất cả
+                {t.markAllRead}
               </button>
             </div>
           ) : null}

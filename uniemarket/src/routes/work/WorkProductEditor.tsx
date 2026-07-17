@@ -21,6 +21,134 @@ import {
   type ServiceOptionsDraft,
 } from "@/components/work-admin/ServiceOptionsBuilder";
 import { parseTags, slugify } from "@/components/work-admin/helpers";
+import { usePick, useLangStore } from "@/i18n";
+
+const STR = {
+  vi: {
+    updated: "Đã cập nhật sản phẩm",
+    created: "Đã tạo sản phẩm mới",
+    uploadedMany: (n: number) => `Đã tải ${n} ảnh lên`,
+    uploadedOne: "Đã tải ảnh lên",
+    uploadFail: "Tải ảnh thất bại.",
+    needNameSlug: "Vui lòng nhập tên và slug sản phẩm.",
+    needCategory: "Vui lòng chọn danh mục.",
+    priceGtZero: "Giá bán phải lớn hơn 0.",
+    originalGtPrice: "Giá gốc (hiển thị gạch ngang) phải lớn hơn giá bán.",
+    stockNonNeg: "Tồn kho phải là số không âm (để trống nếu không giới hạn).",
+    back: "Quay lại",
+    editTitle: "Sửa sản phẩm",
+    addTitle: "Thêm sản phẩm",
+    cancel: "Hủy",
+    saving: "Đang lưu…",
+    save: "Lưu sản phẩm",
+    basicInfo: "Thông tin cơ bản",
+    categoryLabel: "Danh mục *",
+    noCategory: "Chưa có danh mục",
+    hiddenSuffix: " (đã ẩn)",
+    kindLabel: "Loại sản phẩm *",
+    item: "Vật phẩm",
+    service: "Dịch vụ",
+    nameLabel: "Tên sản phẩm *",
+    namePlaceholder: "VD: Kéo rank Vàng lên Kim Cương",
+    slugLabel: "Slug (đường dẫn) *",
+    slugPlaceholder: "keo-rank-vang-len-kim-cuong",
+    descLabel: "Mô tả",
+    descPlaceholder: "Mô tả chi tiết sản phẩm/dịch vụ, cam kết, lưu ý cho khách…",
+    serviceOptions: "Tuỳ chọn dịch vụ",
+    images: "Hình ảnh",
+    imagesHint:
+      "Ảnh đầu tiên là ảnh đại diện. Ảnh sẽ được tự động thu nhỏ về tối đa 1200px, tối đa 2MB/ảnh.",
+    coverBadge: "Ảnh đại diện",
+    setCover: "Đặt làm ảnh đại diện",
+    removeImageTitle: "Xoá ảnh",
+    removeImage: (n: number) => `Xoá ảnh ${n}`,
+    uploading: "Đang tải lên…",
+    addImage: "Thêm ảnh",
+    priceStock: "Giá & kho",
+    priceServiceLabel: "Giá hiển thị (giá từ) *",
+    priceItemLabel: "Giá bán *",
+    pricePlaceholder: "875.000",
+    originalLabel: "Giá gốc (gạch ngang, tuỳ chọn)",
+    originalPlaceholder: "Để trống nếu không giảm giá",
+    stockLabel: "Tồn kho",
+    stockPlaceholder: "Để trống = không giới hạn",
+    deliveryLabel: "Thời gian giao/hoàn thành",
+    deliveryPlaceholder: "VD: Giao trong 15–30 phút",
+    rarityLabel: "Độ hiếm (tuỳ chọn)",
+    rarityPlaceholder: "VD: Huyền thoại",
+    tagsLabel: "Tags (phân tách bằng dấu phẩy)",
+    tagsPlaceholder: "VD: hot, giảm giá, mùa 5",
+    display: "Hiển thị",
+    active: "Đang bán",
+    activeHint: "Tắt để ẩn khỏi cửa hàng.",
+    featured: "Nổi bật",
+    featuredHint: "Ưu tiên hiển thị ở trang chủ.",
+    sortLabel: "Thứ tự sắp xếp",
+  },
+  en: {
+    updated: "Product updated",
+    created: "New product created",
+    uploadedMany: (n: number) => `Uploaded ${n} images`,
+    uploadedOne: "Image uploaded",
+    uploadFail: "Image upload failed.",
+    needNameSlug: "Please enter a product name and slug.",
+    needCategory: "Please choose a category.",
+    priceGtZero: "The selling price must be greater than 0.",
+    originalGtPrice:
+      "The original price (shown struck through) must be greater than the selling price.",
+    stockNonNeg: "Stock must be a non-negative number (leave empty for unlimited).",
+    back: "Back",
+    editTitle: "Edit product",
+    addTitle: "Add product",
+    cancel: "Cancel",
+    saving: "Saving…",
+    save: "Save product",
+    basicInfo: "Basic information",
+    categoryLabel: "Category *",
+    noCategory: "No categories",
+    hiddenSuffix: " (hidden)",
+    kindLabel: "Product type *",
+    item: "Item",
+    service: "Service",
+    nameLabel: "Product name *",
+    namePlaceholder: "e.g. Gold to Diamond rank boost",
+    slugLabel: "Slug (URL path) *",
+    slugPlaceholder: "gold-to-diamond-rank-boost",
+    descLabel: "Description",
+    descPlaceholder:
+      "Detailed description of the product/service, guarantees, notes for the customer…",
+    serviceOptions: "Service options",
+    images: "Images",
+    imagesHint:
+      "The first image is the cover. Images are automatically resized to a max of 1200px, up to 2MB each.",
+    coverBadge: "Cover image",
+    setCover: "Set as cover image",
+    removeImageTitle: "Remove image",
+    removeImage: (n: number) => `Remove image ${n}`,
+    uploading: "Uploading…",
+    addImage: "Add image",
+    priceStock: "Price & stock",
+    priceServiceLabel: "Display price (from) *",
+    priceItemLabel: "Selling price *",
+    pricePlaceholder: "875.000",
+    originalLabel: "Original price (struck through, optional)",
+    originalPlaceholder: "Leave empty if not on sale",
+    stockLabel: "Stock",
+    stockPlaceholder: "Empty = unlimited",
+    deliveryLabel: "Delivery/completion time",
+    deliveryPlaceholder: "e.g. Delivered in 15–30 minutes",
+    rarityLabel: "Rarity (optional)",
+    rarityPlaceholder: "e.g. Legendary",
+    tagsLabel: "Tags (comma-separated)",
+    tagsPlaceholder: "e.g. hot, sale, season 5",
+    display: "Display",
+    active: "On sale",
+    activeHint: "Turn off to hide from the store.",
+    featured: "Featured",
+    featuredHint: "Prioritize showing on the homepage.",
+    sortLabel: "Sort order",
+  },
+};
 
 export interface WorkProductEditorProps {
   /** null = tạo sản phẩm mới. */
@@ -52,6 +180,8 @@ interface ProductFormState {
  */
 export function WorkProductEditor({ product, onClose }: WorkProductEditorProps) {
   const queryClient = useQueryClient();
+  const t = usePick(STR);
+  const lang = useLangStore((state) => state.lang);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [form, setForm] = useState<ProductFormState>(() => ({
@@ -93,7 +223,7 @@ export function WorkProductEditor({ product, onClose }: WorkProductEditorProps) 
   const saveMutation = useMutation({
     mutationFn: (input: ProductUpsert) => upsertProduct(input),
     onSuccess: () => {
-      toast.success(product ? "Đã cập nhật sản phẩm" : "Đã tạo sản phẩm mới");
+      toast.success(product ? t.updated : t.created);
       queryClient.invalidateQueries({ queryKey: ["products"] });
       onClose();
     },
@@ -110,13 +240,13 @@ export function WorkProductEditor({ product, onClose }: WorkProductEditorProps) 
     try {
       const { prepareImage } = await import("@/components/work-admin/uploads");
       for (const file of Array.from(files)) {
-        const prepared = await prepareImage(file);
+        const prepared = await prepareImage(file, lang);
         const { publicUrl } = await uploadProductImage(prepared);
         setImages((prev) => [...prev, publicUrl]);
       }
-      toast.success(files.length > 1 ? `Đã tải ${files.length} ảnh lên` : "Đã tải ảnh lên");
+      toast.success(files.length > 1 ? t.uploadedMany(files.length) : t.uploadedOne);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Tải ảnh thất bại.");
+      toast.error(err instanceof Error ? err.message : t.uploadFail);
     } finally {
       setUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
@@ -127,25 +257,25 @@ export function WorkProductEditor({ product, onClose }: WorkProductEditorProps) 
     const name = form.name.trim();
     const slug = slugify(form.slug.trim());
     if (!name || !slug) {
-      toast.error("Vui lòng nhập tên và slug sản phẩm.");
+      toast.error(t.needNameSlug);
       return;
     }
     if (!form.category_id) {
-      toast.error("Vui lòng chọn danh mục.");
+      toast.error(t.needCategory);
       return;
     }
     if (!form.price || form.price <= 0) {
-      toast.error("Giá bán phải lớn hơn 0.");
+      toast.error(t.priceGtZero);
       return;
     }
     if (form.original_price !== null && form.original_price <= form.price) {
-      toast.error("Giá gốc (hiển thị gạch ngang) phải lớn hơn giá bán.");
+      toast.error(t.originalGtPrice);
       return;
     }
 
     let serviceOptions: ServiceOptions | null = null;
     if (form.kind === "service") {
-      const built = buildServiceOptions(optionsDraft);
+      const built = buildServiceOptions(optionsDraft, lang);
       if (built.error) {
         toast.error(built.error);
         return;
@@ -157,7 +287,7 @@ export function WorkProductEditor({ product, onClose }: WorkProductEditorProps) 
     if (form.kind === "item" && form.stockText.trim() !== "") {
       const parsed = Number(form.stockText);
       if (!Number.isFinite(parsed) || parsed < 0) {
-        toast.error("Tồn kho phải là số không âm (để trống nếu không giới hạn).");
+        toast.error(t.stockNonNeg);
         return;
       }
       stock = Math.floor(parsed);
@@ -190,18 +320,18 @@ export function WorkProductEditor({ product, onClose }: WorkProductEditorProps) 
         <div className="flex items-center gap-2">
           <Button variant="ghost" size="sm" onClick={onClose}>
             <ArrowLeft className="h-4 w-4" aria-hidden />
-            Quay lại
+            {t.back}
           </Button>
           <h1 className="font-heading text-2xl font-bold text-text">
-            {product ? "Sửa sản phẩm" : "Thêm sản phẩm"}
+            {product ? t.editTitle : t.addTitle}
           </h1>
         </div>
         <div className="flex items-center gap-2">
           <Button variant="secondary" onClick={onClose} disabled={saveMutation.isPending}>
-            Hủy
+            {t.cancel}
           </Button>
           <Button onClick={handleSave} disabled={saveMutation.isPending || uploading}>
-            {saveMutation.isPending ? "Đang lưu…" : "Lưu sản phẩm"}
+            {saveMutation.isPending ? t.saving : t.save}
           </Button>
         </div>
       </div>
@@ -211,29 +341,29 @@ export function WorkProductEditor({ product, onClose }: WorkProductEditorProps) 
         <div className="min-w-0 space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle>Thông tin cơ bản</CardTitle>
+              <CardTitle>{t.basicInfo}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div>
-                  <Label htmlFor="prod-category">Danh mục *</Label>
+                  <Label htmlFor="prod-category">{t.categoryLabel}</Label>
                   <Select
                     id="prod-category"
                     value={form.category_id}
                     onChange={(e) => set("category_id", e.target.value)}
                     disabled={categoriesQuery.isPending}
                   >
-                    {categories.length === 0 ? <option value="">Chưa có danh mục</option> : null}
+                    {categories.length === 0 ? <option value="">{t.noCategory}</option> : null}
                     {categories.map((category) => (
                       <option key={category.id} value={category.id}>
                         {category.name}
-                        {category.is_active ? "" : " (đã ẩn)"}
+                        {category.is_active ? "" : t.hiddenSuffix}
                       </option>
                     ))}
                   </Select>
                 </div>
                 <div>
-                  <Label>Loại sản phẩm *</Label>
+                  <Label>{t.kindLabel}</Label>
                   <div className="grid grid-cols-2 gap-2">
                     {(["item", "service"] as const).map((kind) => (
                       <button
@@ -247,7 +377,7 @@ export function WorkProductEditor({ product, onClose }: WorkProductEditorProps) 
                             : "border-border-strong text-text-muted hover:bg-surface-2 hover:text-text",
                         )}
                       >
-                        {kind === "item" ? "Vật phẩm" : "Dịch vụ"}
+                        {kind === "item" ? t.item : t.service}
                       </button>
                     ))}
                   </div>
@@ -255,11 +385,11 @@ export function WorkProductEditor({ product, onClose }: WorkProductEditorProps) 
               </div>
 
               <div>
-                <Label htmlFor="prod-name">Tên sản phẩm *</Label>
+                <Label htmlFor="prod-name">{t.nameLabel}</Label>
                 <Input
                   id="prod-name"
                   value={form.name}
-                  placeholder="VD: Kéo rank Vàng lên Kim Cương"
+                  placeholder={t.namePlaceholder}
                   onChange={(e) => {
                     const name = e.target.value;
                     setForm((prev) => ({
@@ -272,11 +402,11 @@ export function WorkProductEditor({ product, onClose }: WorkProductEditorProps) 
               </div>
 
               <div>
-                <Label htmlFor="prod-slug">Slug (đường dẫn) *</Label>
+                <Label htmlFor="prod-slug">{t.slugLabel}</Label>
                 <Input
                   id="prod-slug"
                   value={form.slug}
-                  placeholder="keo-rank-vang-len-kim-cuong"
+                  placeholder={t.slugPlaceholder}
                   className="font-mono"
                   onChange={(e) => {
                     setSlugTouched(true);
@@ -286,12 +416,12 @@ export function WorkProductEditor({ product, onClose }: WorkProductEditorProps) 
               </div>
 
               <div>
-                <Label htmlFor="prod-desc">Mô tả</Label>
+                <Label htmlFor="prod-desc">{t.descLabel}</Label>
                 <AdminTextarea
                   id="prod-desc"
                   value={form.description}
                   className="min-h-[120px]"
-                  placeholder="Mô tả chi tiết sản phẩm/dịch vụ, cam kết, lưu ý cho khách…"
+                  placeholder={t.descPlaceholder}
                   onChange={(e) => set("description", e.target.value)}
                 />
               </div>
@@ -301,7 +431,7 @@ export function WorkProductEditor({ product, onClose }: WorkProductEditorProps) 
           {form.kind === "service" ? (
             <Card>
               <CardHeader>
-                <CardTitle>Tuỳ chọn dịch vụ</CardTitle>
+                <CardTitle>{t.serviceOptions}</CardTitle>
               </CardHeader>
               <CardContent>
                 <ServiceOptionsBuilder value={optionsDraft} onChange={setOptionsDraft} />
@@ -311,13 +441,10 @@ export function WorkProductEditor({ product, onClose }: WorkProductEditorProps) 
 
           <Card>
             <CardHeader>
-              <CardTitle>Hình ảnh</CardTitle>
+              <CardTitle>{t.images}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              <p className="text-xs text-text-muted">
-                Ảnh đầu tiên là ảnh đại diện. Ảnh sẽ được tự động thu nhỏ về tối đa 1200px, tối đa
-                2MB/ảnh.
-              </p>
+              <p className="text-xs text-text-muted">{t.imagesHint}</p>
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
                 {images.map((url, index) => (
                   <div
@@ -328,7 +455,7 @@ export function WorkProductEditor({ product, onClose }: WorkProductEditorProps) 
                     {index === 0 ? (
                       <Badge variant="gold" className="absolute left-2 top-2">
                         <Star className="h-3 w-3 fill-yellow" aria-hidden />
-                        Ảnh đại diện
+                        {t.coverBadge}
                       </Badge>
                     ) : (
                       <button
@@ -341,17 +468,17 @@ export function WorkProductEditor({ product, onClose }: WorkProductEditorProps) 
                         }
                         className="absolute inset-x-2 bottom-2 rounded-md bg-black/70 px-2 py-1 text-xs font-medium text-text opacity-0 transition-opacity hover:bg-black/85 focus-visible:opacity-100 group-hover:opacity-100"
                       >
-                        Đặt làm ảnh đại diện
+                        {t.setCover}
                       </button>
                     )}
                     <button
                       type="button"
-                      title="Xoá ảnh"
+                      title={t.removeImageTitle}
                       onClick={() => setImages((prev) => prev.filter((_, i) => i !== index))}
                       className="absolute right-2 top-2 rounded-full bg-black/70 p-1 text-text transition-colors hover:bg-danger"
                     >
                       <X className="h-3.5 w-3.5" aria-hidden />
-                      <span className="sr-only">Xoá ảnh {index + 1}</span>
+                      <span className="sr-only">{t.removeImage(index + 1)}</span>
                     </button>
                   </div>
                 ))}
@@ -367,7 +494,7 @@ export function WorkProductEditor({ product, onClose }: WorkProductEditorProps) 
                     <ImagePlus className="h-6 w-6" aria-hidden />
                   )}
                   <span className="text-xs font-medium">
-                    {uploading ? "Đang tải lên…" : "Thêm ảnh"}
+                    {uploading ? t.uploading : t.addImage}
                   </span>
                 </button>
               </div>
@@ -387,66 +514,66 @@ export function WorkProductEditor({ product, onClose }: WorkProductEditorProps) 
         <div className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle>Giá & kho</CardTitle>
+              <CardTitle>{t.priceStock}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
                 <Label htmlFor="prod-price">
-                  {form.kind === "service" ? "Giá hiển thị (giá từ) *" : "Giá bán *"}
+                  {form.kind === "service" ? t.priceServiceLabel : t.priceItemLabel}
                 </Label>
                 <PriceInput
                   id="prod-price"
                   value={form.price}
-                  placeholder="875.000"
+                  placeholder={t.pricePlaceholder}
                   onChange={(price) => set("price", price)}
                 />
               </div>
               <div>
-                <Label htmlFor="prod-original">Giá gốc (gạch ngang, tuỳ chọn)</Label>
+                <Label htmlFor="prod-original">{t.originalLabel}</Label>
                 <PriceInput
                   id="prod-original"
                   value={form.original_price}
-                  placeholder="Để trống nếu không giảm giá"
+                  placeholder={t.originalPlaceholder}
                   onChange={(price) => set("original_price", price)}
                 />
               </div>
               {form.kind === "item" ? (
                 <div>
-                  <Label htmlFor="prod-stock">Tồn kho</Label>
+                  <Label htmlFor="prod-stock">{t.stockLabel}</Label>
                   <Input
                     id="prod-stock"
                     type="number"
                     min={0}
                     value={form.stockText}
-                    placeholder="Để trống = không giới hạn"
+                    placeholder={t.stockPlaceholder}
                     onChange={(e) => set("stockText", e.target.value)}
                   />
                 </div>
               ) : null}
               <div>
-                <Label htmlFor="prod-delivery">Thời gian giao/hoàn thành</Label>
+                <Label htmlFor="prod-delivery">{t.deliveryLabel}</Label>
                 <Input
                   id="prod-delivery"
                   value={form.delivery_time_text}
-                  placeholder="VD: Giao trong 15–30 phút"
+                  placeholder={t.deliveryPlaceholder}
                   onChange={(e) => set("delivery_time_text", e.target.value)}
                 />
               </div>
               <div>
-                <Label htmlFor="prod-rarity">Độ hiếm (tuỳ chọn)</Label>
+                <Label htmlFor="prod-rarity">{t.rarityLabel}</Label>
                 <Input
                   id="prod-rarity"
                   value={form.rarity}
-                  placeholder="VD: Huyền thoại"
+                  placeholder={t.rarityPlaceholder}
                   onChange={(e) => set("rarity", e.target.value)}
                 />
               </div>
               <div>
-                <Label htmlFor="prod-tags">Tags (phân tách bằng dấu phẩy)</Label>
+                <Label htmlFor="prod-tags">{t.tagsLabel}</Label>
                 <Input
                   id="prod-tags"
                   value={form.tags}
-                  placeholder="VD: hot, giảm giá, mùa 5"
+                  placeholder={t.tagsPlaceholder}
                   onChange={(e) => set("tags", e.target.value)}
                 />
               </div>
@@ -455,33 +582,33 @@ export function WorkProductEditor({ product, onClose }: WorkProductEditorProps) 
 
           <Card>
             <CardHeader>
-              <CardTitle>Hiển thị</CardTitle>
+              <CardTitle>{t.display}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex items-center justify-between gap-3">
                 <div>
-                  <p className="text-sm font-medium text-text">Đang bán</p>
-                  <p className="text-xs text-text-muted">Tắt để ẩn khỏi cửa hàng.</p>
+                  <p className="text-sm font-medium text-text">{t.active}</p>
+                  <p className="text-xs text-text-muted">{t.activeHint}</p>
                 </div>
                 <Toggle
                   checked={form.is_active}
                   onCheckedChange={(v) => set("is_active", v)}
-                  label="Đang bán"
+                  label={t.active}
                 />
               </div>
               <div className="flex items-center justify-between gap-3">
                 <div>
-                  <p className="text-sm font-medium text-text">Nổi bật</p>
-                  <p className="text-xs text-text-muted">Ưu tiên hiển thị ở trang chủ.</p>
+                  <p className="text-sm font-medium text-text">{t.featured}</p>
+                  <p className="text-xs text-text-muted">{t.featuredHint}</p>
                 </div>
                 <Toggle
                   checked={form.is_featured}
                   onCheckedChange={(v) => set("is_featured", v)}
-                  label="Nổi bật"
+                  label={t.featured}
                 />
               </div>
               <div>
-                <Label htmlFor="prod-sort">Thứ tự sắp xếp</Label>
+                <Label htmlFor="prod-sort">{t.sortLabel}</Label>
                 <Input
                   id="prod-sort"
                   type="number"

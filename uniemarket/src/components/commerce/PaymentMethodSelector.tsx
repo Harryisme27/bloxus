@@ -2,28 +2,33 @@ import { Check, Landmark, Wallet } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import type { DbPaymentMethod } from "@/types/db";
 import { cn } from "@/lib/utils";
+import { usePick } from "@/i18n";
 
 interface PaymentMethod {
   id: DbPaymentMethod;
-  label: string;
-  hint: string;
   icon: LucideIcon;
 }
 
 /** 2 phương thức thanh toán thủ công của shop — khớp enum DbPaymentMethod. */
 export const PAYMENT_METHODS: PaymentMethod[] = [
-  {
-    id: "bank_transfer",
-    label: "Chuyển khoản ngân hàng",
-    hint: "Chuyển khoản theo hướng dẫn",
-    icon: Landmark,
-  },
-  { id: "momo", label: "Momo", hint: "Chuyển qua ví Momo / quét QR", icon: Wallet },
+  { id: "bank_transfer", icon: Landmark },
+  { id: "momo", icon: Wallet },
 ];
+
+const STR = {
+  vi: {
+    bank_transfer: { label: "Chuyển khoản ngân hàng", hint: "Chuyển khoản theo hướng dẫn" },
+    momo: { label: "Momo", hint: "Chuyển qua ví Momo / quét QR" },
+  },
+  en: {
+    bank_transfer: { label: "Bank transfer", hint: "Transfer following the instructions" },
+    momo: { label: "Momo", hint: "Pay via Momo wallet / scan QR" },
+  },
+};
 
 /** Human-readable label for a method id. */
 export function paymentMethodLabel(id: DbPaymentMethod): string {
-  return PAYMENT_METHODS.find((method) => method.id === id)?.label ?? id;
+  return STR.en[id]?.label ?? id;
 }
 
 export interface PaymentMethodSelectorProps {
@@ -35,11 +40,13 @@ export interface PaymentMethodSelectorProps {
 /** Grid of selectable surface tiles for the manual payment method. The active
  * tile gets an amber border + check chip. */
 export function PaymentMethodSelector({ value, onChange, className }: PaymentMethodSelectorProps) {
+  const t = usePick(STR);
   return (
     <div className={cn("grid grid-cols-1 gap-3 sm:grid-cols-2", className)} role="radiogroup">
       {PAYMENT_METHODS.map((method) => {
         const Icon = method.icon;
         const selected = method.id === value;
+        const copy = t[method.id];
         return (
           <button
             key={method.id}
@@ -65,9 +72,9 @@ export function PaymentMethodSelector({ value, onChange, className }: PaymentMet
             </span>
             <span className="min-w-0">
               <span className="block truncate font-heading text-sm font-semibold text-text">
-                {method.label}
+                {copy.label}
               </span>
-              <span className="block truncate text-xs text-text-subtle">{method.hint}</span>
+              <span className="block truncate text-xs text-text-subtle">{copy.hint}</span>
             </span>
             {selected ? (
               <span className="absolute right-3 top-3 flex h-5 w-5 items-center justify-center rounded-full bg-yellow text-text-on-yellow">

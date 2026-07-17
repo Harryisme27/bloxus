@@ -3,6 +3,16 @@ import { Link } from "react-router-dom";
 import { ShieldCheck } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { BRAND_NAME } from "@/lib/constants";
+import { usePick } from "@/i18n";
+
+const STR = {
+  vi: {
+    demoNotice: "Bản demo — tài khoản chỉ lưu cục bộ trên máy bạn, không có thanh toán thật.",
+  },
+  en: {
+    demoNotice: "Demo build — accounts are stored only on your own device, with no real payments.",
+  },
+};
 
 export interface AuthCardProps {
   title: string;
@@ -15,6 +25,7 @@ export interface AuthCardProps {
 /** Centered auth shell shared by /login and /register: brand mark, heading,
  * the form (children) and a small footer link row. */
 export function AuthCard({ title, subtitle, children, footer }: AuthCardProps) {
+  const t = usePick(STR);
   return (
     <div className="relative flex min-h-[calc(100vh-4rem)] items-center justify-center overflow-hidden px-4 py-12">
       {/* Ambient brand glow — purely decorative. */}
@@ -40,7 +51,7 @@ export function AuthCard({ title, subtitle, children, footer }: AuthCardProps) {
 
         <div className="mt-5 flex items-center justify-center gap-2 text-xs text-text-subtle">
           <ShieldCheck className="h-3.5 w-3.5 text-green" aria-hidden />
-          <span>Bản demo — tài khoản chỉ lưu cục bộ trên máy bạn, không có thanh toán thật.</span>
+          <span>{t.demoNotice}</span>
         </div>
 
         {footer ? <div className="mt-4 text-center text-sm text-text-muted">{footer}</div> : null}

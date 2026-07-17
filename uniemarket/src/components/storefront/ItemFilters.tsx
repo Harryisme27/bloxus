@@ -1,7 +1,41 @@
 import { Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
+import { usePick } from "@/i18n";
 import { cn } from "@/lib/utils";
+
+const STR = {
+  vi: {
+    searchPlaceholder: "Tìm vật phẩm…",
+    searchAria: "Tìm vật phẩm",
+    kindAria: "Lọc theo loại",
+    allKinds: "Tất cả loại",
+    item: "Vật phẩm",
+    service: "Dịch vụ",
+    rarityAria: "Lọc theo độ hiếm",
+    allRarities: "Tất cả độ hiếm",
+    sortAria: "Sắp xếp",
+    featured: "Nổi bật",
+    priceAsc: "Giá: thấp → cao",
+    priceDesc: "Giá: cao → thấp",
+    newest: "Mới nhất",
+  },
+  en: {
+    searchPlaceholder: "Search items…",
+    searchAria: "Search items",
+    kindAria: "Filter by type",
+    allKinds: "All types",
+    item: "Item",
+    service: "Service",
+    rarityAria: "Filter by rarity",
+    allRarities: "All rarities",
+    sortAria: "Sort",
+    featured: "Featured",
+    priceAsc: "Price: low → high",
+    priceDesc: "Price: high → low",
+    newest: "Newest",
+  },
+};
 
 export type SortKey = "featured" | "price-asc" | "price-desc" | "newest";
 
@@ -35,6 +69,7 @@ export function ItemFilters({
   onSortChange,
   className,
 }: ItemFiltersProps) {
+  const t = usePick(STR);
   return (
     <div
       className={cn(
@@ -51,29 +86,29 @@ export function ItemFilters({
           type="search"
           value={search}
           onChange={(e) => onSearchChange(e.target.value)}
-          placeholder="Tìm vật phẩm…"
+          placeholder={t.searchPlaceholder}
           className="pl-9"
-          aria-label="Tìm vật phẩm"
+          aria-label={t.searchAria}
         />
       </div>
 
       <Select
         value={kind}
         onChange={(e) => onKindChange(e.target.value as KindFilter)}
-        aria-label="Lọc theo loại"
+        aria-label={t.kindAria}
       >
-        <option value="all">Tất cả loại</option>
-        <option value="item">Vật phẩm</option>
-        <option value="service">Dịch vụ</option>
+        <option value="all">{t.allKinds}</option>
+        <option value="item">{t.item}</option>
+        <option value="service">{t.service}</option>
       </Select>
 
       <Select
         value={rarity}
         onChange={(e) => onRarityChange(e.target.value)}
-        aria-label="Lọc theo độ hiếm"
+        aria-label={t.rarityAria}
         disabled={rarityTiers.length === 0}
       >
-        <option value="all">Tất cả độ hiếm</option>
+        <option value="all">{t.allRarities}</option>
         {rarityTiers.map((r) => (
           <option key={r} value={r}>
             {r}
@@ -84,12 +119,12 @@ export function ItemFilters({
       <Select
         value={sort}
         onChange={(e) => onSortChange(e.target.value as SortKey)}
-        aria-label="Sắp xếp"
+        aria-label={t.sortAria}
       >
-        <option value="featured">Nổi bật</option>
-        <option value="price-asc">Giá: thấp → cao</option>
-        <option value="price-desc">Giá: cao → thấp</option>
-        <option value="newest">Mới nhất</option>
+        <option value="featured">{t.featured}</option>
+        <option value="price-asc">{t.priceAsc}</option>
+        <option value="price-desc">{t.priceDesc}</option>
+        <option value="newest">{t.newest}</option>
       </Select>
     </div>
   );

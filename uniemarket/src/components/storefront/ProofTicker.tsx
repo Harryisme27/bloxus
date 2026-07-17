@@ -9,14 +9,35 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { listProofs } from "@/lib/db/content";
 import { formatPrice, relativeTime } from "@/lib/format";
 import type { ProofRow } from "@/types/db";
+import { usePick } from "@/i18n";
+
+const STR = {
+  vi: {
+    verified: "Đã xác minh",
+    buyer: "Người mua",
+    eyebrow: "Minh bạch",
+    title: "Đơn hàng vừa giao",
+    description: "Mỗi thẻ tương ứng một đơn đã giao và được xác minh.",
+    allProofs: "Tất cả minh chứng",
+  },
+  en: {
+    verified: "Verified",
+    buyer: "Buyer",
+    eyebrow: "Transparency",
+    title: "Recently delivered",
+    description: "Each card is a delivered and verified order.",
+    allProofs: "All proofs",
+  },
+};
 
 function ProofPill({ proof }: { proof: ProofRow }) {
+  const t = usePick(STR);
   return (
     <div className="flex w-72 shrink-0 flex-col gap-2 rounded-xl border border-border bg-surface p-4">
       <div className="flex items-center justify-between gap-2">
         <span className="inline-flex items-center gap-1 rounded-full bg-green-soft px-2 py-0.5 text-[11px] font-semibold text-green">
           <BadgeCheck className="h-3.5 w-3.5" aria-hidden="true" />
-          Đã xác minh
+          {t.verified}
         </span>
         <span className="text-[11px] text-text-subtle">{relativeTime(proof.delivered_at)}</span>
       </div>
@@ -34,7 +55,7 @@ function ProofPill({ proof }: { proof: ProofRow }) {
       </div>
       {proof.buyer_masked ? (
         <p className="text-[11px] text-text-subtle">
-          Người mua <span className="font-mono text-text-muted">{proof.buyer_masked}</span>
+          {t.buyer} <span className="font-mono text-text-muted">{proof.buyer_masked}</span>
         </p>
       ) : null}
     </div>
@@ -43,6 +64,7 @@ function ProofPill({ proof }: { proof: ProofRow }) {
 
 /** Auto-scrolling strip of recently delivered & verified orders (social proof). */
 export function ProofTicker() {
+  const t = usePick(STR);
   const { data, isPending } = useQuery({
     queryKey: ["proofs"],
     queryFn: listProofs,
@@ -58,12 +80,12 @@ export function ProofTicker() {
   return (
     <PageContainer className="py-14">
       <SectionHeading
-        eyebrow="Minh bạch"
-        title="Đơn hàng vừa giao"
-        description="Mỗi thẻ tương ứng một đơn đã giao và được xác minh."
+        eyebrow={t.eyebrow}
+        title={t.title}
+        description={t.description}
         action={
           <Link to="/proofs" className={buttonVariants({ variant: "ghost", size: "sm" })}>
-            Tất cả minh chứng
+            {t.allProofs}
             <ArrowRight className="h-4 w-4" aria-hidden="true" />
           </Link>
         }

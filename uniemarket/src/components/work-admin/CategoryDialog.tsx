@@ -13,11 +13,77 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { upsertCategory } from "@/lib/db/catalog";
 import type { CategoryRow, CategoryUpsert } from "@/types/db";
+import { usePick } from "@/i18n";
 import { AdminTextarea } from "./Textarea";
 import { Toggle } from "./Toggle";
 import { slugify } from "./helpers";
 
 const DEFAULT_ACCENT = "#f5b01e";
+
+const STR = {
+  vi: {
+    updated: "Đã cập nhật danh mục",
+    created: "Đã tạo danh mục mới",
+    needNameSlug: "Vui lòng nhập tên và slug danh mục.",
+    editTitle: "Sửa danh mục",
+    addTitle: "Thêm danh mục",
+    desc: "Danh mục là các game/nhóm dịch vụ hiển thị trên cửa hàng.",
+    nameLabel: "Tên danh mục *",
+    namePlaceholder: "VD: Liên Minh Huyền Thoại",
+    slugLabel: "Slug (đường dẫn) *",
+    slugPlaceholder: "lien-minh-huyen-thoai",
+    taglineLabel: "Tagline (mô tả ngắn)",
+    taglinePlaceholder: "VD: Cày rank, vật phẩm, quà tặng",
+    descriptionLabel: "Mô tả",
+    descriptionPlaceholder: "Mô tả chi tiết hiển thị ở đầu trang danh mục…",
+    accentLabel: "Màu nhấn",
+    accentAria: "Chọn màu nhấn",
+    accentPlaceholder: "#f5b01e (để trống = mặc định)",
+    contactLabelLabel: "Nhãn ô liên hệ khi đặt hàng",
+    contactLabelPlaceholder: "VD: Tên tài khoản trong game",
+    contactPhLabel: "Gợi ý trong ô liên hệ",
+    contactPhPlaceholder: "VD: Nhập IGN#TAG",
+    sortLabel: "Thứ tự",
+    featuredLabel: "Nổi bật",
+    featuredToggle: "Danh mục nổi bật",
+    activeLabel: "Đang hiển thị",
+    activeToggle: "Danh mục đang hiển thị",
+    cancel: "Hủy",
+    saving: "Đang lưu…",
+    save: "Lưu danh mục",
+  },
+  en: {
+    updated: "Category updated",
+    created: "New category created",
+    needNameSlug: "Please enter a category name and slug.",
+    editTitle: "Edit category",
+    addTitle: "Add category",
+    desc: "Categories are the games/service groups shown in the store.",
+    nameLabel: "Category name *",
+    namePlaceholder: "e.g. League of Legends",
+    slugLabel: "Slug (URL path) *",
+    slugPlaceholder: "league-of-legends",
+    taglineLabel: "Tagline (short description)",
+    taglinePlaceholder: "e.g. Rank boosting, items, gifts",
+    descriptionLabel: "Description",
+    descriptionPlaceholder: "Detailed description shown at the top of the category page…",
+    accentLabel: "Accent color",
+    accentAria: "Pick accent color",
+    accentPlaceholder: "#f5b01e (leave empty = default)",
+    contactLabelLabel: "Contact field label at checkout",
+    contactLabelPlaceholder: "e.g. In-game account name",
+    contactPhLabel: "Contact field hint",
+    contactPhPlaceholder: "e.g. Enter IGN#TAG",
+    sortLabel: "Order",
+    featuredLabel: "Featured",
+    featuredToggle: "Featured category",
+    activeLabel: "Visible",
+    activeToggle: "Category is visible",
+    cancel: "Cancel",
+    saving: "Saving…",
+    save: "Save category",
+  },
+};
 
 interface CategoryFormState {
   name: string;
@@ -57,6 +123,7 @@ export interface CategoryDialogProps {
 /** Dialog tạo/sửa danh mục — lưu qua upsertCategory, invalidate ['categories']. */
 export function CategoryDialog({ open, onOpenChange, category }: CategoryDialogProps) {
   const queryClient = useQueryClient();
+  const t = usePick(STR);
   const [form, setForm] = useState<CategoryFormState>(() => initForm(category));
   const [slugTouched, setSlugTouched] = useState(Boolean(category));
 
@@ -70,7 +137,7 @@ export function CategoryDialog({ open, onOpenChange, category }: CategoryDialogP
   const saveMutation = useMutation({
     mutationFn: (input: CategoryUpsert) => upsertCategory(input),
     onSuccess: () => {
-      toast.success(category ? "Đã cập nhật danh mục" : "Đã tạo danh mục mới");
+      toast.success(category ? t.updated : t.created);
       queryClient.invalidateQueries({ queryKey: ["categories"] });
       onOpenChange(false);
     },
@@ -85,7 +152,7 @@ export function CategoryDialog({ open, onOpenChange, category }: CategoryDialogP
     const name = form.name.trim();
     const slug = slugify(form.slug.trim());
     if (!name || !slug) {
-      toast.error("Vui lòng nhập tên và slug danh mục.");
+      toast.error(t.needNameSlug);
       return;
     }
     saveMutation.mutate({
@@ -107,19 +174,17 @@ export function CategoryDialog({ open, onOpenChange, category }: CategoryDialogP
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[85vh] max-w-lg overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{category ? "Sửa danh mục" : "Thêm danh mục"}</DialogTitle>
-          <DialogDescription>
-            Danh mục là các game/nhóm dịch vụ hiển thị trên cửa hàng.
-          </DialogDescription>
+          <DialogTitle>{category ? t.editTitle : t.addTitle}</DialogTitle>
+          <DialogDescription>{t.desc}</DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4">
           <div>
-            <Label htmlFor="cat-name">Tên danh mục *</Label>
+            <Label htmlFor="cat-name">{t.nameLabel}</Label>
             <Input
               id="cat-name"
               value={form.name}
-              placeholder="VD: Liên Minh Huyền Thoại"
+              placeholder={t.namePlaceholder}
               onChange={(e) => {
                 const name = e.target.value;
                 setForm((prev) => ({
@@ -132,11 +197,11 @@ export function CategoryDialog({ open, onOpenChange, category }: CategoryDialogP
           </div>
 
           <div>
-            <Label htmlFor="cat-slug">Slug (đường dẫn) *</Label>
+            <Label htmlFor="cat-slug">{t.slugLabel}</Label>
             <Input
               id="cat-slug"
               value={form.slug}
-              placeholder="lien-minh-huyen-thoai"
+              placeholder={t.slugPlaceholder}
               className="font-mono"
               onChange={(e) => {
                 setSlugTouched(true);
@@ -146,31 +211,31 @@ export function CategoryDialog({ open, onOpenChange, category }: CategoryDialogP
           </div>
 
           <div>
-            <Label htmlFor="cat-tagline">Tagline (mô tả ngắn)</Label>
+            <Label htmlFor="cat-tagline">{t.taglineLabel}</Label>
             <Input
               id="cat-tagline"
               value={form.tagline}
-              placeholder="VD: Cày rank, vật phẩm, quà tặng"
+              placeholder={t.taglinePlaceholder}
               onChange={(e) => set("tagline", e.target.value)}
             />
           </div>
 
           <div>
-            <Label htmlFor="cat-desc">Mô tả</Label>
+            <Label htmlFor="cat-desc">{t.descriptionLabel}</Label>
             <AdminTextarea
               id="cat-desc"
               value={form.description}
-              placeholder="Mô tả chi tiết hiển thị ở đầu trang danh mục…"
+              placeholder={t.descriptionPlaceholder}
               onChange={(e) => set("description", e.target.value)}
             />
           </div>
 
           <div>
-            <Label htmlFor="cat-accent">Màu nhấn</Label>
+            <Label htmlFor="cat-accent">{t.accentLabel}</Label>
             <div className="flex items-center gap-2">
               <input
                 type="color"
-                aria-label="Chọn màu nhấn"
+                aria-label={t.accentAria}
                 value={/^#[0-9a-fA-F]{6}$/.test(form.accent_color) ? form.accent_color : DEFAULT_ACCENT}
                 onChange={(e) => set("accent_color", e.target.value)}
                 className="h-10 w-12 cursor-pointer rounded-lg border border-border-strong bg-surface-2 p-1"
@@ -178,7 +243,7 @@ export function CategoryDialog({ open, onOpenChange, category }: CategoryDialogP
               <Input
                 id="cat-accent"
                 value={form.accent_color}
-                placeholder="#f5b01e (để trống = mặc định)"
+                placeholder={t.accentPlaceholder}
                 className="font-mono"
                 onChange={(e) => set("accent_color", e.target.value)}
               />
@@ -187,20 +252,20 @@ export function CategoryDialog({ open, onOpenChange, category }: CategoryDialogP
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
-              <Label htmlFor="cat-contact-label">Nhãn ô liên hệ khi đặt hàng</Label>
+              <Label htmlFor="cat-contact-label">{t.contactLabelLabel}</Label>
               <Input
                 id="cat-contact-label"
                 value={form.contact_field_label}
-                placeholder="VD: Tên tài khoản trong game"
+                placeholder={t.contactLabelPlaceholder}
                 onChange={(e) => set("contact_field_label", e.target.value)}
               />
             </div>
             <div>
-              <Label htmlFor="cat-contact-ph">Gợi ý trong ô liên hệ</Label>
+              <Label htmlFor="cat-contact-ph">{t.contactPhLabel}</Label>
               <Input
                 id="cat-contact-ph"
                 value={form.contact_field_placeholder}
-                placeholder="VD: Nhập IGN#TAG"
+                placeholder={t.contactPhPlaceholder}
                 onChange={(e) => set("contact_field_placeholder", e.target.value)}
               />
             </div>
@@ -208,7 +273,7 @@ export function CategoryDialog({ open, onOpenChange, category }: CategoryDialogP
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             <div>
-              <Label htmlFor="cat-sort">Thứ tự</Label>
+              <Label htmlFor="cat-sort">{t.sortLabel}</Label>
               <Input
                 id="cat-sort"
                 type="number"
@@ -217,19 +282,19 @@ export function CategoryDialog({ open, onOpenChange, category }: CategoryDialogP
               />
             </div>
             <div className="flex items-center justify-between gap-2 sm:flex-col sm:items-start sm:justify-start">
-              <Label className="mb-0 sm:mb-1.5">Nổi bật</Label>
+              <Label className="mb-0 sm:mb-1.5">{t.featuredLabel}</Label>
               <Toggle
                 checked={form.is_featured}
                 onCheckedChange={(v) => set("is_featured", v)}
-                label="Danh mục nổi bật"
+                label={t.featuredToggle}
               />
             </div>
             <div className="flex items-center justify-between gap-2 sm:flex-col sm:items-start sm:justify-start">
-              <Label className="mb-0 sm:mb-1.5">Đang hiển thị</Label>
+              <Label className="mb-0 sm:mb-1.5">{t.activeLabel}</Label>
               <Toggle
                 checked={form.is_active}
                 onCheckedChange={(v) => set("is_active", v)}
-                label="Danh mục đang hiển thị"
+                label={t.activeToggle}
               />
             </div>
           </div>
@@ -237,10 +302,10 @@ export function CategoryDialog({ open, onOpenChange, category }: CategoryDialogP
 
         <div className="mt-6 flex justify-end gap-2">
           <Button variant="secondary" onClick={() => onOpenChange(false)} disabled={saveMutation.isPending}>
-            Hủy
+            {t.cancel}
           </Button>
           <Button onClick={handleSubmit} disabled={saveMutation.isPending}>
-            {saveMutation.isPending ? "Đang lưu…" : "Lưu danh mục"}
+            {saveMutation.isPending ? t.saving : t.save}
           </Button>
         </div>
       </DialogContent>

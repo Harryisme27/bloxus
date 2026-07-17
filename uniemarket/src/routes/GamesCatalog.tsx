@@ -11,10 +11,51 @@ import { EmptyState } from "@/components/storefront/EmptyState";
 import { SetupNotice } from "@/components/SetupNotice";
 import { isSupabaseConfigured } from "@/lib/supabase";
 import { listCategories } from "@/lib/db/catalog";
+import { usePick } from "@/i18n";
+
+const STR = {
+  vi: {
+    gamesTitle: "Trò chơi",
+    catalogTitle: "Danh mục trò chơi",
+    catalogSubtitle: "Chọn trò chơi để xem vật phẩm và dịch vụ đang bán.",
+    searchPlaceholder: "Tìm trò chơi theo tên…",
+    searchAria: "Tìm trò chơi",
+    sortAria: "Sắp xếp trò chơi",
+    sortFeatured: "Nổi bật trước",
+    sortNameAsc: "Tên: A → Z",
+    loadErrorTitle: "Không tải được danh mục",
+    connectError: "Có lỗi khi kết nối máy chủ. Kiểm tra mạng rồi thử lại nhé.",
+    retry: "Thử lại",
+    showing: (n: number) => `Hiển thị ${n} trò chơi`,
+    emptyTitle: "Không tìm thấy trò chơi nào",
+    emptyQuery: (q: string) => `Không có trò chơi nào khớp với "${q}". Thử từ khoá khác nhé.`,
+    emptyNone: "Cửa hàng chưa có danh mục nào — quay lại sau nhé.",
+    clearSearch: "Xoá tìm kiếm",
+  },
+  en: {
+    gamesTitle: "Games",
+    catalogTitle: "Game catalog",
+    catalogSubtitle: "Pick a game to see the items and services on sale.",
+    searchPlaceholder: "Search games by name…",
+    searchAria: "Search games",
+    sortAria: "Sort games",
+    sortFeatured: "Featured first",
+    sortNameAsc: "Name: A → Z",
+    loadErrorTitle: "Couldn't load the catalog",
+    connectError: "There was a problem connecting to the server. Check your connection and try again.",
+    retry: "Try again",
+    showing: (n: number) => `Showing ${n} games`,
+    emptyTitle: "No games found",
+    emptyQuery: (q: string) => `No games match "${q}". Try a different keyword.`,
+    emptyNone: "The store has no categories yet — check back soon.",
+    clearSearch: "Clear search",
+  },
+};
 
 type GameSort = "featured" | "name-asc";
 
 export function GamesCatalog() {
+  const t = usePick(STR);
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState<GameSort>("featured");
 
@@ -53,7 +94,7 @@ export function GamesCatalog() {
   if (!isSupabaseConfigured) {
     return (
       <PageContainer className="py-10 sm:py-14">
-        <h1 className="mb-6 font-heading text-3xl font-bold text-text sm:text-4xl">Trò chơi</h1>
+        <h1 className="mb-6 font-heading text-3xl font-bold text-text sm:text-4xl">{t.gamesTitle}</h1>
         <SetupNotice />
       </PageContainer>
     );
@@ -69,10 +110,10 @@ export function GamesCatalog() {
           </div>
           <div>
             <h1 className="font-heading text-3xl font-bold text-text sm:text-4xl">
-              Danh mục trò chơi
+              {t.catalogTitle}
             </h1>
             <p className="mt-1 text-sm text-text-muted">
-              Chọn trò chơi để xem vật phẩm và dịch vụ đang bán.
+              {t.catalogSubtitle}
             </p>
           </div>
         </div>
@@ -88,19 +129,19 @@ export function GamesCatalog() {
               type="search"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Tìm trò chơi theo tên…"
+              placeholder={t.searchPlaceholder}
               className="pl-9"
-              aria-label="Tìm trò chơi"
+              aria-label={t.searchAria}
             />
           </div>
           <div className="sm:w-56">
             <Select
               value={sort}
               onChange={(e) => setSort(e.target.value as GameSort)}
-              aria-label="Sắp xếp trò chơi"
+              aria-label={t.sortAria}
             >
-              <option value="featured">Nổi bật trước</option>
-              <option value="name-asc">Tên: A → Z</option>
+              <option value="featured">{t.sortFeatured}</option>
+              <option value="name-asc">{t.sortNameAsc}</option>
             </Select>
           </div>
         </div>
@@ -116,11 +157,11 @@ export function GamesCatalog() {
       ) : isError ? (
         <EmptyState
           icon={PackageSearch}
-          title="Không tải được danh mục"
-          description="Có lỗi khi kết nối máy chủ. Kiểm tra mạng rồi thử lại nhé."
+          title={t.loadErrorTitle}
+          description={t.connectError}
           action={
             <Button type="button" variant="primary" size="sm" onClick={() => refetch()}>
-              Thử lại
+              {t.retry}
             </Button>
           }
         />
@@ -128,7 +169,7 @@ export function GamesCatalog() {
         <>
           <p className="mb-4 flex items-center gap-1.5 text-sm text-text-subtle">
             <Package className="h-4 w-4" aria-hidden="true" />
-            Hiển thị {categories.length} trò chơi
+            {t.showing(categories.length)}
           </p>
           <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
             {categories.map((category) => (
@@ -139,16 +180,12 @@ export function GamesCatalog() {
       ) : (
         <EmptyState
           icon={PackageSearch}
-          title="Không tìm thấy trò chơi nào"
-          description={
-            query
-              ? `Không có trò chơi nào khớp với "${query}". Thử từ khoá khác nhé.`
-              : "Cửa hàng chưa có danh mục nào — quay lại sau nhé."
-          }
+          title={t.emptyTitle}
+          description={query ? t.emptyQuery(query) : t.emptyNone}
           action={
             query ? (
               <Button type="button" variant="secondary" size="sm" onClick={() => setQuery("")}>
-                Xoá tìm kiếm
+                {t.clearSearch}
               </Button>
             ) : undefined
           }

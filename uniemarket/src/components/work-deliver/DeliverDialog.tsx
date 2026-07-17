@@ -16,6 +16,40 @@ import { Label } from "@/components/ui/label";
 import { markDelivered, uploadDeliveryProof } from "@/lib/db/orders";
 import type { OrderRow } from "@/types/db";
 import { cn } from "@/lib/utils";
+import { usePick } from "@/i18n";
+
+const STR = {
+  vi: {
+    marked: (code: string) => `Đã đánh dấu giao hàng đơn ${code}.`,
+    title: "Đã giao hàng",
+    descPrefix: "Tải lên ảnh minh chứng đã giao cho đơn",
+    descSuffix: "Khách sẽ bấm xác nhận đã nhận sau khi bạn giao.",
+    proofLabel: "Ảnh minh chứng giao hàng (bắt buộc ≥ 1)",
+    removeImage: "Xóa ảnh",
+    addImage: "Thêm ảnh",
+    selectedCount: (n: number) => `Đã chọn ${n} ảnh.`,
+    noteLabel: "Ghi chú giao hàng (tùy chọn)",
+    notePlaceholder: "VD: đã trao item trong game, khách nhận đủ số lượng.",
+    close: "Đóng",
+    uploading: "Đang tải ảnh...",
+    confirm: "Xác nhận đã giao",
+  },
+  en: {
+    marked: (code: string) => `Order ${code} marked as delivered.`,
+    title: "Mark delivered",
+    descPrefix: "Upload delivery proof images for order",
+    descSuffix: "The customer will confirm receipt after you deliver.",
+    proofLabel: "Delivery proof images (at least 1 required)",
+    removeImage: "Remove image",
+    addImage: "Add image",
+    selectedCount: (n: number) => `${n} image${n === 1 ? "" : "s"} selected.`,
+    noteLabel: "Delivery note (optional)",
+    notePlaceholder: "e.g. handed over the item in-game, customer received the full amount.",
+    close: "Close",
+    uploading: "Uploading images...",
+    confirm: "Confirm delivery",
+  },
+};
 
 interface PickedImage {
   id: string;
@@ -34,6 +68,7 @@ export function DeliverDialog({ order, onClose }: DeliverDialogProps) {
   const [images, setImages] = useState<PickedImage[]>([]);
   const [note, setNote] = useState("");
   const queryClient = useQueryClient();
+  const t = usePick(STR);
   const open = order !== null;
 
   const reset = () => {
@@ -58,7 +93,7 @@ export function DeliverDialog({ order, onClose }: DeliverDialogProps) {
       void queryClient.invalidateQueries({ queryKey: ["order-events", updated.id] });
       void queryClient.invalidateQueries({ queryKey: ["work-orders"] });
       void queryClient.invalidateQueries({ queryKey: ["my-orders"] });
-      toast.success(`Đã đánh dấu giao hàng đơn ${updated.order_code}.`);
+      toast.success(t.marked(updated.order_code));
       reset();
       onClose();
     },
@@ -104,17 +139,17 @@ export function DeliverDialog({ order, onClose }: DeliverDialogProps) {
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Đã giao hàng</DialogTitle>
+          <DialogTitle>{t.title}</DialogTitle>
           <DialogDescription>
-            Tải lên ảnh minh chứng đã giao cho đơn{" "}
-            <span className="font-mono font-semibold text-text">{order?.order_code}</span>. Khách sẽ
-            bấm xác nhận đã nhận sau khi bạn giao.
+            {t.descPrefix}{" "}
+            <span className="font-mono font-semibold text-text">{order?.order_code}</span>.{" "}
+            {t.descSuffix}
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4">
           <div>
-            <Label>Ảnh minh chứng giao hàng (bắt buộc ≥ 1)</Label>
+            <Label>{t.proofLabel}</Label>
             <div className="mt-1.5 grid grid-cols-3 gap-2 sm:grid-cols-4">
               {images.map((img) => (
                 <div
@@ -127,7 +162,7 @@ export function DeliverDialog({ order, onClose }: DeliverDialogProps) {
                       type="button"
                       onClick={() => removeImage(img.id)}
                       className="absolute right-1 top-1 rounded-md bg-black/70 p-1 text-white opacity-0 transition-opacity hover:bg-black/90 focus-visible:opacity-100 group-hover:opacity-100"
-                      aria-label="Xóa ảnh"
+                      aria-label={t.removeImage}
                     >
                       <X className="h-3.5 w-3.5" aria-hidden />
                     </button>
@@ -142,7 +177,7 @@ export function DeliverDialog({ order, onClose }: DeliverDialogProps) {
                 )}
               >
                 <ImagePlus className="h-5 w-5" aria-hidden />
-                <span className="text-[11px] font-medium">Thêm ảnh</span>
+                <span className="text-[11px] font-medium">{t.addImage}</span>
                 <input
                   type="file"
                   accept="image/*"
@@ -154,17 +189,17 @@ export function DeliverDialog({ order, onClose }: DeliverDialogProps) {
               </label>
             </div>
             {images.length > 0 ? (
-              <p className="mt-1.5 text-xs text-text-subtle">Đã chọn {images.length} ảnh.</p>
+              <p className="mt-1.5 text-xs text-text-subtle">{t.selectedCount(images.length)}</p>
             ) : null}
           </div>
 
           <div>
-            <Label htmlFor="delivery-note">Ghi chú giao hàng (tùy chọn)</Label>
+            <Label htmlFor="delivery-note">{t.noteLabel}</Label>
             <textarea
               id="delivery-note"
               value={note}
               onChange={(event) => setNote(event.target.value)}
-              placeholder="VD: đã trao item trong game, khách nhận đủ số lượng."
+              placeholder={t.notePlaceholder}
               maxLength={500}
               rows={3}
               disabled={pending}
@@ -175,7 +210,7 @@ export function DeliverDialog({ order, onClose }: DeliverDialogProps) {
 
         <div className="mt-5 flex justify-end gap-2">
           <Button variant="ghost" onClick={() => handleOpenChange(false)} disabled={pending}>
-            Đóng
+            {t.close}
           </Button>
           <Button
             variant="primary"
@@ -195,7 +230,7 @@ export function DeliverDialog({ order, onClose }: DeliverDialogProps) {
             ) : (
               <Truck className="h-4 w-4" aria-hidden />
             )}
-            {pending ? "Đang tải ảnh..." : "Xác nhận đã giao"}
+            {pending ? t.uploading : t.confirm}
           </Button>
         </div>
       </DialogContent>

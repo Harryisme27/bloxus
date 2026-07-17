@@ -4,6 +4,24 @@ import type { CartLine } from "@/store/cartStore";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatPrice } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import { usePick } from "@/i18n";
+
+const STR = {
+  vi: {
+    summary: "Tóm tắt đơn hàng",
+    products: "sản phẩm",
+    subtotal: "Tạm tính",
+    discount: "Giảm giá",
+    total: "Tổng cộng",
+  },
+  en: {
+    summary: "Order summary",
+    products: "products",
+    subtotal: "Subtotal",
+    discount: "Discount",
+    total: "Total",
+  },
+};
 
 export interface OrderSummaryProps {
   /** Tạm tính (VND). */
@@ -27,10 +45,12 @@ export function OrderSummary({
   discount = 0,
   total,
   lines,
-  title = "Tóm tắt đơn hàng",
+  title,
   children,
   className,
 }: OrderSummaryProps) {
+  const t = usePick(STR);
+  const heading = title ?? t.summary;
   const itemCount = lines?.reduce((sum, line) => sum + line.quantity, 0);
 
   return (
@@ -38,11 +58,11 @@ export function OrderSummary({
       <CardHeader className="flex-row items-center justify-between gap-2 border-b border-border">
         <CardTitle className="flex items-center gap-2 text-base">
           <ReceiptText className="h-4 w-4 text-yellow" aria-hidden="true" />
-          {title}
+          {heading}
         </CardTitle>
         {typeof itemCount === "number" ? (
           <span className="tabular-nums-mono rounded-full bg-surface-2 px-2.5 py-0.5 text-xs font-semibold text-text-muted">
-            {itemCount} sản phẩm
+            {itemCount} {t.products}
           </span>
         ) : null}
       </CardHeader>
@@ -75,12 +95,12 @@ export function OrderSummary({
 
         <dl className="space-y-2.5 text-sm">
           <div className="flex items-center justify-between">
-            <dt className="text-text-muted">Tạm tính</dt>
+            <dt className="text-text-muted">{t.subtotal}</dt>
             <dd className="tabular-nums-mono text-text">{formatPrice(subtotal)}</dd>
           </div>
           {discount > 0 ? (
             <div className="flex items-center justify-between">
-              <dt className="text-text-muted">Giảm giá</dt>
+              <dt className="text-text-muted">{t.discount}</dt>
               <dd className="tabular-nums-mono text-success">− {formatPrice(discount)}</dd>
             </div>
           ) : null}
@@ -89,7 +109,7 @@ export function OrderSummary({
         <div className="h-px bg-border" />
 
         <div className="flex items-end justify-between">
-          <span className="font-heading text-sm font-semibold text-text">Tổng cộng</span>
+          <span className="font-heading text-sm font-semibold text-text">{t.total}</span>
           <span className="tabular-nums-mono font-heading text-2xl font-extrabold text-yellow">
             {formatPrice(total)}
           </span>

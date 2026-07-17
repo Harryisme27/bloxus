@@ -2,6 +2,26 @@
 // Nhân viên không còn thao tác nào ở bước này (khách tự bấm "Đã nhận hàng").
 import { CheckCircle2, Truck } from "lucide-react";
 import { relativeTime } from "@/lib/format";
+import { usePick } from "@/i18n";
+
+const STR = {
+  vi: {
+    title: "Đã giao — chờ khách xác nhận",
+    deliveredAt: (time: string) => `Giao lúc ${time} · `,
+    awaitCustomer: "Khách sẽ xác nhận đã nhận hàng.",
+    proofAlt: "Ảnh minh chứng giao hàng",
+    noteTitle: "Ghi chú giao hàng",
+    waitConfirm: "Chờ khách bấm “Đã nhận hàng”. Không cần thao tác thêm.",
+  },
+  en: {
+    title: "Delivered — awaiting confirmation",
+    deliveredAt: (time: string) => `Delivered ${time} · `,
+    awaitCustomer: "The customer will confirm receipt.",
+    proofAlt: "Delivery proof image",
+    noteTitle: "Delivery note",
+    waitConfirm: "Waiting for the customer to click “Received”. No further action needed.",
+  },
+};
 
 export interface DeliveredPanelProps {
   proofImages: string[];
@@ -11,6 +31,7 @@ export interface DeliveredPanelProps {
 
 /** Hiển thị minh chứng đã giao khi displayStatus === 'delivered'. */
 export function DeliveredPanel({ proofImages, note, deliveredAt }: DeliveredPanelProps) {
+  const t = usePick(STR);
   return (
     <section className="rounded-2xl border border-yellow bg-surface p-5 shadow-glow-amber">
       <div className="flex items-center gap-2.5">
@@ -18,12 +39,10 @@ export function DeliveredPanel({ proofImages, note, deliveredAt }: DeliveredPane
           <Truck className="h-4 w-4" aria-hidden />
         </span>
         <div className="min-w-0">
-          <h2 className="font-heading text-lg font-semibold text-text">
-            Đã giao — chờ khách xác nhận
-          </h2>
+          <h2 className="font-heading text-lg font-semibold text-text">{t.title}</h2>
           <p className="text-xs text-text-subtle">
-            {deliveredAt ? `Giao lúc ${relativeTime(deliveredAt)} · ` : ""}
-            Khách sẽ xác nhận đã nhận hàng.
+            {deliveredAt ? t.deliveredAt(relativeTime(deliveredAt)) : ""}
+            {t.awaitCustomer}
           </p>
         </div>
       </div>
@@ -40,7 +59,7 @@ export function DeliveredPanel({ proofImages, note, deliveredAt }: DeliveredPane
             >
               <img
                 src={url}
-                alt="Ảnh minh chứng giao hàng"
+                alt={t.proofAlt}
                 className="h-full w-full object-cover"
                 loading="lazy"
               />
@@ -51,14 +70,14 @@ export function DeliveredPanel({ proofImages, note, deliveredAt }: DeliveredPane
 
       {note ? (
         <div className="mt-4 rounded-lg border border-border bg-surface-2 p-3">
-          <p className="text-xs font-semibold text-text-subtle">Ghi chú giao hàng</p>
+          <p className="text-xs font-semibold text-text-subtle">{t.noteTitle}</p>
           <p className="mt-1 whitespace-pre-wrap text-sm text-text-muted">{note}</p>
         </div>
       ) : null}
 
       <div className="mt-4 flex items-center gap-2 text-sm text-text-muted">
         <CheckCircle2 className="h-4 w-4 shrink-0 text-success" aria-hidden />
-        Chờ khách bấm “Đã nhận hàng”. Không cần thao tác thêm.
+        {t.waitConfirm}
       </div>
     </section>
   );

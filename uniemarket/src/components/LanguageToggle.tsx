@@ -1,7 +1,7 @@
 // VI/EN language switch — compact segmented control wired to the language
 // store. Active segment uses the amber brand fill; both segments stay legible
 // in the warm dark chrome. Accessible: labelled group + aria-pressed segments.
-import { useLangStore, type Lang } from "@/i18n";
+import { useLangStore, usePick, type Lang } from "@/i18n";
 import { cn } from "@/lib/utils";
 
 const OPTIONS: { value: Lang; label: string; aria: string }[] = [
@@ -9,14 +9,20 @@ const OPTIONS: { value: Lang; label: string; aria: string }[] = [
   { value: "en", label: "EN", aria: "English" },
 ];
 
+const STR = {
+  vi: { groupAria: "Ngôn ngữ" },
+  en: { groupAria: "Language" },
+};
+
 export function LanguageToggle({ className }: { className?: string }) {
   const lang = useLangStore((state) => state.lang);
   const setLang = useLangStore((state) => state.setLang);
+  const t = usePick(STR);
 
   return (
     <div
       role="group"
-      aria-label="Ngôn ngữ / Language"
+      aria-label={t.groupAria}
       className={cn(
         "inline-flex items-center rounded-lg border border-border-strong bg-surface-2 p-0.5",
         className,

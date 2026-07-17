@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { SetupNotice } from "@/components/SetupNotice";
-import { WorkOrderStatusBadge, WORK_STATUS_META, WORK_STATUS_ORDER } from "@/components/work/orderStatusMeta";
+import { WorkOrderStatusBadge, WORK_STATUS_ORDER } from "@/components/work/orderStatusMeta";
 import { useOrdersRealtime } from "@/components/work/useOrdersRealtime";
 import { countItems, listItemsForOrders } from "@/components/work/workData";
 import { listWorkOrders } from "@/lib/db/orders";
@@ -22,19 +22,66 @@ import { useAuthStore } from "@/store/authStore";
 import { orderDisplayStatus } from "@/types/db";
 import type { DbOrderStatus } from "@/types/db";
 import { cn } from "@/lib/utils";
+import { usePick, useT } from "@/i18n";
+
+const STR = {
+  vi: {
+    title: "Đơn hàng",
+    subtitleAdmin: "Toàn bộ đơn hàng — lọc theo trạng thái, CTV hoặc tìm theo mã đơn.",
+    subtitleCtv: "Các đơn được giao cho bạn — lọc theo trạng thái hoặc tìm theo mã đơn.",
+    loadError: (msg: string) => `Không tải được danh sách đơn. ${msg}`,
+    retry: "Thử lại",
+    all: (n: number) => `Tất cả (${n})`,
+    searchPlaceholder: "Tìm mã đơn (UM-...)",
+    searchAria: "Tìm theo mã đơn",
+    ctvFilterAria: "Lọc theo CTV",
+    allCtv: "Mọi CTV",
+    emptyNone: "Chưa có đơn hàng nào.",
+    emptyNoMatch: "Không tìm thấy đơn nào khớp bộ lọc.",
+    colCode: "Mã đơn",
+    colCreated: "Tạo lúc",
+    colCustomer: "Khách",
+    colItems: "Món",
+    colTotal: "Tổng",
+    colStatus: "Trạng thái",
+    colCtv: "CTV",
+    open: "Mở",
+  },
+  en: {
+    title: "Orders",
+    subtitleAdmin: "All orders — filter by status, collaborator, or search by order code.",
+    subtitleCtv: "Orders assigned to you — filter by status or search by order code.",
+    loadError: (msg: string) => `Couldn't load the order list. ${msg}`,
+    retry: "Try again",
+    all: (n: number) => `All (${n})`,
+    searchPlaceholder: "Search order code (UM-...)",
+    searchAria: "Search by order code",
+    ctvFilterAria: "Filter by collaborator",
+    allCtv: "All collaborators",
+    emptyNone: "No orders yet.",
+    emptyNoMatch: "No orders match the filters.",
+    colCode: "Order code",
+    colCreated: "Created",
+    colCustomer: "Customer",
+    colItems: "Items",
+    colTotal: "Total",
+    colStatus: "Status",
+    colCtv: "CTV",
+    open: "Open",
+  },
+};
 
 /** /work/orders — danh sách đơn (admin: tất cả; CTV: đơn được giao). */
 export function WorkOrders() {
   const user = useAuthStore((state) => state.user);
+  const t = usePick(STR);
 
   return (
     <div className="space-y-6">
       <header>
-        <h1 className="font-heading text-3xl font-bold text-text">Đơn hàng</h1>
+        <h1 className="font-heading text-3xl font-bold text-text">{t.title}</h1>
         <p className="mt-1 text-sm text-text-muted">
-          {user?.role === "admin"
-            ? "Toàn bộ đơn hàng — lọc theo trạng thái, CTV hoặc tìm theo mã đơn."
-            : "Các đơn được giao cho bạn — lọc theo trạng thái hoặc tìm theo mã đơn."}
+          {user?.role === "admin" ? t.subtitleAdmin : t.subtitleCtv}
         </p>
       </header>
 
@@ -49,6 +96,8 @@ export function WorkOrders() {
 
 function OrdersTable({ isAdmin, userId }: { isAdmin: boolean; userId: string }) {
   useOrdersRealtime();
+  const t = usePick(STR);
+  const s = useT();
 
   const [statusFilter, setStatusFilter] = useState<DbOrderStatus | "all">("all");
   const [search, setSearch] = useState("");
@@ -87,10 +136,10 @@ function OrdersTable({ isAdmin, userId }: { isAdmin: boolean; userId: string }) 
     return (
       <div className="rounded-2xl border border-border bg-surface p-8 text-center">
         <p className="text-sm text-text-muted">
-          Không tải được danh sách đơn. {(ordersQuery.error as Error).message}
+          {t.loadError((ordersQuery.error as Error).message)}
         </p>
         <Button variant="secondary" size="sm" className="mt-4" onClick={() => void ordersQuery.refetch()}>
-          Thử lại
+          {t.retry}
         </Button>
       </div>
     );
@@ -123,14 +172,14 @@ function OrdersTable({ isAdmin, userId }: { isAdmin: boolean; userId: string }) 
       <div className="flex flex-wrap gap-2">
         <FilterPill
           active={statusFilter === "all"}
-          label={`Tất cả (${orders.length})`}
+          label={t.all(orders.length)}
           onClick={() => setStatusFilter("all")}
         />
         {WORK_STATUS_ORDER.map((status) => (
           <FilterPill
             key={status}
             active={statusFilter === status}
-            label={`${WORK_STATUS_META[status].label} (${counts.get(status) ?? 0})`}
+            label={`${s.status[status]} (${counts.get(status) ?? 0})`}
             onClick={() => setStatusFilter(status)}
           />
         ))}
@@ -146,9 +195,9 @@ function OrdersTable({ isAdmin, userId }: { isAdmin: boolean; userId: string }) 
           <Input
             value={search}
             onChange={(event) => setSearch(event.target.value)}
-            placeholder="Tìm mã đơn (UM-...)"
+            placeholder={t.searchPlaceholder}
             className="pl-9 font-mono uppercase placeholder:font-body placeholder:normal-case"
-            aria-label="Tìm theo mã đơn"
+            aria-label={t.searchAria}
           />
         </div>
         {isAdmin ? (
@@ -156,9 +205,9 @@ function OrdersTable({ isAdmin, userId }: { isAdmin: boolean; userId: string }) 
             <Select
               value={ctvFilter}
               onChange={(event) => setCtvFilter(event.target.value)}
-              aria-label="Lọc theo CTV"
+              aria-label={t.ctvFilterAria}
             >
-              <option value="all">Mọi CTV</option>
+              <option value="all">{t.allCtv}</option>
               {(ctvsQuery.data ?? []).map((ctv) => (
                 <option key={ctv.id} value={ctv.id}>
                   {ctv.display_name ?? ctv.username}
@@ -174,9 +223,7 @@ function OrdersTable({ isAdmin, userId }: { isAdmin: boolean; userId: string }) 
         <div className="rounded-2xl border border-dashed border-border-strong bg-surface px-5 py-12 text-center">
           <Inbox className="mx-auto h-8 w-8 text-text-subtle" aria-hidden />
           <p className="mt-2 text-sm text-text-muted">
-            {orders.length === 0
-              ? "Chưa có đơn hàng nào."
-              : "Không tìm thấy đơn nào khớp bộ lọc."}
+            {orders.length === 0 ? t.emptyNone : t.emptyNoMatch}
           </p>
         </div>
       ) : (
@@ -184,13 +231,13 @@ function OrdersTable({ isAdmin, userId }: { isAdmin: boolean; userId: string }) 
           <table className="w-full min-w-[860px] text-left text-sm">
             <thead>
               <tr className="border-b border-border text-xs uppercase tracking-wider text-text-subtle">
-                <th className="px-4 py-3 font-semibold">Mã đơn</th>
-                <th className="px-4 py-3 font-semibold">Tạo lúc</th>
-                <th className="px-4 py-3 font-semibold">Khách</th>
-                <th className="px-4 py-3 text-right font-semibold">Món</th>
-                <th className="px-4 py-3 text-right font-semibold">Tổng</th>
-                <th className="px-4 py-3 font-semibold">Trạng thái</th>
-                {isAdmin ? <th className="px-4 py-3 font-semibold">CTV</th> : null}
+                <th className="px-4 py-3 font-semibold">{t.colCode}</th>
+                <th className="px-4 py-3 font-semibold">{t.colCreated}</th>
+                <th className="px-4 py-3 font-semibold">{t.colCustomer}</th>
+                <th className="px-4 py-3 text-right font-semibold">{t.colItems}</th>
+                <th className="px-4 py-3 text-right font-semibold">{t.colTotal}</th>
+                <th className="px-4 py-3 font-semibold">{t.colStatus}</th>
+                {isAdmin ? <th className="px-4 py-3 font-semibold">{t.colCtv}</th> : null}
                 <th className="px-4 py-3" />
               </tr>
             </thead>
@@ -232,7 +279,7 @@ function OrdersTable({ isAdmin, userId }: { isAdmin: boolean; userId: string }) 
                       to={`/work/orders/${order.id}`}
                       className={cn(buttonVariants({ variant: "ghost", size: "sm" }))}
                     >
-                      Mở
+                      {t.open}
                     </Link>
                   </td>
                 </tr>

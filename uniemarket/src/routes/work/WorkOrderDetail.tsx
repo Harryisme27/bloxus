@@ -53,16 +53,150 @@ import { useAuthStore } from "@/store/authStore";
 import { orderDisplayStatus } from "@/types/db";
 import type { DbOrderStatus, OrderDisplayStatus, OrderEventRow, OrderWithItems } from "@/types/db";
 import { cn } from "@/lib/utils";
+import { usePick, useT, useLangStore } from "@/i18n";
+
+const STR = {
+  vi: {
+    detailTitle: "Chi tiết đơn hàng",
+    paymentConfirmed: (code: string) => `Đã xác nhận thanh toán đơn ${code}.`,
+    completed: (code: string) => `Đã hoàn thành đơn ${code}.`,
+    refunded: (code: string) => `Đã hoàn tiền đơn ${code}.`,
+    noStaffThread: "Không tìm thấy kênh chat nội bộ. Hãy nhờ admin mở kênh staff.",
+    helpMessage: (code: string, link: string) => `Cần hỗ trợ đơn ${code}: ${link}`,
+    helpSent: "Đã gửi yêu cầu hỗ trợ vào kênh nội bộ.",
+    loadError: (msg: string) => `Không tải được đơn hàng. ${msg}`,
+    retry: "Thử lại",
+    notFoundTitle: "Không tìm thấy đơn hàng",
+    notFoundBody: "Đơn không tồn tại hoặc bạn không có quyền xem.",
+    backToList: "Về danh sách đơn",
+    orderList: "Danh sách đơn",
+    copyOrderCode: "mã đơn",
+    createdPrefix: (time: string) => `Tạo ${time}`,
+    paymentLabel: "Thanh toán:",
+    refPrefix: (ref: string) => ` · Ref: ${ref}`,
+    customer: "Khách hàng",
+    inGameName: "Tên in-game",
+    copyInGameName: "tên in-game",
+    contact: "Liên hệ",
+    note: "Ghi chú",
+    cancelReason: "Lý do hủy",
+    productsTitle: (n: number) => `Sản phẩm (${n})`,
+    subtotal: "Tạm tính",
+    discount: "Giảm giá",
+    total: "Tổng",
+    logTitle: "Nhật ký đơn",
+    logError: (msg: string) => `Không tải được nhật ký. ${msg}`,
+    noEvents: "Chưa có sự kiện nào.",
+    actions: "Thao tác",
+    paymentRefLabel: "Mã giao dịch / ghi chú (tùy chọn)",
+    paymentRefPlaceholder: "VD: FT2607xxxx từ app ngân hàng",
+    confirming: "Đang xác nhận...",
+    confirmReceived: "Xác nhận đã nhận tiền",
+    assignToCtv: "Giao đơn cho CTV",
+    markDelivered: "Đã giao hàng",
+    sending: "Đang gửi...",
+    needHelp: "Cần hỗ trợ",
+    refund: "Hoàn tiền",
+    cancelOrder: "Hủy đơn...",
+    completeTitle: "Hoàn thành đơn",
+    refundTitle: "Hoàn tiền đơn",
+    completeDescPre: "Xác nhận đơn",
+    completeDescPost: "đã giao xong cho khách?",
+    refundDescPre: "Đơn",
+    refundDescPost: "sẽ chuyển sang “Đã hoàn tiền”. Nhớ chuyển tiền lại cho khách trước nhé.",
+    statusNoteLabel: "Ghi chú (tùy chọn)",
+    completeNotePlaceholder: "VD: đã giao đủ item, khách xác nhận OK",
+    refundNotePlaceholder: "VD: hoàn 100% qua MoMo",
+    close: "Đóng",
+    processing: "Đang xử lý...",
+    complete: "Hoàn thành",
+    event: {
+      created: "Tạo đơn",
+      payment_confirmed: "Xác nhận đã nhận tiền",
+      assigned: "Giao đơn cho CTV",
+      status_changed: "Đổi trạng thái",
+      note: "Ghi chú",
+      cancelled: "Hủy đơn",
+      refunded: "Hoàn tiền",
+    },
+  },
+  en: {
+    detailTitle: "Order details",
+    paymentConfirmed: (code: string) => `Payment for order ${code} confirmed.`,
+    completed: (code: string) => `Order ${code} completed.`,
+    refunded: (code: string) => `Order ${code} refunded.`,
+    noStaffThread: "Couldn't find the team chat channel. Ask an admin to open a staff channel.",
+    helpMessage: (code: string, link: string) => `Need help with order ${code}: ${link}`,
+    helpSent: "Help request sent to the team channel.",
+    loadError: (msg: string) => `Couldn't load the order. ${msg}`,
+    retry: "Try again",
+    notFoundTitle: "Order not found",
+    notFoundBody: "The order doesn't exist or you don't have permission to view it.",
+    backToList: "Back to orders",
+    orderList: "Orders",
+    copyOrderCode: "order code",
+    createdPrefix: (time: string) => `Created ${time}`,
+    paymentLabel: "Payment:",
+    refPrefix: (ref: string) => ` · Ref: ${ref}`,
+    customer: "Customer",
+    inGameName: "In-game name",
+    copyInGameName: "in-game name",
+    contact: "Contact",
+    note: "Note",
+    cancelReason: "Cancellation reason",
+    productsTitle: (n: number) => `Products (${n})`,
+    subtotal: "Subtotal",
+    discount: "Discount",
+    total: "Total",
+    logTitle: "Order log",
+    logError: (msg: string) => `Couldn't load the log. ${msg}`,
+    noEvents: "No events yet.",
+    actions: "Actions",
+    paymentRefLabel: "Transaction ID / note (optional)",
+    paymentRefPlaceholder: "e.g. FT2607xxxx from the bank app",
+    confirming: "Confirming...",
+    confirmReceived: "Confirm payment received",
+    assignToCtv: "Assign to a collaborator",
+    markDelivered: "Mark delivered",
+    sending: "Sending...",
+    needHelp: "Need help",
+    refund: "Refund",
+    cancelOrder: "Cancel order...",
+    completeTitle: "Complete order",
+    refundTitle: "Refund order",
+    completeDescPre: "Confirm that order",
+    completeDescPost: "has been fully delivered to the customer?",
+    refundDescPre: "Order",
+    refundDescPost:
+      "will move to “Refunded”. Remember to transfer the money back to the customer first.",
+    statusNoteLabel: "Note (optional)",
+    completeNotePlaceholder: "e.g. delivered all items, customer confirmed OK",
+    refundNotePlaceholder: "e.g. refunded 100% via MoMo",
+    close: "Close",
+    processing: "Processing...",
+    complete: "Complete",
+    event: {
+      created: "Order created",
+      payment_confirmed: "Payment confirmed",
+      assigned: "Assigned to a collaborator",
+      status_changed: "Status changed",
+      note: "Note",
+      cancelled: "Order cancelled",
+      refunded: "Refunded",
+    },
+  },
+};
 
 /** /work/orders/:id — workview 2 cột: chi tiết đơn + điều khiển | chat đơn. */
 export function WorkOrderDetail() {
   const { id } = useParams<{ id: string }>();
   const user = useAuthStore((state) => state.user);
+  const t = usePick(STR);
 
   if (!isSupabaseConfigured) {
     return (
       <div className="space-y-6">
-        <h1 className="font-heading text-3xl font-bold text-text">Chi tiết đơn hàng</h1>
+        <h1 className="font-heading text-3xl font-bold text-text">{t.detailTitle}</h1>
         <SetupNotice />
       </div>
     );
@@ -83,6 +217,8 @@ function OrderDetailView({
   userId: string;
 }) {
   const queryClient = useQueryClient();
+  const t = usePick(STR);
+  const lang = useLangStore((state) => state.lang);
   const isAdmin = role === "admin";
 
   const [paymentRef, setPaymentRef] = useState("");
@@ -115,7 +251,7 @@ function OrderDetailView({
     onSuccess: (updated) => {
       invalidateOrder();
       setPaymentRef("");
-      toast.success(`Đã xác nhận thanh toán đơn ${updated.order_code}.`);
+      toast.success(t.paymentConfirmed(updated.order_code));
     },
     onError: (err: Error) => toast.error(err.message),
   });
@@ -128,8 +264,8 @@ function OrderDetailView({
       setConfirmAction(null);
       toast.success(
         variables.status === "completed"
-          ? `Đã hoàn thành đơn ${updated.order_code}.`
-          : `Đã hoàn tiền đơn ${updated.order_code}.`,
+          ? t.completed(updated.order_code)
+          : t.refunded(updated.order_code),
       );
     },
     onError: (err: Error) => toast.error(err.message),
@@ -140,12 +276,12 @@ function OrderDetailView({
       const threads = await listMyThreads();
       const staffThread = threads.find((thread) => thread.kind === "staff");
       if (!staffThread) {
-        throw new Error("Không tìm thấy kênh chat nội bộ. Hãy nhờ admin mở kênh staff.");
+        throw new Error(t.noStaffThread);
       }
       const link = `${window.location.origin}/work/orders/${order.id}`;
-      return postMessage(staffThread.id, `Cần hỗ trợ đơn ${order.order_code}: ${link}`);
+      return postMessage(staffThread.id, t.helpMessage(order.order_code, link));
     },
-    onSuccess: () => toast.success("Đã gửi yêu cầu hỗ trợ vào kênh nội bộ."),
+    onSuccess: () => toast.success(t.helpSent),
     onError: (err: Error) => toast.error(err.message),
   });
 
@@ -166,10 +302,10 @@ function OrderDetailView({
     return (
       <div className="rounded-2xl border border-border bg-surface p-8 text-center">
         <p className="text-sm text-text-muted">
-          Không tải được đơn hàng. {(orderQuery.error as Error).message}
+          {t.loadError((orderQuery.error as Error).message)}
         </p>
         <Button variant="secondary" size="sm" className="mt-4" onClick={() => void orderQuery.refetch()}>
-          Thử lại
+          {t.retry}
         </Button>
       </div>
     );
@@ -179,13 +315,11 @@ function OrderDetailView({
   if (!order) {
     return (
       <div className="rounded-2xl border border-dashed border-border-strong bg-surface p-10 text-center">
-        <p className="font-heading text-lg font-semibold text-text">Không tìm thấy đơn hàng</p>
-        <p className="mt-1 text-sm text-text-muted">
-          Đơn không tồn tại hoặc bạn không có quyền xem.
-        </p>
+        <p className="font-heading text-lg font-semibold text-text">{t.notFoundTitle}</p>
+        <p className="mt-1 text-sm text-text-muted">{t.notFoundBody}</p>
         <Link to="/work/orders" className="mt-4 inline-flex items-center gap-1.5 text-sm font-semibold text-yellow hover:text-yellow-hover">
           <ArrowLeft className="h-4 w-4" aria-hidden />
-          Về danh sách đơn
+          {t.backToList}
         </Link>
       </div>
     );
@@ -205,7 +339,7 @@ function OrderDetailView({
         className="inline-flex items-center gap-1.5 text-sm font-medium text-text-muted transition-colors hover:text-text"
       >
         <ArrowLeft className="h-4 w-4" aria-hidden />
-        Danh sách đơn
+        {t.orderList}
       </Link>
 
       <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_380px]">
@@ -224,13 +358,13 @@ function OrderDetailView({
             <div>
               <div className="flex items-center gap-2">
                 <h1 className="font-mono text-2xl font-bold text-text">{order.order_code}</h1>
-                <CopyButton value={order.order_code} label="mã đơn" />
+                <CopyButton value={order.order_code} label={t.copyOrderCode} />
                 <WorkOrderStatusBadge status={displayStatus} />
               </div>
               <p className="mt-1 text-xs text-text-subtle">
-                Tạo {relativeTime(order.created_at)} · Thanh toán:{" "}
-                {paymentMethodLabel(order.payment_method)}
-                {order.payment_ref ? ` · Ref: ${order.payment_ref}` : ""}
+                {t.createdPrefix(relativeTime(order.created_at))} · {t.paymentLabel}{" "}
+                {paymentMethodLabel(order.payment_method, lang)}
+                {order.payment_ref ? t.refPrefix(order.payment_ref) : ""}
               </p>
             </div>
             <p className="tabular-nums-mono text-2xl font-bold text-text">
@@ -268,32 +402,32 @@ function OrderDetailView({
 
           {/* Thẻ khách hàng */}
           <section className="rounded-2xl border border-border bg-surface p-5">
-            <h2 className="font-heading text-lg font-semibold text-text">Khách hàng</h2>
+            <h2 className="font-heading text-lg font-semibold text-text">{t.customer}</h2>
             <dl className="mt-3 space-y-2.5 text-sm">
               <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-                <dt className="w-28 shrink-0 text-text-subtle">Tên in-game</dt>
+                <dt className="w-28 shrink-0 text-text-subtle">{t.inGameName}</dt>
                 <dd className="flex items-center gap-1 font-medium text-text">
                   {order.game_username ?? "—"}
                   {order.game_username ? (
-                    <CopyButton value={order.game_username} label="tên in-game" />
+                    <CopyButton value={order.game_username} label={t.copyInGameName} />
                   ) : null}
                 </dd>
               </div>
               <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-                <dt className="w-28 shrink-0 text-text-subtle">Liên hệ</dt>
+                <dt className="w-28 shrink-0 text-text-subtle">{t.contact}</dt>
                 <dd>
                   <ContactChip channel={order.contact_channel} value={order.contact_value} />
                 </dd>
               </div>
               {order.customer_note ? (
                 <div className="flex flex-wrap items-start gap-x-3 gap-y-1">
-                  <dt className="w-28 shrink-0 text-text-subtle">Ghi chú</dt>
+                  <dt className="w-28 shrink-0 text-text-subtle">{t.note}</dt>
                   <dd className="min-w-0 flex-1 text-text-muted">{order.customer_note}</dd>
                 </div>
               ) : null}
               {order.cancel_reason ? (
                 <div className="flex flex-wrap items-start gap-x-3 gap-y-1">
-                  <dt className="w-28 shrink-0 text-text-subtle">Lý do hủy</dt>
+                  <dt className="w-28 shrink-0 text-text-subtle">{t.cancelReason}</dt>
                   <dd className="min-w-0 flex-1 text-danger">{order.cancel_reason}</dd>
                 </div>
               ) : null}
@@ -303,11 +437,11 @@ function OrderDetailView({
           {/* Dòng hàng */}
           <section className="rounded-2xl border border-border bg-surface p-5">
             <h2 className="font-heading text-lg font-semibold text-text">
-              Sản phẩm ({order.items.length})
+              {t.productsTitle(order.items.length)}
             </h2>
             <ul className="mt-3 divide-y divide-border">
               {order.items.map((item) => {
-                const optionText = describeSelectedOptions(item.selected_options);
+                const optionText = describeSelectedOptions(item.selected_options, lang);
                 return (
                   <li key={item.id} className="flex items-center gap-3 py-3">
                     {item.image_url ? (
@@ -338,17 +472,17 @@ function OrderDetailView({
             </ul>
             <div className="mt-2 space-y-1 border-t border-border pt-3 text-sm">
               <div className="flex justify-between text-text-muted">
-                <span>Tạm tính</span>
+                <span>{t.subtotal}</span>
                 <span className="tabular-nums-mono">{formatPrice(order.subtotal)}</span>
               </div>
               {order.discount > 0 ? (
                 <div className="flex justify-between text-success">
-                  <span>Giảm giá</span>
+                  <span>{t.discount}</span>
                   <span className="tabular-nums-mono">-{formatPrice(order.discount)}</span>
                 </div>
               ) : null}
               <div className="flex justify-between text-base font-bold text-text">
-                <span>Tổng</span>
+                <span>{t.total}</span>
                 <span className="tabular-nums-mono">{formatPrice(order.total)}</span>
               </div>
             </div>
@@ -356,7 +490,7 @@ function OrderDetailView({
 
           {/* Timeline */}
           <section className="rounded-2xl border border-border bg-surface p-5">
-            <h2 className="font-heading text-lg font-semibold text-text">Nhật ký đơn</h2>
+            <h2 className="font-heading text-lg font-semibold text-text">{t.logTitle}</h2>
             {eventsQuery.isPending ? (
               <div className="mt-3 space-y-2">
                 <Skeleton className="h-8 w-full" />
@@ -364,10 +498,10 @@ function OrderDetailView({
               </div>
             ) : eventsQuery.isError ? (
               <p className="mt-3 text-sm text-text-muted">
-                Không tải được nhật ký. {(eventsQuery.error as Error).message}
+                {t.logError((eventsQuery.error as Error).message)}
               </p>
             ) : (eventsQuery.data?.length ?? 0) === 0 ? (
-              <p className="mt-3 text-sm text-text-muted">Chưa có sự kiện nào.</p>
+              <p className="mt-3 text-sm text-text-muted">{t.noEvents}</p>
             ) : (
               <ol className="mt-4 space-y-4">
                 {eventsQuery.data!.map((event) => (
@@ -450,6 +584,7 @@ function OrderControls({
   onHelp: () => void;
   helpPending: boolean;
 }) {
+  const t = usePick(STR);
   const status = order.status;
 
   // Giao hàng: chỉ khi đang thực hiện (chưa giao) và KHÔNG có yêu cầu hủy treo.
@@ -469,24 +604,24 @@ function OrderControls({
 
   return (
     <section className="rounded-2xl border border-yellow bg-surface p-5 shadow-glow-amber">
-      <h2 className="font-heading text-lg font-semibold text-text">Thao tác</h2>
+      <h2 className="font-heading text-lg font-semibold text-text">{t.actions}</h2>
 
       {adminConfirmPay ? (
         <div className="mt-3 space-y-3">
           <div>
-            <Label htmlFor="payment-ref">Mã giao dịch / ghi chú (tùy chọn)</Label>
+            <Label htmlFor="payment-ref">{t.paymentRefLabel}</Label>
             <Input
               id="payment-ref"
               value={paymentRef}
               onChange={(event) => onPaymentRefChange(event.target.value)}
-              placeholder="VD: FT2607xxxx từ app ngân hàng"
+              placeholder={t.paymentRefPlaceholder}
               maxLength={200}
             />
           </div>
           <div className="flex flex-wrap gap-2">
             <Button variant="primary" onClick={onConfirmPayment} disabled={confirmPaymentPending}>
               <BadgeDollarSign className="h-4 w-4" aria-hidden />
-              {confirmPaymentPending ? "Đang xác nhận..." : "Xác nhận đã nhận tiền"}
+              {confirmPaymentPending ? t.confirming : t.confirmReceived}
             </Button>
           </div>
         </div>
@@ -496,7 +631,7 @@ function OrderControls({
         <div className="mt-3">
           <Button variant="primary" onClick={onOpenAssign}>
             <UserPlus className="h-4 w-4" aria-hidden />
-            Giao đơn cho CTV
+            {t.assignToCtv}
           </Button>
         </div>
       ) : null}
@@ -507,13 +642,13 @@ function OrderControls({
           {canDeliver ? (
             <Button variant="primary" onClick={onOpenDeliver}>
               <Truck className="h-4 w-4" aria-hidden />
-              Đã giao hàng
+              {t.markDelivered}
             </Button>
           ) : null}
           {ctvHelp ? (
             <Button variant="secondary" onClick={onHelp} disabled={helpPending}>
               <LifeBuoy className="h-4 w-4" aria-hidden />
-              {helpPending ? "Đang gửi..." : "Cần hỗ trợ"}
+              {helpPending ? t.sending : t.needHelp}
             </Button>
           ) : null}
         </div>
@@ -523,7 +658,7 @@ function OrderControls({
         <div className="mt-3">
           <Button variant="secondary" onClick={onOpenRefund}>
             <RotateCcw className="h-4 w-4" aria-hidden />
-            Hoàn tiền
+            {t.refund}
           </Button>
         </div>
       ) : null}
@@ -532,7 +667,7 @@ function OrderControls({
         <div className="mt-4 border-t border-border pt-3">
           <Button variant="ghost" size="sm" className="text-danger hover:text-danger" onClick={onOpenCancel}>
             <Ban className="h-4 w-4" aria-hidden />
-            Hủy đơn...
+            {t.cancelOrder}
           </Button>
         </div>
       ) : null}
@@ -559,6 +694,7 @@ function ConfirmStatusDialog({
   onClose: () => void;
   onConfirm: (note?: string) => void;
 }) {
+  const t = usePick(STR);
   const [note, setNote] = useState("");
   const isComplete = mode === "complete";
 
@@ -573,36 +709,37 @@ function ConfirmStatusDialog({
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>{isComplete ? "Hoàn thành đơn" : "Hoàn tiền đơn"}</DialogTitle>
+          <DialogTitle>{isComplete ? t.completeTitle : t.refundTitle}</DialogTitle>
           <DialogDescription>
             {isComplete ? (
               <>
-                Xác nhận đơn <span className="font-mono font-semibold text-text">{orderCode}</span>{" "}
-                đã giao xong cho khách?
+                {t.completeDescPre}{" "}
+                <span className="font-mono font-semibold text-text">{orderCode}</span>{" "}
+                {t.completeDescPost}
               </>
             ) : (
               <>
-                Đơn <span className="font-mono font-semibold text-text">{orderCode}</span> sẽ chuyển
-                sang “Đã hoàn tiền”. Nhớ chuyển tiền lại cho khách trước nhé.
+                {t.refundDescPre} <span className="font-mono font-semibold text-text">{orderCode}</span>{" "}
+                {t.refundDescPost}
               </>
             )}
           </DialogDescription>
         </DialogHeader>
 
         <div>
-          <Label htmlFor="status-note">Ghi chú (tùy chọn)</Label>
+          <Label htmlFor="status-note">{t.statusNoteLabel}</Label>
           <Input
             id="status-note"
             value={note}
             onChange={(event) => setNote(event.target.value)}
-            placeholder={isComplete ? "VD: đã giao đủ item, khách xác nhận OK" : "VD: hoàn 100% qua MoMo"}
+            placeholder={isComplete ? t.completeNotePlaceholder : t.refundNotePlaceholder}
             maxLength={300}
           />
         </div>
 
         <div className="mt-5 flex justify-end gap-2">
           <Button variant="ghost" onClick={() => handleOpenChange(false)}>
-            Đóng
+            {t.close}
           </Button>
           <Button
             variant={isComplete ? "gold" : "primary"}
@@ -614,7 +751,7 @@ function ConfirmStatusDialog({
             ) : (
               <RotateCcw className="h-4 w-4" aria-hidden />
             )}
-            {pending ? "Đang xử lý..." : isComplete ? "Hoàn thành" : "Hoàn tiền"}
+            {pending ? t.processing : isComplete ? t.complete : t.refund}
           </Button>
         </div>
       </DialogContent>
@@ -626,24 +763,25 @@ function ConfirmStatusDialog({
 // Timeline
 // ---------------------------------------------------------------------------
 
-const EVENT_META: Record<OrderEventRow["event_type"], { label: string; icon: LucideIcon }> = {
-  created: { label: "Tạo đơn", icon: PlusCircle },
-  payment_confirmed: { label: "Xác nhận đã nhận tiền", icon: BadgeDollarSign },
-  assigned: { label: "Giao đơn cho CTV", icon: UserCheck },
-  status_changed: { label: "Đổi trạng thái", icon: RefreshCw },
-  note: { label: "Ghi chú", icon: StickyNote },
-  cancelled: { label: "Hủy đơn", icon: Ban },
-  refunded: { label: "Hoàn tiền", icon: RotateCcw },
+const EVENT_ICON: Record<OrderEventRow["event_type"], LucideIcon> = {
+  created: PlusCircle,
+  payment_confirmed: BadgeDollarSign,
+  assigned: UserCheck,
+  status_changed: RefreshCw,
+  note: StickyNote,
+  cancelled: Ban,
+  refunded: RotateCcw,
 };
 
 function TimelineItem({ event }: { event: OrderEventRow }) {
-  const meta = EVENT_META[event.event_type];
-  const Icon = meta.icon;
+  const t = usePick(STR);
+  const s = useT();
+  const Icon = EVENT_ICON[event.event_type];
 
-  // Nếu meta.to là trạng thái hợp lệ, hiện nhãn tiếng Việt của trạng thái đích.
+  // Nếu meta.to là trạng thái hợp lệ, hiện nhãn của trạng thái đích (theo ngôn ngữ).
   const toStatus =
     event.meta && typeof event.meta.to === "string" && event.meta.to in WORK_STATUS_META
-      ? WORK_STATUS_META[event.meta.to as DbOrderStatus].label
+      ? s.status[event.meta.to as DbOrderStatus]
       : null;
 
   return (
@@ -660,7 +798,7 @@ function TimelineItem({ event }: { event: OrderEventRow }) {
       </span>
       <div className="min-w-0 flex-1">
         <p className="text-sm font-semibold text-text">
-          {meta.label}
+          {t.event[event.event_type]}
           {toStatus ? <span className="font-normal text-text-muted"> → {toStatus}</span> : null}
         </p>
         {event.note ? <p className="mt-0.5 text-sm text-text-muted">{event.note}</p> : null}
