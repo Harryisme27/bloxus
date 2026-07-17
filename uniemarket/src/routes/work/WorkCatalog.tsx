@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CategoriesTab } from "@/components/work-admin/CategoriesTab";
 import { ProductsTab } from "@/components/work-admin/ProductsTab";
@@ -51,13 +52,14 @@ export function WorkCatalog() {
         </TabsContent>
       </Tabs>
 
-      {editing ? (
-        <div className="fixed inset-0 z-50 overflow-y-auto bg-bg/95 backdrop-blur-sm">
-          <div className="mx-auto max-w-3xl px-4 py-8">
+      {/* Editor sản phẩm trong Dialog — cùng phong cách với dialog danh mục. */}
+      <Dialog open={editing !== null} onOpenChange={(open) => !open && setEditing(null)}>
+        <DialogContent className="max-h-[85vh] max-w-2xl overflow-y-auto">
+          {editing ? (
             <WorkProductEditor product={editing.product} onClose={() => setEditing(null)} />
-          </div>
-        </div>
-      ) : null}
+          ) : null}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

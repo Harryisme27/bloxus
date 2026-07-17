@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { ArrowLeft, ImagePlus, Loader2, Star, X } from "lucide-react";
+import { ImagePlus, Loader2, Star, X } from "lucide-react";
+import { DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -38,6 +39,7 @@ const STR = {
     back: "Quay lại",
     editTitle: "Sửa sản phẩm",
     addTitle: "Thêm sản phẩm",
+    dialogDesc: "Sản phẩm/dịch vụ hiển thị trên cửa hàng — điền thông tin, giá và ảnh.",
     cancel: "Hủy",
     saving: "Đang lưu…",
     save: "Lưu sản phẩm",
@@ -100,6 +102,7 @@ const STR = {
     back: "Back",
     editTitle: "Edit product",
     addTitle: "Add product",
+    dialogDesc: "Products/services shown in the store — fill in details, price, and images.",
     cancel: "Cancel",
     saving: "Saving…",
     save: "Save product",
@@ -315,28 +318,13 @@ export function WorkProductEditor({ product, onClose }: WorkProductEditorProps) 
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-2">
-          <Button variant="ghost" size="sm" onClick={onClose}>
-            <ArrowLeft className="h-4 w-4" aria-hidden />
-            {t.back}
-          </Button>
-          <h1 className="font-heading text-2xl font-bold text-text">
-            {product ? t.editTitle : t.addTitle}
-          </h1>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button variant="secondary" onClick={onClose} disabled={saveMutation.isPending}>
-            {t.cancel}
-          </Button>
-          <Button onClick={handleSave} disabled={saveMutation.isPending || uploading}>
-            {saveMutation.isPending ? t.saving : t.save}
-          </Button>
-        </div>
-      </div>
+    <div>
+      <DialogHeader>
+        <DialogTitle>{product ? t.editTitle : t.addTitle}</DialogTitle>
+        <DialogDescription>{t.dialogDesc}</DialogDescription>
+      </DialogHeader>
 
-      <div className="grid gap-6 xl:grid-cols-[1fr_340px]">
+      <div className="mt-4 space-y-5">
         {/* Cột chính */}
         <div className="min-w-0 space-y-6">
           <Card>
@@ -619,6 +607,15 @@ export function WorkProductEditor({ product, onClose }: WorkProductEditorProps) 
             </CardContent>
           </Card>
         </div>
+      </div>
+
+      <div className="mt-6 flex justify-end gap-2">
+        <Button variant="secondary" onClick={onClose} disabled={saveMutation.isPending}>
+          {t.cancel}
+        </Button>
+        <Button onClick={handleSave} disabled={saveMutation.isPending || uploading}>
+          {saveMutation.isPending ? t.saving : t.save}
+        </Button>
       </div>
     </div>
   );
