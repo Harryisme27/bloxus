@@ -21,6 +21,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { listApplications, approveCtv } from "@/lib/db/applications";
 import { listStaff, setUserRole, listCtvCategories, setCtvCategories, requestRoleGrant, listRoleRequests, reviewRoleGrant } from "@/lib/db/profiles";
 import { listCategories } from "@/lib/db/catalog";
+import { getSettings, updateSetting } from "@/lib/db/settings";
+import { PERMISSIONS } from "@/lib/usePermissions";
 import { relativeTime } from "@/lib/format";
 import type { CtvApplicationRow, ProfileRow, RoleRequestRow, UserRole } from "@/types/db";
 import { usePick, useLangStore } from "@/i18n";
@@ -95,6 +97,19 @@ const STR = {
     reviewedBy: (name: string) => `Duyệt bởi ${name}`,
     proposedBy: "Đề xuất",
     noStaff: "Chưa có nhân sự nào.",
+    tabPerms: "Phân quyền",
+    permsHint:
+      "Bật/tắt quyền cho từng vai trò. Admin luôn có mọi quyền. Thay đổi áp dụng ngay sau khi Lưu.",
+    permsSaved: "Đã lưu phân quyền.",
+    savePerms: "Lưu phân quyền",
+    permName: {
+      manage_catalog: "Quản lý danh mục & sản phẩm",
+      manage_ctv: "Quản lý vai trò (phân danh mục CTV)",
+      assign_orders: "Giao đơn cho CTV",
+      confirm_payment: "Xác nhận thanh toán",
+      resolve_refund: "Duyệt hoàn tiền",
+      claim_orders: "Tự nhận đơn",
+    } as Record<string, string>,
   },
   en: {
     title: "Collaborators",
@@ -160,6 +175,19 @@ const STR = {
     reviewedBy: (name: string) => `Reviewed by ${name}`,
     proposedBy: "Proposed",
     noStaff: "No staff members yet.",
+    tabPerms: "Permissions",
+    permsHint:
+      "Toggle what each role can do. Admin always has everything. Changes apply right after you save.",
+    permsSaved: "Permissions saved.",
+    savePerms: "Save permissions",
+    permName: {
+      manage_catalog: "Manage categories & products",
+      manage_ctv: "Manage roles (assign CTV categories)",
+      assign_orders: "Assign orders to CTV",
+      confirm_payment: "Confirm payment",
+      resolve_refund: "Approve refunds",
+      claim_orders: "Claim orders",
+    } as Record<string, string>,
   },
 };
 
@@ -181,6 +209,7 @@ export function WorkCtv() {
           <TabsTrigger value="grant">{t.tabGrant}</TabsTrigger>
           <TabsTrigger value="list">{t.tabList}</TabsTrigger>
           <TabsTrigger value="applications">{t.tabApplications}</TabsTrigger>
+          {isAdmin ? <TabsTrigger value="perms">{t.tabPerms}</TabsTrigger> : null}
         </TabsList>
         <TabsContent value="grant" className="pt-5">
           <ManualRoleTab isAdmin={isAdmin} />
@@ -191,6 +220,11 @@ export function WorkCtv() {
         <TabsContent value="applications" className="pt-5">
           <ApplicationsTab isAdmin={isAdmin} />
         </TabsContent>
+        {isAdmin ? (
+          <TabsContent value="perms" className="pt-5">
+            <PermissionsTab />
+          </TabsContent>
+        ) : null}
       </Tabs>
     </div>
   );
@@ -617,6 +651,78 @@ function RoleListTab() {
       </div>
       <CategoryAssignDialog ctv={managing} onClose={() => setManaging(null)} />
     </>
+  );
+}
+
+/** Ma trận phân quyền: hàng = quyền, cột = Manager / CTV. Admin luôn full. */
+function PermissionsTab() {
+  const queryClient = useQueryClient();
+  const t = usePick(STR);
+  const lang = useLangStore((state) => state.lang);
+  const roleLabels = ROLE_LABELS[lang];
+  const ROLES = ["manager", "ctv"] as const;
+
+  const query = useQuery({ queryKey: ["settings"], queryFn: getSettings });
+  const [perms, setPerms] = useState<Record<string, Record<string, boolean>>>({});
+
+  useEffect(() => {
+    const raw = query.data?.role_permissions as Record<string, Record<string, boolean>> | undefined;
+    setPerms(raw ?? {});
+  }, [query.data]);
+
+  const saveMutation = useMutation({
+    mutationFn: () => updateSetting("role_permissions", perms),
+    onSuccess: () => {
+      toast.success(t.permsSaved);
+      void queryClient.invalidateQueries({ queryKey: ["settings"] });
+    },
+    onError: (err) => toast.error(err instanceof Error ? err.message : t.actionFail),
+  });
+
+  const toggle = (role: string, perm: string, val: boolean) =>
+    setPerms((prev) => ({ ...prev, [role]: { ...(prev[role] ?? {}), [perm]: val } }));
+
+  if (query.isPending) return <Skeleton className="h-64 rounded-2xl" />;
+
+  return (
+    <div className="max-w-2xl space-y-4">
+      <p className="text-sm text-text-muted">{t.permsHint}</p>
+      <div className="overflow-hidden rounded-2xl border border-border">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b border-border bg-surface-2 text-left text-xs font-semibold uppercase tracking-wider text-text-subtle">
+              <th className="px-4 py-3">Quyền</th>
+              {ROLES.map((r) => (
+                <th key={r} className="px-4 py-3 text-center">
+                  {roleLabels[r]}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {PERMISSIONS.map((perm) => (
+              <tr key={perm} className="border-b border-border last:border-0">
+                <td className="px-4 py-3 text-text">{t.permName[perm] ?? perm}</td>
+                {ROLES.map((r) => (
+                  <td key={r} className="px-4 py-3 text-center">
+                    <input
+                      type="checkbox"
+                      checked={Boolean(perms[r]?.[perm])}
+                      onChange={(e) => toggle(r, perm, e.target.checked)}
+                      aria-label={`${roleLabels[r]} — ${t.permName[perm] ?? perm}`}
+                      className="h-4 w-4 accent-yellow"
+                    />
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <Button onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending}>
+        {saveMutation.isPending ? t.saving : t.savePerms}
+      </Button>
+    </div>
   );
 }
 

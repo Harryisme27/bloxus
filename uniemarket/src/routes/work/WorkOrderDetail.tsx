@@ -54,6 +54,7 @@ import { orderDisplayStatus } from "@/types/db";
 import type { DbOrderStatus, OrderDisplayStatus, OrderEventRow, OrderWithItems } from "@/types/db";
 import { cn } from "@/lib/utils";
 import { usePick, useT, useLangStore } from "@/i18n";
+import { usePermissions } from "@/lib/usePermissions";
 import { translateOrderNote } from "@/lib/orderEventNote";
 
 const STR = {
@@ -220,8 +221,9 @@ function OrderDetailView({
   const queryClient = useQueryClient();
   const t = usePick(STR);
   const lang = useLangStore((state) => state.lang);
+  const { can } = usePermissions();
   const isAdmin = role === "admin";
-  const canAssign = role === "admin" || role === "manager";
+  const canAssign = isAdmin || can("assign_orders");
 
   const [paymentRef, setPaymentRef] = useState("");
   const [assignOpen, setAssignOpen] = useState(false);

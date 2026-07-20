@@ -12,6 +12,7 @@ import {
 import { PageContainer } from "@/components/PageContainer";
 import { Badge } from "@/components/ui/badge";
 import { useAuthStore } from "@/store/authStore";
+import { usePermissions, type Permission } from "@/lib/usePermissions";
 import { cn } from "@/lib/utils";
 import { usePick } from "@/i18n";
 
@@ -50,15 +51,17 @@ interface WorkNavItem {
   icon: LucideIcon;
   /** Các vai trò thấy mục này. */
   roles: Array<"admin" | "manager" | "ctv">;
+  /** Quyền tuỳ chọn cần có (admin bỏ qua). Nếu manager/ctv bị tắt quyền -> ẩn. */
+  perm?: Permission;
   end?: boolean;
 }
 
 const NAV_ITEMS: WorkNavItem[] = [
   { to: "/work", key: "dashboard", icon: LayoutDashboard, roles: ["admin", "manager", "ctv"], end: true },
   { to: "/work/orders", key: "orders", icon: Receipt, roles: ["admin", "manager", "ctv"] },
-  { to: "/work/payments", key: "payments", icon: BadgeDollarSign, roles: ["admin", "manager"] },
-  { to: "/work/catalog", key: "catalog", icon: PackageSearch, roles: ["admin", "manager"] },
-  { to: "/work/ctv", key: "ctv", icon: Users, roles: ["admin", "manager"] },
+  { to: "/work/payments", key: "payments", icon: BadgeDollarSign, roles: ["admin", "manager"], perm: "confirm_payment" },
+  { to: "/work/catalog", key: "catalog", icon: PackageSearch, roles: ["admin", "manager"], perm: "manage_catalog" },
+  { to: "/work/ctv", key: "ctv", icon: Users, roles: ["admin", "manager"], perm: "manage_ctv" },
   { to: "/work/chat", key: "chat", icon: MessagesSquare, roles: ["admin", "manager", "ctv"] },
   { to: "/work/settings", key: "settings", icon: Settings, roles: ["admin"] },
 ];
@@ -72,11 +75,14 @@ export function WorkLayout() {
   const t = usePick(STR);
   const { pathname } = useLocation();
   const role = user?.role;
-  const items = NAV_ITEMS.filter(
-    (item) => role === "admin" || role === "manager" || role === "ctv"
-      ? item.roles.includes(role as "admin" | "manager" | "ctv")
-      : false,
-  );
+  const { can } = usePermissions();
+  const items = NAV_ITEMS.filter((item) => {
+    if (role !== "admin" && role !== "manager" && role !== "ctv") return false;
+    if (!item.roles.includes(role)) return false;
+    // Admin thấy hết; manager/ctv cần quyền tương ứng (nếu có).
+    if (role !== "admin" && item.perm && !can(item.perm)) return false;
+    return true;
+  });
 
   return (
     <PageContainer className="py-8 sm:py-10">
