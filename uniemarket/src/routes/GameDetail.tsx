@@ -12,6 +12,7 @@ import { ItemFilters, type KindFilter, type SortKey } from "@/components/storefr
 import { SetupNotice } from "@/components/SetupNotice";
 import { isSupabaseConfigured } from "@/lib/supabase";
 import { getCategoryBySlug, listProducts } from "@/lib/db/catalog";
+import type { ProductRow } from "@/types/db";
 import { usePick } from "@/i18n";
 
 const STR = {
@@ -33,6 +34,8 @@ const STR = {
     clearFilters: "Xoá bộ lọc",
     allSections: "Tất cả",
     otherSection: "Khác",
+    featuredCol: "Nổi bật",
+    itemsCol: "Sản phẩm khác",
   },
   en: {
     home: "Home",
@@ -51,6 +54,8 @@ const STR = {
     clearFilters: "Clear filters",
     allSections: "All",
     otherSection: "Other",
+    featuredCol: "Featured",
+    itemsCol: "Other items",
   },
 };
 
@@ -363,11 +368,14 @@ export function GameDetail() {
                 ))}
               </div>
             ) : (
-              <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
-                {filtered.map((product) => (
-                  <ProductCard key={product.id} product={product} />
-                ))}
-              </div>
+              <ProductColumns
+                featured={filtered.filter((p) => p.is_featured)}
+                others={filtered.filter((p) => !p.is_featured)}
+                accent={accent}
+                featuredLabel={t.featuredCol}
+                othersLabel={t.itemsCol}
+                countLabel={t.products}
+              />
             )}
           </>
         ) : (
@@ -384,5 +392,69 @@ export function GameDetail() {
         )}
       </PageContainer>
     </div>
+  );
+}
+
+/** 2 cột: Nổi bật (trái) + Sản phẩm khác (phải). Nếu thiếu 1 nhóm -> lưới đầy đủ. */
+function ProductColumns({
+  featured,
+  others,
+  accent,
+  featuredLabel,
+  othersLabel,
+  countLabel,
+}: {
+  featured: ProductRow[];
+  others: ProductRow[];
+  accent: string;
+  featuredLabel: string;
+  othersLabel: string;
+  countLabel: string;
+}) {
+  // Chỉ 1 nhóm có hàng -> lưới thường (không cần chia cột).
+  if (featured.length === 0 || others.length === 0) {
+    const all = featured.length > 0 ? featured : others;
+    return (
+      <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
+        {all.map((p) => (
+          <ProductCard key={p.id} product={p} />
+        ))}
+      </div>
+    );
+  }
+  return (
+    <div className="grid gap-8 lg:grid-cols-2">
+      <ProductColumn title={featuredLabel} accent={accent} items={featured} countLabel={countLabel} />
+      <ProductColumn title={othersLabel} accent={accent} items={others} countLabel={countLabel} />
+    </div>
+  );
+}
+
+function ProductColumn({
+  title,
+  accent,
+  items,
+  countLabel,
+}: {
+  title: string;
+  accent: string;
+  items: ProductRow[];
+  countLabel: string;
+}) {
+  return (
+    <section>
+      <div className="mb-4 flex items-center gap-3">
+        <span className="h-6 w-1.5 rounded-full" style={{ backgroundColor: accent }} aria-hidden />
+        <h2 className="font-heading text-xl font-bold text-text">{title}</h2>
+        <span className="text-sm text-text-subtle">
+          {items.length} {countLabel}
+        </span>
+      </div>
+      <div className="grid grid-cols-2 gap-4">
+        {items.map((p) => (
+          <ProductCard key={p.id} product={p} />
+        ))}
+      </div>
+    </section>
   );
 }

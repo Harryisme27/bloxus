@@ -12,7 +12,7 @@ import { usePick } from "@/i18n";
 const STR = {
   vi: {
     eyebrow: "Danh mục",
-    title: "Trò chơi nổi bật",
+    title: "Trò chơi",
     description: "Chọn trò chơi để xem toàn bộ vật phẩm và dịch vụ đang bán.",
     viewAll: "Xem tất cả",
     loadError: "Không tải được danh mục. Vui lòng thử lại.",
@@ -21,7 +21,7 @@ const STR = {
   },
   en: {
     eyebrow: "Categories",
-    title: "Featured games",
+    title: "Games",
     description: "Pick a game to see all the items and services on sale.",
     viewAll: "View all",
     loadError: "Couldn't load categories. Please try again.",
@@ -38,8 +38,10 @@ export function FeaturedGames() {
     queryFn: () => listCategories({ activeOnly: true }),
   });
 
-  const featured = (data ?? []).filter((c) => c.is_featured);
-  const categories = (featured.length > 0 ? featured : data ?? []).slice(0, 8);
+  // Hiện TẤT CẢ game đang bán (nổi bật lên đầu) — không ẩn sau "Xem tất cả".
+  const categories = [...(data ?? [])].sort(
+    (a, b) => Number(b.is_featured) - Number(a.is_featured),
+  );
 
   return (
     <PageContainer className="py-14">
