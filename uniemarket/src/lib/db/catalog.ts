@@ -123,6 +123,23 @@ export async function upsertProduct(input: ProductUpsert): Promise<ProductRow> {
   return data as ProductRow;
 }
 
+/** Nội dung giao bí mật của sản phẩm (admin/manager). null nếu chưa đặt. */
+export async function getProductSecret(productId: string): Promise<string> {
+  const sb = requireSupabase();
+  const { data, error } = await sb.rpc("get_product_secret", { p_product_id: productId });
+  if (error) throw new Error(error.message);
+  return (data as string | null) ?? "";
+}
+
+export async function setProductSecret(productId: string, content: string): Promise<void> {
+  const sb = requireSupabase();
+  const { error } = await sb.rpc("set_product_secret", {
+    p_product_id: productId,
+    p_content: content,
+  });
+  if (error) throw new Error(error.message);
+}
+
 export async function setProductActive(id: string, isActive: boolean): Promise<void> {
   const sb = requireSupabase();
   const { error } = await sb.from("products").update({ is_active: isActive }).eq("id", id);

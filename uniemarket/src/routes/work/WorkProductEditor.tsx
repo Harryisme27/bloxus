@@ -9,7 +9,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
-import { listCategories, uploadProductImage, upsertProduct } from "@/lib/db/catalog";
+import {
+  listCategories,
+  uploadProductImage,
+  upsertProduct,
+  getProductSecret,
+  setProductSecret,
+} from "@/lib/db/catalog";
 import type { ProductKind, ProductRow, ProductUpsert, ServiceOptions } from "@/types/db";
 import { cn } from "@/lib/utils";
 import { AdminTextarea } from "@/components/work-admin/Textarea";
@@ -53,6 +59,13 @@ const STR = {
     kindLabel: "Loại sản phẩm *",
     item: "Vật phẩm",
     service: "Dịch vụ",
+    account: "Tài khoản",
+    instantLabel: "Giao ngay",
+    instantHint:
+      "Khi bật, đơn tự hoàn tất ngay khi xác nhận thanh toán và trả nội dung giao cho khách.",
+    contentLabel: "Nội dung giao (khách thấy sau khi thanh toán)",
+    contentHint:
+      "Tài khoản / mã / hướng dẫn nhận hàng. Bí mật — chỉ hiện trong đơn của khách sau khi thanh toán.",
     nameLabel: "Tên sản phẩm *",
     namePlaceholder: "VD: Kéo rank Vàng lên Kim Cương",
     slugLabel: "Slug (đường dẫn) *",
@@ -119,6 +132,13 @@ const STR = {
     kindLabel: "Product type *",
     item: "Item",
     service: "Service",
+    account: "Account",
+    instantLabel: "Instant delivery",
+    instantHint:
+      "When on, the order auto-completes as soon as payment is confirmed and the delivery content is handed to the buyer.",
+    contentLabel: "Delivery content (buyer sees after payment)",
+    contentHint:
+      "Account / code / redemption instructions. Secret — only shown inside the buyer's order after payment.",
     nameLabel: "Product name *",
     namePlaceholder: "e.g. Gold to Diamond rank boost",
     slugLabel: "Slug (URL path) *",
@@ -177,6 +197,8 @@ interface ProductFormState {
   section: string;
   stockText: string;
   delivery_time_text: string;
+  instant_delivery: boolean;
+  deliveryContent: string;
   tags: string;
   is_featured: boolean;
   is_active: boolean;
@@ -206,6 +228,8 @@ export function WorkProductEditor({ product, onClose }: WorkProductEditorProps) 
     section: product?.section ?? "",
     stockText: product?.stock == null ? "" : String(product.stock),
     delivery_time_text: product?.delivery_time_text ?? "",
+    instant_delivery: product?.instant_delivery ?? false,
+    deliveryContent: "",
     tags: (product?.tags ?? []).join(", "),
     is_featured: product?.is_featured ?? false,
     is_active: product?.is_active ?? true,
@@ -231,11 +255,28 @@ export function WorkProductEditor({ product, onClose }: WorkProductEditorProps) 
     }
   }, [categories]);
 
+  // Nạp nội dung giao bí mật khi sửa sản phẩm sẵn có.
+  const secretQuery = useQuery({
+    queryKey: ["product-secret", product?.id],
+    queryFn: () => getProductSecret(product!.id),
+    enabled: Boolean(product?.id),
+  });
+  useEffect(() => {
+    if (secretQuery.data !== undefined) {
+      setForm((prev) => ({ ...prev, deliveryContent: secretQuery.data ?? "" }));
+    }
+  }, [secretQuery.data]);
+
   const saveMutation = useMutation({
-    mutationFn: (input: ProductUpsert) => upsertProduct(input),
+    mutationFn: async ({ input, secret }: { input: ProductUpsert; secret: string | null }) => {
+      const saved = await upsertProduct(input);
+      if (secret !== null) await setProductSecret(saved.id, secret);
+      return saved;
+    },
     onSuccess: () => {
       toast.success(product ? t.updated : t.created);
       queryClient.invalidateQueries({ queryKey: ["products"] });
+      queryClient.invalidateQueries({ queryKey: ["product-secret", product?.id] });
       onClose();
     },
     onError: (err) => toast.error(err.message),
@@ -294,8 +335,9 @@ export function WorkProductEditor({ product, onClose }: WorkProductEditorProps) 
       serviceOptions = built.options;
     }
 
+    const hasStock = form.kind === "item" || form.kind === "account";
     let stock: number | null = null;
-    if (form.kind === "item" && form.stockText.trim() !== "") {
+    if (hasStock && form.stockText.trim() !== "") {
       const parsed = Number(form.stockText);
       if (!Number.isFinite(parsed) || parsed < 0) {
         toast.error(t.stockNonNeg);
@@ -303,26 +345,32 @@ export function WorkProductEditor({ product, onClose }: WorkProductEditorProps) 
       }
       stock = Math.floor(parsed);
     }
+    const instant = hasStock && form.instant_delivery;
 
     saveMutation.mutate({
-      id: product?.id,
-      category_id: form.category_id,
-      slug,
-      kind: form.kind,
-      name,
-      description: form.description.trim() || null,
-      price: form.price,
-      original_price: form.original_price,
-      rarity: form.rarity.trim() || null,
-      section: form.section.trim() || null,
-      stock,
-      images,
-      delivery_time_text: form.delivery_time_text.trim() || null,
-      service_options: serviceOptions,
-      tags: parseTags(form.tags),
-      is_featured: form.is_featured,
-      is_active: form.is_active,
-      sort_order: form.sort_order,
+      // Nội dung giao lưu riêng ở product_secrets (chỉ khi item/account).
+      secret: hasStock ? form.deliveryContent.trim() : null,
+      input: {
+        id: product?.id,
+        category_id: form.category_id,
+        slug,
+        kind: form.kind,
+        name,
+        description: form.description.trim() || null,
+        price: form.price,
+        original_price: form.original_price,
+        rarity: form.rarity.trim() || null,
+        section: form.section.trim() || null,
+        stock,
+        images,
+        delivery_time_text: form.delivery_time_text.trim() || null,
+        instant_delivery: instant,
+        service_options: serviceOptions,
+        tags: parseTags(form.tags),
+        is_featured: form.is_featured,
+        is_active: form.is_active,
+        sort_order: form.sort_order,
+      },
     });
   }
 
@@ -361,20 +409,20 @@ export function WorkProductEditor({ product, onClose }: WorkProductEditorProps) 
                 </div>
                 <div>
                   <Label>{t.kindLabel}</Label>
-                  <div className="grid grid-cols-2 gap-2">
-                    {(["item", "service"] as const).map((kind) => (
+                  <div className="grid grid-cols-3 gap-2">
+                    {(["item", "service", "account"] as const).map((kind) => (
                       <button
                         key={kind}
                         type="button"
                         onClick={() => set("kind", kind)}
                         className={cn(
-                          "h-10 rounded-lg border px-3 text-sm font-medium transition-colors",
+                          "h-10 rounded-lg border px-2 text-sm font-medium transition-colors",
                           form.kind === kind
                             ? "border-yellow bg-yellow-soft text-yellow"
                             : "border-border-strong text-text-muted hover:bg-surface-2 hover:text-text",
                         )}
                       >
-                        {kind === "item" ? t.item : t.service}
+                        {kind === "item" ? t.item : kind === "service" ? t.service : t.account}
                       </button>
                     ))}
                   </div>
@@ -564,18 +612,47 @@ export function WorkProductEditor({ product, onClose }: WorkProductEditorProps) 
                   onChange={(price) => set("original_price", price)}
                 />
               </div>
-              {form.kind === "item" ? (
-                <div>
-                  <Label htmlFor="prod-stock">{t.stockLabel}</Label>
-                  <Input
-                    id="prod-stock"
-                    type="number"
-                    min={0}
-                    value={form.stockText}
-                    placeholder={t.stockPlaceholder}
-                    onChange={(e) => set("stockText", e.target.value)}
-                  />
-                </div>
+              {form.kind === "item" || form.kind === "account" ? (
+                <>
+                  <div>
+                    <Label htmlFor="prod-stock">{t.stockLabel}</Label>
+                    <Input
+                      id="prod-stock"
+                      type="number"
+                      min={0}
+                      value={form.stockText}
+                      placeholder={t.stockPlaceholder}
+                      onChange={(e) => set("stockText", e.target.value)}
+                    />
+                  </div>
+
+                  {/* Giao ngay + nội dung giao bí mật */}
+                  <div className="rounded-xl border border-border bg-surface-2 p-3">
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium text-text">{t.instantLabel}</p>
+                        <p className="mt-0.5 text-xs text-text-subtle">{t.instantHint}</p>
+                      </div>
+                      <Toggle
+                        checked={form.instant_delivery}
+                        onCheckedChange={(v) => set("instant_delivery", v)}
+                        label={t.instantLabel}
+                      />
+                    </div>
+                    {form.instant_delivery ? (
+                      <div className="mt-3">
+                        <Label htmlFor="prod-content">{t.contentLabel}</Label>
+                        <AdminTextarea
+                          id="prod-content"
+                          value={form.deliveryContent}
+                          placeholder="account: user / pass..."
+                          onChange={(e) => set("deliveryContent", e.target.value)}
+                        />
+                        <p className="mt-1 text-xs text-text-subtle">{t.contentHint}</p>
+                      </div>
+                    ) : null}
+                  </div>
+                </>
               ) : null}
               <div>
                 <Label htmlFor="prod-delivery">{t.deliveryLabel}</Label>

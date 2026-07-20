@@ -69,6 +69,8 @@ const STR = {
     deliveredBody: "Vui lòng kiểm tra và xác nhận bạn đã nhận đúng hàng để hoàn tất đơn.",
     completedTitle: "Đơn hàng đã hoàn thành",
     completedBody: "Cảm ơn bạn! Đơn đã được ghi vào Minh chứng.",
+    deliveryContentTitle: "Nội dung giao của bạn",
+    deliveryContentHint: "Nội dung này chỉ mình bạn thấy. Hãy lưu lại ngay.",
     viewProofs: "Xem Minh chứng",
     payInstrTitle: "Hướng dẫn thanh toán",
     payInstrPrefix: "Chuyển đúng số tiền và ghi ",
@@ -127,6 +129,8 @@ const STR = {
     deliveredBody: "Please check and confirm you received the correct items to complete the order.",
     completedTitle: "Order completed",
     completedBody: "Thank you! This order has been added to Proofs.",
+    deliveryContentTitle: "Your delivered content",
+    deliveryContentHint: "Only you can see this. Save it now.",
     viewProofs: "View Proofs",
     payInstrTitle: "Payment instructions",
     payInstrPrefix: "Transfer the exact amount and put the ",
@@ -373,6 +377,19 @@ function OrderDetailContent() {
                   </Link>
                 </div>
               </div>
+            </div>
+          ) : null}
+
+          {/* Nội dung giao ngay (instant delivery) — chỉ khách thấy */}
+          {order.delivery_content ? (
+            <div className="rounded-2xl border border-yellow bg-yellow-soft p-5">
+              <p className="font-heading text-base font-semibold text-text">
+                {t.deliveryContentTitle}
+              </p>
+              <pre className="mt-2 whitespace-pre-wrap break-words rounded-lg border border-border bg-surface px-3 py-2.5 font-mono text-sm text-text">
+                {order.delivery_content}
+              </pre>
+              <p className="mt-1.5 text-xs text-text-subtle">{t.deliveryContentHint}</p>
             </div>
           ) : null}
 

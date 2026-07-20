@@ -23,7 +23,7 @@ export interface RoleRequestRow {
   created_at: string;
   reviewed_at: string | null;
 }
-export type ProductKind = "item" | "service";
+export type ProductKind = "item" | "service" | "account";
 export type DbOrderStatus =
   | "pending_payment"
   | "paid"
@@ -134,6 +134,8 @@ export interface ProductRow {
   /** Khu vực trong danh mục (khớp categories.sections). null = chưa phân khu. */
   section: string | null;
   delivery_time_text: string | null;
+  /** true = giao ngay khi xác nhận thanh toán (item/account). */
+  instant_delivery: boolean;
   service_options: ServiceOptions | null;
   tags: string[];
   is_featured: boolean;
@@ -175,6 +177,8 @@ export interface OrderRow {
   delivered_at: string | null;
   delivery_note: string | null;
   delivery_proof_images: string[];
+  /** Nội dung giao ngay (tài khoản/mã…) — chỉ có khi đơn instant delivery đã giao. */
+  delivery_content: string | null;
   buyer_confirmed_at: string | null;
   // Luồng hoàn tiền (07-refund-realtime.sql):
   refund_requested_at: string | null;
