@@ -128,7 +128,7 @@ interface CategoryFormState {
   is_active: boolean;
 }
 
-function initForm(category: CategoryRow | null): CategoryFormState {
+function initForm(category: CategoryRow | null, defaultFolderId?: string | null): CategoryFormState {
   return {
     name: category?.name ?? "",
     slug: category?.slug ?? "",
@@ -136,7 +136,8 @@ function initForm(category: CategoryRow | null): CategoryFormState {
     description: category?.description ?? "",
     accent_color: category?.accent_color ?? "",
     icon_url: category?.icon_url ?? "",
-    folder_id: category?.folder_id ?? "",
+    // Tạo mới trong 1 folder -> tự chọn folder đó.
+    folder_id: category?.folder_id ?? defaultFolderId ?? "",
     sectionsText: (category?.sections ?? []).join(", "),
     contact_field_label: category?.contact_field_label ?? "",
     contact_field_placeholder: category?.contact_field_placeholder ?? "",
@@ -151,14 +152,16 @@ export interface CategoryDialogProps {
   onOpenChange: (open: boolean) => void;
   /** null = tạo mới. */
   category: CategoryRow | null;
+  /** Khi tạo mới trong 1 folder — folder mặc định. */
+  defaultFolderId?: string | null;
 }
 
 /** Dialog tạo/sửa danh mục — lưu qua upsertCategory, invalidate ['categories']. */
-export function CategoryDialog({ open, onOpenChange, category }: CategoryDialogProps) {
+export function CategoryDialog({ open, onOpenChange, category, defaultFolderId }: CategoryDialogProps) {
   const queryClient = useQueryClient();
   const t = usePick(STR);
   const lang = useLangStore((s) => s.lang);
-  const [form, setForm] = useState<CategoryFormState>(() => initForm(category));
+  const [form, setForm] = useState<CategoryFormState>(() => initForm(category, defaultFolderId));
   const [slugTouched, setSlugTouched] = useState(Boolean(category));
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -166,10 +169,10 @@ export function CategoryDialog({ open, onOpenChange, category }: CategoryDialogP
 
   useEffect(() => {
     if (open) {
-      setForm(initForm(category));
+      setForm(initForm(category, defaultFolderId));
       setSlugTouched(Boolean(category));
     }
-  }, [open, category]);
+  }, [open, category, defaultFolderId]);
 
   async function handleImage(files: FileList | null) {
     const file = files?.[0];

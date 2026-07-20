@@ -1,11 +1,25 @@
 import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { ChevronLeft, ChevronRight, EyeOff, FolderPlus, Pencil, Plus, Star, X } from "lucide-react";
+import {
+  ArrowLeft,
+  ChevronLeft,
+  ChevronRight,
+  EyeOff,
+  Folder,
+  FolderPlus,
+  Inbox,
+  Pencil,
+  Plus,
+  Star,
+  Trash2,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
+import { useConfirm } from "@/components/ui/confirm";
 import {
   deleteCategory,
   listCategories,
@@ -65,6 +79,14 @@ const STR = {
     moveTo: "Chuyển vào folder…",
     apply: "Áp dụng",
     moved: (n: number) => `Đã chuyển ${n} danh mục.`,
+    foldersHeading: "Chọn folder",
+    gamesInFolder: (n: number) => `${n} game`,
+    unassigned: "Chưa xếp folder",
+    backToFolders: "Tất cả folder",
+    renameFolder: "Đổi tên folder",
+    renamePrompt: "Tên folder mới:",
+    openFolder: "Mở folder",
+    emptyFolder: "Folder này chưa có game. Bấm 'Thêm danh mục' để tạo.",
   },
   en: {
     hidden: "Category hidden from the store",
@@ -105,92 +127,26 @@ const STR = {
     moveTo: "Move to folder…",
     apply: "Apply",
     moved: (n: number) => `Moved ${n} categories.`,
+    foldersHeading: "Pick a folder",
+    gamesInFolder: (n: number) => `${n} game${n === 1 ? "" : "s"}`,
+    unassigned: "Unassigned",
+    backToFolders: "All folders",
+    renameFolder: "Rename folder",
+    renamePrompt: "New folder name:",
+    openFolder: "Open folder",
+    emptyFolder: "This folder has no games yet. Click 'Add category' to create one.",
   },
 };
 
-/** Quản lý folder gọn: liệt kê chip + thêm/xoá. */
-function FolderManager({ t }: { t: (typeof STR)["en"] }) {
-  const queryClient = useQueryClient();
-  const [name, setName] = useState("");
-  const query = useQuery({ queryKey: ["category-folders"], queryFn: listCategoryFolders });
-
-  const addMutation = useMutation({
-    mutationFn: (n: string) =>
-      upsertCategoryFolder({ name: n.trim(), slug: slugify(n.trim()) || "folder" }),
-    onSuccess: () => {
-      toast.success(t.folderAdded);
-      setName("");
-      void queryClient.invalidateQueries({ queryKey: ["category-folders"] });
-    },
-    onError: (err) => toast.error(err instanceof Error ? err.message : "Error"),
-  });
-  const delMutation = useMutation({
-    mutationFn: (id: string) => deleteCategoryFolder(id),
-    onSuccess: () => {
-      toast.success(t.folderDeleted);
-      void queryClient.invalidateQueries({ queryKey: ["category-folders"] });
-      void queryClient.invalidateQueries({ queryKey: ["categories"] });
-    },
-    onError: (err) => toast.error(err instanceof Error ? err.message : "Error"),
-  });
-
-  const folders = query.data ?? [];
-
-  return (
-    <Card className="p-4">
-      <p className="font-heading text-sm font-semibold text-text">{t.foldersTitle}</p>
-      <p className="mt-0.5 text-xs text-text-subtle">{t.foldersHint}</p>
-
-      <div className="mt-3 flex flex-wrap gap-2">
-        {folders.map((f) => (
-          <span
-            key={f.id}
-            className="inline-flex items-center gap-1.5 rounded-full border border-border-strong bg-surface-2 py-1 pl-3 pr-1.5 text-sm text-text"
-          >
-            {f.name}
-            <button
-              type="button"
-              aria-label={`Delete ${f.name}`}
-              disabled={delMutation.isPending}
-              onClick={() => {
-                if (confirm(t.folderDelConfirm(f.name))) delMutation.mutate(f.id);
-              }}
-              className="flex h-5 w-5 items-center justify-center rounded-full text-text-subtle hover:bg-danger-soft hover:text-danger"
-            >
-              <X className="h-3.5 w-3.5" aria-hidden />
-            </button>
-          </span>
-        ))}
-      </div>
-
-      <form
-        className="mt-3 flex gap-2"
-        onSubmit={(e) => {
-          e.preventDefault();
-          if (name.trim() && !addMutation.isPending) addMutation.mutate(name);
-        }}
-      >
-        <Input
-          value={name}
-          placeholder={t.folderNamePh}
-          onChange={(e) => setName(e.target.value)}
-          className="max-w-xs"
-        />
-        <Button type="submit" size="sm" variant="secondary" disabled={!name.trim() || addMutation.isPending}>
-          <FolderPlus className="h-4 w-4" aria-hidden />
-          {t.addFolder}
-        </Button>
-      </form>
-    </Card>
-  );
-}
-
 const PAGE_SIZES = [10, 20, 50, 100];
 
-/** Tab "Danh mục" trong /work/catalog — bảng danh mục + CRUD. */
+/** Tab "Danh mục" trong /work/catalog — folder-first: chọn folder rồi xem game. */
 export function CategoriesTab() {
   const queryClient = useQueryClient();
   const t = usePick(STR);
+  const confirm = useConfirm();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const openSlug = searchParams.get("folder"); // null | <slug> | "__unassigned__"
   const [dialog, setDialog] = useState<{ open: boolean; category: CategoryRow | null }>({
     open: false,
     category: null,
@@ -200,6 +156,14 @@ export function CategoriesTab() {
   const [page, setPage] = useState(1);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [moveTarget, setMoveTarget] = useState("");
+  const [newFolder, setNewFolder] = useState("");
+
+  const openFolderView = (slug: string | null) => {
+    setSelected(new Set());
+    setPage(1);
+    if (slug) setSearchParams({ folder: slug });
+    else setSearchParams({});
+  };
 
   const categoriesQuery = useQuery({
     queryKey: ["categories", "admin"],
@@ -253,16 +217,61 @@ export function CategoriesTab() {
     onError: (err) => toast.error(err instanceof Error ? err.message : "Error"),
   });
 
+  const addFolderMutation = useMutation({
+    mutationFn: (name: string) =>
+      upsertCategoryFolder({ name: name.trim(), slug: slugify(name.trim()) || "folder" }),
+    onSuccess: () => {
+      toast.success(t.folderAdded);
+      setNewFolder("");
+      void queryClient.invalidateQueries({ queryKey: ["category-folders"] });
+    },
+    onError: (err) => toast.error(err instanceof Error ? err.message : "Error"),
+  });
+  const renameFolderMutation = useMutation({
+    mutationFn: ({ id, name }: { id: string; name: string }) =>
+      upsertCategoryFolder({ id, name: name.trim(), slug: slugify(name.trim()) || "folder" }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["category-folders"] });
+    },
+    onError: (err) => toast.error(err instanceof Error ? err.message : "Error"),
+  });
+  const deleteFolderMutation = useMutation({
+    mutationFn: (id: string) => deleteCategoryFolder(id),
+    onSuccess: () => {
+      toast.success(t.folderDeleted);
+      void queryClient.invalidateQueries({ queryKey: ["category-folders"] });
+      void queryClient.invalidateQueries({ queryKey: ["categories"] });
+    },
+    onError: (err) => toast.error(err instanceof Error ? err.message : "Error"),
+  });
+
   const categories = categoriesQuery.data ?? [];
+  const folders = foldersQuery.data ?? [];
+  const folderIds = useMemo(() => new Set(folders.map((f) => f.id)), [folders]);
+
+  // Folder đang mở (null = màn danh sách folder).
+  const openFolder =
+    openSlug && openSlug !== "__unassigned__" ? folders.find((f) => f.slug === openSlug) ?? null : null;
+  const isUnassignedView = openSlug === "__unassigned__";
+  const inFolderView = Boolean(openSlug);
+
+  // Game chưa xếp folder.
+  const unassigned = categories.filter((c) => !c.folder_id || !folderIds.has(c.folder_id));
+  // Danh mục hiển thị trong màn chi tiết.
+  const viewCats = isUnassignedView
+    ? unassigned
+    : openFolder
+      ? categories.filter((c) => c.folder_id === openFolder.id)
+      : [];
 
   useEffect(() => {
     setPage(1);
-  }, [pageSize]);
+  }, [pageSize, openSlug]);
 
-  const totalPages = Math.max(1, Math.ceil(categories.length / pageSize));
+  const totalPages = Math.max(1, Math.ceil(viewCats.length / pageSize));
   const currentPage = Math.min(page, totalPages);
   const pageStart = (currentPage - 1) * pageSize;
-  const paginated = categories.slice(pageStart, pageStart + pageSize);
+  const paginated = viewCats.slice(pageStart, pageStart + pageSize);
 
   // Chọn nhiều (áp trên trang hiện tại).
   const pageIds = paginated.map((c) => c.id);
@@ -276,13 +285,172 @@ export function CategoriesTab() {
       return next;
     });
 
+  const dialogsAndClose = (
+    <>
+      <CategoryDialog
+        open={dialog.open}
+        onOpenChange={(open) => setDialog((prev) => ({ ...prev, open }))}
+        category={dialog.category}
+        defaultFolderId={openFolder?.id ?? null}
+      />
+      <ConfirmDialog
+        open={deleteTarget !== null}
+        onOpenChange={(open) => {
+          if (!open) setDeleteTarget(null);
+        }}
+        title={t.confirmTitle(deleteTarget?.name ?? "")}
+        description={t.confirmDesc}
+        confirmLabel={t.confirmLabel}
+        danger
+        loading={deleteMutation.isPending}
+        onConfirm={() => {
+          if (deleteTarget) deleteMutation.mutate(deleteTarget.id);
+        }}
+      />
+    </>
+  );
+
+  // ============ MÀN DANH SÁCH FOLDER (thẻ lưới) ============
+  if (!inFolderView) {
+    return (
+      <div className="space-y-5">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <p className="font-heading text-sm font-semibold text-text">{t.foldersHeading}</p>
+          <form
+            className="flex gap-2"
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (newFolder.trim() && !addFolderMutation.isPending) addFolderMutation.mutate(newFolder);
+            }}
+          >
+            <Input
+              value={newFolder}
+              placeholder={t.folderNamePh}
+              onChange={(e) => setNewFolder(e.target.value)}
+              className="w-44"
+            />
+            <Button type="submit" size="sm" variant="secondary" disabled={!newFolder.trim() || addFolderMutation.isPending}>
+              <FolderPlus className="h-4 w-4" aria-hidden />
+              {t.addFolder}
+            </Button>
+          </form>
+        </div>
+
+        {categoriesQuery.isPending || foldersQuery.isPending ? (
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {[0, 1, 2].map((i) => (
+              <div key={i} className="h-24 animate-pulse rounded-2xl bg-surface-2" />
+            ))}
+          </div>
+        ) : (
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {folders.map((f) => {
+              const count = categories.filter((c) => c.folder_id === f.id).length;
+              return (
+                <div
+                  key={f.id}
+                  className="group relative rounded-2xl border border-border bg-surface p-5 transition-all hover:border-yellow hover:shadow-glow-amber"
+                >
+                  <button
+                    type="button"
+                    onClick={() => openFolderView(f.slug)}
+                    aria-label={`${t.openFolder} ${f.name}`}
+                    className="flex w-full items-center gap-3 text-left"
+                  >
+                    <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-yellow-soft text-yellow">
+                      <Folder className="h-5 w-5" aria-hidden />
+                    </span>
+                    <span className="min-w-0">
+                      <span className="block truncate font-heading text-base font-semibold text-text">
+                        {f.name}
+                      </span>
+                      <span className="block text-xs text-text-subtle">{t.gamesInFolder(count)}</span>
+                    </span>
+                  </button>
+                  <div className="absolute right-3 top-3 flex gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+                    <button
+                      type="button"
+                      aria-label={t.renameFolder}
+                      onClick={async () => {
+                        const r = await confirm({
+                          title: t.renameFolder,
+                          input: { label: t.renamePrompt, defaultValue: f.name, required: true },
+                        });
+                        if (r.ok && r.value) renameFolderMutation.mutate({ id: f.id, name: r.value });
+                      }}
+                      className="rounded-md p-1.5 text-text-subtle hover:bg-surface-2 hover:text-text"
+                    >
+                      <Pencil className="h-3.5 w-3.5" aria-hidden />
+                    </button>
+                    <button
+                      type="button"
+                      aria-label={t.folderDeleted}
+                      disabled={deleteFolderMutation.isPending}
+                      onClick={async () => {
+                        const r = await confirm({
+                          title: t.folderDeleted,
+                          message: t.folderDelConfirm(f.name),
+                          tone: "danger",
+                        });
+                        if (r.ok) deleteFolderMutation.mutate(f.id);
+                      }}
+                      className="rounded-md p-1.5 text-text-subtle hover:bg-danger-soft hover:text-danger"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" aria-hidden />
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+
+            {unassigned.length > 0 ? (
+              <button
+                type="button"
+                onClick={() => openFolderView("__unassigned__")}
+                className="flex items-center gap-3 rounded-2xl border border-dashed border-border-strong bg-surface p-5 text-left transition-all hover:border-yellow"
+              >
+                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-surface-2 text-text-muted">
+                  <Inbox className="h-5 w-5" aria-hidden />
+                </span>
+                <span>
+                  <span className="block font-heading text-base font-semibold text-text">
+                    {t.unassigned}
+                  </span>
+                  <span className="block text-xs text-text-subtle">
+                    {t.gamesInFolder(unassigned.length)}
+                  </span>
+                </span>
+              </button>
+            ) : null}
+          </div>
+        )}
+
+        {dialogsAndClose}
+      </div>
+    );
+  }
+
+  // ============ MÀN CHI TIẾT FOLDER (bảng game) ============
   return (
     <div className="space-y-4">
-      <FolderManager t={t} />
+      <div className="flex items-center gap-2 text-sm">
+        <button
+          type="button"
+          onClick={() => openFolderView(null)}
+          className="inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-text-muted transition-colors hover:bg-surface-2 hover:text-text"
+        >
+          <ArrowLeft className="h-4 w-4" aria-hidden />
+          {t.backToFolders}
+        </button>
+        <ChevronRight className="h-4 w-4 text-text-subtle" aria-hidden />
+        <span className="font-semibold text-text">
+          {isUnassignedView ? t.unassigned : openFolder?.name ?? openSlug}
+        </span>
+      </div>
 
       <div className="flex items-center justify-between gap-3">
         <p className="text-sm text-text-muted">
-          {categoriesQuery.isSuccess ? t.count(categories.length) : " "}
+          {categoriesQuery.isSuccess ? t.count(viewCats.length) : " "}
         </p>
         <div className="flex shrink-0 items-center gap-2">
           <Select
@@ -344,8 +512,8 @@ export function CategoriesTab() {
         <TableSkeleton rows={5} />
       ) : categoriesQuery.isError ? (
         <LoadError message={categoriesQuery.error.message} onRetry={() => categoriesQuery.refetch()} />
-      ) : categories.length === 0 ? (
-        <EmptyBlock title={t.emptyTitle} hint={t.emptyHint} />
+      ) : viewCats.length === 0 ? (
+        <EmptyBlock title={t.emptyTitle} hint={t.emptyFolder} />
       ) : (
         <Card>
           <div className="overflow-x-auto">
@@ -479,10 +647,10 @@ export function CategoriesTab() {
               </tbody>
             </table>
           </div>
-          {categories.length > pageSize ? (
+          {viewCats.length > pageSize ? (
             <div className="flex items-center justify-between gap-3 border-t border-border px-4 py-3">
               <span className="text-xs text-text-subtle">
-                {t.showing(pageStart + 1, Math.min(pageStart + pageSize, categories.length), categories.length)}
+                {t.showing(pageStart + 1, Math.min(pageStart + pageSize, viewCats.length), viewCats.length)}
               </span>
               <div className="flex items-center gap-1.5">
                 <Button
@@ -512,26 +680,7 @@ export function CategoriesTab() {
         </Card>
       )}
 
-      <CategoryDialog
-        open={dialog.open}
-        onOpenChange={(open) => setDialog((prev) => ({ ...prev, open }))}
-        category={dialog.category}
-      />
-
-      <ConfirmDialog
-        open={deleteTarget !== null}
-        onOpenChange={(open) => {
-          if (!open) setDeleteTarget(null);
-        }}
-        title={t.confirmTitle(deleteTarget?.name ?? "")}
-        description={t.confirmDesc}
-        confirmLabel={t.confirmLabel}
-        danger
-        loading={deleteMutation.isPending}
-        onConfirm={() => {
-          if (deleteTarget) deleteMutation.mutate(deleteTarget.id);
-        }}
-      />
+      {dialogsAndClose}
     </div>
   );
 }
