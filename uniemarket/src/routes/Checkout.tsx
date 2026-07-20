@@ -12,6 +12,7 @@ import { RequireAuth } from "@/components/account/RequireAuth";
 import { OrderSummary } from "@/components/commerce/OrderSummary";
 import { PaymentMethodSelector } from "@/components/commerce/PaymentMethodSelector";
 import { useCartStore } from "@/store/cartStore";
+import { useBuyNowStore } from "@/store/buyNowStore";
 import { useAuthStore } from "@/store/authStore";
 import { placeOrder } from "@/lib/db/orders";
 import { getPublicGateways } from "@/lib/db/settings";
@@ -93,9 +94,10 @@ export function Checkout() {
 function CheckoutContent() {
   const t = usePick(STR);
   const navigate = useNavigate();
-  const items = useCartStore((state) => state.items);
-  const subtotal = useCartStore((state) => state.subtotal);
-  const clear = useCartStore((state) => state.clear);
+  const cartItems = useCartStore((state) => state.items);
+  const clearCart = useCartStore((state) => state.clear);
+  const buyNowLine = useBuyNowStore((state) => state.line);
+  const clearBuyNow = useBuyNowStore((state) => state.clear);
   const session = useAuthStore((state) => state.session);
 
   const [gameUsername, setGameUsername] = useState("");
@@ -103,7 +105,10 @@ function CheckoutContent() {
   const [gatewayId, setGatewayId] = useState<string>("");
   const placedRef = useRef(false);
 
-  const total = subtotal();
+  // Mua ngay: chỉ hiện đúng món đó; ngược lại dùng giỏ hàng.
+  const isBuyNow = buyNowLine !== null;
+  const items = isBuyNow ? [buyNowLine] : cartItems;
+  const total = items.reduce((sum, line) => sum + line.unitPrice * line.quantity, 0);
   const email = session?.user.email ?? "";
 
   // Cổng thanh toán admin bật (RPC công khai — khách đọc được, đã bỏ secret_key).
@@ -120,6 +125,13 @@ function CheckoutContent() {
   useEffect(() => {
     if (!gatewayId && gateways.length > 0) setGatewayId(gateways[0].id);
   }, [gateways, gatewayId]);
+
+  // Rời checkout mà chưa đặt xong -> xoá buffer mua ngay (tránh lẫn với giỏ).
+  useEffect(() => {
+    return () => {
+      if (!placedRef.current) clearBuyNow();
+    };
+  }, [clearBuyNow]);
   const selectedGateway = gateways.find((g) => g.id === gatewayId) ?? gateways[0];
 
   const orderItems = useMemo(
@@ -147,7 +159,9 @@ function CheckoutContent() {
       }),
     onSuccess: (orders) => {
       placedRef.current = true;
-      clear();
+      // Mua ngay chỉ xoá buffer mua ngay; ngược lại xoá giỏ.
+      if (isBuyNow) clearBuyNow();
+      else clearCart();
       // Mỗi món = 1 đơn riêng. 1 đơn → mở thẳng; nhiều đơn → về danh sách.
       if (orders.length === 1) {
         toast.success(t.orderCreated, { description: `${t.orderCodePrefix}${orders[0].order_code}` });

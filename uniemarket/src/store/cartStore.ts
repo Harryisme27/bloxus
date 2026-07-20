@@ -59,6 +59,27 @@ function optionKeyOf(selected?: SelectedServiceOptions | null): string {
   return `range:${selected.from}>${selected.to}`;
 }
 
+/** Dựng 1 dòng giỏ từ sản phẩm + lựa chọn (dùng chung cho giỏ hàng và Mua ngay). */
+export function buildCartLine(
+  product: ProductRow,
+  qty = 1,
+  options?: AddItemOptions,
+): CartLine {
+  const selected = options?.selectedOptions ?? null;
+  const isService = product.kind === "service";
+  return {
+    id: `${product.id}${selected ? `::${optionKeyOf(selected)}` : ""}`,
+    productId: product.id,
+    kind: product.kind,
+    name: product.name,
+    imageUrl: product.images[0] ?? null,
+    unitPrice: computeUnitPrice(product, selected),
+    quantity: isService ? 1 : qty,
+    optionSummary: options?.optionSummary,
+    selectedOptions: selected,
+  };
+}
+
 interface CartState {
   items: CartLine[];
   /** Thêm sản phẩm vào giỏ. Dịch vụ luôn 1 dòng/lựa chọn với quantity = 1. */
@@ -77,33 +98,20 @@ export const useCartStore = create<CartState>()(
 
       addItem: (product, qty = 1, options) => {
         if (qty <= 0) return;
-        const selected = options?.selectedOptions ?? null;
-        const lineId = `${product.id}${selected ? `::${optionKeyOf(selected)}` : ""}`;
+        const newLine = buildCartLine(product, qty, options);
         const isService = product.kind === "service";
-        const unitPrice = computeUnitPrice(product, selected);
 
         set((state) => {
-          const existing = state.items.find((line) => line.id === lineId);
+          const existing = state.items.find((line) => line.id === newLine.id);
           if (existing) {
             // Dịch vụ khoá số lượng ở 1 — thêm lại cùng lựa chọn không đổi gì.
             const quantity = isService ? 1 : existing.quantity + qty;
             return {
               items: state.items.map((line) =>
-                line.id === lineId ? { ...line, quantity, unitPrice } : line,
+                line.id === newLine.id ? { ...line, quantity, unitPrice: newLine.unitPrice } : line,
               ),
             };
           }
-          const newLine: CartLine = {
-            id: lineId,
-            productId: product.id,
-            kind: product.kind,
-            name: product.name,
-            imageUrl: product.images[0] ?? null,
-            unitPrice,
-            quantity: isService ? 1 : qty,
-            optionSummary: options?.optionSummary,
-            selectedOptions: selected,
-          };
           return { items: [...state.items, newLine] };
         });
       },

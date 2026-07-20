@@ -1,12 +1,13 @@
 import type { MouseEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { ShoppingCart, Settings2 } from "lucide-react";
+import { ShoppingCart, Settings2, Zap } from "lucide-react";
 import { toast } from "sonner";
 import type { ProductRow } from "@/types/db";
 import { RarityBadge } from "@/components/RarityBadge";
 import { PriceTag } from "@/components/PriceTag";
 import { Button } from "@/components/ui/button";
-import { useCartStore } from "@/store/cartStore";
+import { useCartStore, buildCartLine } from "@/store/cartStore";
+import { useBuyNowStore } from "@/store/buyNowStore";
 import { usePick } from "@/i18n";
 import { cn } from "@/lib/utils";
 
@@ -16,6 +17,7 @@ const STR = {
     outOfStock: "Hết hàng",
     choosePackage: "Chọn gói",
     addToCart: "Thêm vào giỏ",
+    buyNow: "Mua ngay",
     addedToCart: (name: string) => `Đã thêm "${name}" vào giỏ hàng`,
     quantityOne: "Số lượng: 1",
   },
@@ -24,6 +26,7 @@ const STR = {
     outOfStock: "Out of stock",
     choosePackage: "Choose package",
     addToCart: "Add to cart",
+    buyNow: "Buy now",
     addedToCart: (name: string) => `Added "${name}" to cart`,
     quantityOne: "Quantity: 1",
   },
@@ -55,6 +58,7 @@ export function isInStock(product: ProductRow): boolean {
 export function ProductCard({ product, className }: ProductCardProps) {
   const t = usePick(STR);
   const addItem = useCartStore((state) => state.addItem);
+  const setBuyNow = useBuyNowStore((state) => state.setBuyNow);
   const navigate = useNavigate();
 
   const inStock = isInStock(product);
@@ -80,6 +84,19 @@ export function ProductCard({ product, className }: ProductCardProps) {
     toast.success(t.addedToCart(product.name), {
       description: t.quantityOne,
     });
+  }
+
+  function handleBuyNow(e: MouseEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    if (isService) {
+      navigate(`/item/${product.id}`);
+      return;
+    }
+    if (!inStock) return;
+    // Mua ngay: đặt món vào buffer riêng rồi qua thẳng checkout (không đụng giỏ).
+    setBuyNow(buildCartLine(product, 1));
+    navigate("/checkout");
   }
 
   return (
@@ -134,26 +151,44 @@ export function ProductCard({ product, className }: ProductCardProps) {
           size="sm"
           className="mt-auto"
         />
-        <Button
-          type="button"
-          size="sm"
-          variant="primary"
-          className="w-full"
-          disabled={!isService && !inStock}
-          onClick={handleAddToCart}
-        >
-          {isService ? (
-            <>
-              <Settings2 className="h-3.5 w-3.5" aria-hidden="true" />
-              {t.choosePackage}
-            </>
-          ) : (
-            <>
-              <ShoppingCart className="h-3.5 w-3.5" aria-hidden="true" />
-              {inStock ? t.addToCart : t.outOfStock}
-            </>
-          )}
-        </Button>
+        {isService ? (
+          <Button
+            type="button"
+            size="sm"
+            variant="primary"
+            className="w-full"
+            onClick={handleAddToCart}
+          >
+            <Settings2 className="h-3.5 w-3.5" aria-hidden="true" />
+            {t.choosePackage}
+          </Button>
+        ) : (
+          <div className="flex flex-col gap-1.5">
+            <Button
+              type="button"
+              size="sm"
+              variant="primary"
+              className="w-full"
+              disabled={!inStock}
+              onClick={handleBuyNow}
+            >
+              <Zap className="h-3.5 w-3.5" aria-hidden="true" />
+              {inStock ? t.buyNow : t.outOfStock}
+            </Button>
+            {inStock ? (
+              <Button
+                type="button"
+                size="sm"
+                variant="secondary"
+                className="w-full"
+                onClick={handleAddToCart}
+              >
+                <ShoppingCart className="h-3.5 w-3.5" aria-hidden="true" />
+                {t.addToCart}
+              </Button>
+            ) : null}
+          </div>
+        )}
       </div>
     </Link>
   );
