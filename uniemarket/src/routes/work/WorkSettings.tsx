@@ -43,9 +43,10 @@ const STR = {
       "Sau khi khách yêu cầu hoàn tiền, nếu admin chưa xử lý thì khách được tự chốt hoàn tiền sau số phút này.",
     gatewaysTitle: "Cổng thanh toán",
     gatewaysHint:
-      "Bật/tắt cổng và nhập API. Chỉ những cổng được BẬT mới hiển thị cho khách ở bước thanh toán.",
+      "Bật/tắt cổng và nhập thông tin. Chỉ những cổng được BẬT mới hiển thị cho khách ở bước thanh toán.",
     show: "Hiển thị cho khách",
     builtinNote: "Dùng thông tin nhận tiền ở trên.",
+    generalTitle: "Thông tin chung",
   },
   en: {
     fieldBrand: "Shop name",
@@ -78,9 +79,10 @@ const STR = {
       "After a customer requests a refund, if an admin hasn't handled it they can finalize the refund themselves after this many minutes.",
     gatewaysTitle: "Payment gateways",
     gatewaysHint:
-      "Toggle gateways and enter API keys. Only ENABLED gateways are shown to customers at checkout.",
+      "Toggle gateways and enter their details. Only ENABLED gateways are shown to customers at checkout.",
     show: "Show to customers",
     builtinNote: "Uses the payout details above.",
+    generalTitle: "General",
   },
 };
 
@@ -160,6 +162,20 @@ export function WorkSettings() {
     }
   }
 
+  // Ô nhập gắn với 1 key trong `form` (bank_name, momo_number...). Lưu vào các
+  // key app_settings công khai riêng lẻ — checkout/order đọc trực tiếp được.
+  const formField = (key: string, placeholder: string) => (
+    <div>
+      <Label htmlFor={key}>{fieldLabels[key]}</Label>
+      <Input
+        id={key}
+        value={form[key] ?? ""}
+        placeholder={placeholder}
+        onChange={(e) => setForm((prev) => ({ ...prev, [key]: e.target.value }))}
+      />
+    </div>
+  );
+
   if (query.isPending) {
     return (
       <div>
@@ -179,102 +195,21 @@ export function WorkSettings() {
       <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
         <Card>
           <CardHeader className="border-b border-border">
-            <CardTitle className="text-base">{t.receiveInfo}</CardTitle>
+            <CardTitle className="text-base">{t.gatewaysTitle}</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4 pt-5">
-            {FIELDS.map((f) => (
-              <div key={f.key}>
-                <Label htmlFor={f.key}>{fieldLabels[f.key]}</Label>
-                <Input
-                  id={f.key}
-                  value={form[f.key] ?? ""}
-                  placeholder={f.placeholder}
-                  onChange={(e) => setForm((prev) => ({ ...prev, [f.key]: e.target.value }))}
-                />
-              </div>
-            ))}
-
+          <CardContent className="space-y-5 pt-5">
+            {/* Thông tin chung */}
             <div>
-              <Label>{t.momoQrLabel}</Label>
-              <div className="flex items-center gap-4">
-                {qrUrl ? (
-                  <img
-                    src={qrUrl}
-                    alt={t.momoQrAlt}
-                    className="h-24 w-24 rounded-lg border border-border object-contain"
-                  />
-                ) : (
-                  <div className="flex h-24 w-24 items-center justify-center rounded-lg border border-dashed border-border-strong text-text-subtle">
-                    <ImageUp className="h-6 w-6" aria-hidden />
-                  </div>
-                )}
-                <div className="space-y-2">
-                  <input
-                    ref={fileRef}
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      if (file) void handleQrUpload(file);
-                      e.target.value = "";
-                    }}
-                  />
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    size="sm"
-                    onClick={() => fileRef.current?.click()}
-                    disabled={uploading}
-                  >
-                    {uploading ? (
-                      <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
-                    ) : (
-                      <ImageUp className="h-4 w-4" aria-hidden />
-                    )}
-                    {t.uploadQr}
-                  </Button>
-                  {qrUrl ? (
-                    <button
-                      type="button"
-                      onClick={() => setQrUrl("")}
-                      className="block text-xs text-text-subtle hover:text-danger"
-                    >
-                      {t.removeImage}
-                    </button>
-                  ) : null}
-                </div>
-              </div>
-            </div>
-
-            <div className="border-t border-border pt-4">
-              <p className="mb-3 font-heading text-sm font-semibold text-text">{t.handlingTitle}</p>
-              <Label htmlFor="claim-timeout">{t.timeoutLabel}</Label>
+              <Label htmlFor="brand">{t.fieldBrand}</Label>
               <Input
-                id="claim-timeout"
-                type="number"
-                min={0}
-                value={claimTimeout}
-                onChange={(e) => setClaimTimeout(e.target.value)}
-                className="max-w-[160px]"
+                id="brand"
+                value={form.brand ?? ""}
+                placeholder="Uniemarket"
+                onChange={(e) => setForm((prev) => ({ ...prev, brand: e.target.value }))}
               />
-              <p className="mt-1.5 text-xs text-text-subtle">{t.timeoutHint}</p>
-
-              <div className="mt-4">
-                <Label htmlFor="refund-timeout">{t.refundTimeoutLabel}</Label>
-                <Input
-                  id="refund-timeout"
-                  type="number"
-                  min={1}
-                  value={refundTimeout}
-                  onChange={(e) => setRefundTimeout(e.target.value)}
-                  className="max-w-[160px]"
-                />
-                <p className="mt-1.5 text-xs text-text-subtle">{t.refundTimeoutHint}</p>
-              </div>
             </div>
 
-            {/* Cổng thanh toán */}
+            {/* Cổng thanh toán — mỗi cổng chứa thông tin của chính nó */}
             <div className="border-t border-border pt-4">
               <p className="font-heading text-sm font-semibold text-text">{t.gatewaysTitle}</p>
               <p className="mb-3 mt-0.5 text-xs text-text-subtle">{t.gatewaysHint}</p>
@@ -300,10 +235,77 @@ export function WorkSettings() {
                         </span>
                         <span className="text-xs text-text-subtle">{t.show}</span>
                       </label>
-                      {enabled && g.builtin ? (
-                        <p className="mt-2 pl-7 text-xs text-text-subtle">{t.builtinNote}</p>
+
+                      {/* Bank transfer -> thông tin ngân hàng */}
+                      {enabled && g.id === "bank_transfer" ? (
+                        <div className="mt-3 space-y-2 pl-7">
+                          {formField("bank_name", "Vietcombank")}
+                          {formField("bank_account", "0123456789")}
+                          {formField("bank_holder", "NGUYEN VAN A")}
+                        </div>
                       ) : null}
-                      {enabled && g.fields.length > 0 ? (
+
+                      {/* Momo -> số Momo + ảnh QR */}
+                      {enabled && g.id === "momo" ? (
+                        <div className="mt-3 space-y-3 pl-7">
+                          {formField("momo_number", "0900000000")}
+                          <div>
+                            <Label>{t.momoQrLabel}</Label>
+                            <div className="flex items-center gap-4">
+                              {qrUrl ? (
+                                <img
+                                  src={qrUrl}
+                                  alt={t.momoQrAlt}
+                                  className="h-24 w-24 rounded-lg border border-border object-contain"
+                                />
+                              ) : (
+                                <div className="flex h-24 w-24 items-center justify-center rounded-lg border border-dashed border-border-strong text-text-subtle">
+                                  <ImageUp className="h-6 w-6" aria-hidden />
+                                </div>
+                              )}
+                              <div className="space-y-2">
+                                <input
+                                  ref={fileRef}
+                                  type="file"
+                                  accept="image/*"
+                                  className="hidden"
+                                  onChange={(e) => {
+                                    const file = e.target.files?.[0];
+                                    if (file) void handleQrUpload(file);
+                                    e.target.value = "";
+                                  }}
+                                />
+                                <Button
+                                  type="button"
+                                  variant="secondary"
+                                  size="sm"
+                                  onClick={() => fileRef.current?.click()}
+                                  disabled={uploading}
+                                >
+                                  {uploading ? (
+                                    <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+                                  ) : (
+                                    <ImageUp className="h-4 w-4" aria-hidden />
+                                  )}
+                                  {t.uploadQr}
+                                </Button>
+                                {qrUrl ? (
+                                  <button
+                                    type="button"
+                                    onClick={() => setQrUrl("")}
+                                    className="block text-xs text-text-subtle hover:text-danger"
+                                  >
+                                    {t.removeImage}
+                                  </button>
+                                ) : null}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      ) : null}
+
+                      {/* Cổng ngoài (stripe/crypto/paypal) -> field cấu hình */}
+                      {enabled && !g.builtin && g.fields.length > 0 ? (
                         <div className="mt-3 space-y-2 pl-7">
                           {g.fields.map((f) => (
                             <div key={f.key}>
@@ -322,6 +324,34 @@ export function WorkSettings() {
                     </div>
                   );
                 })}
+              </div>
+            </div>
+
+            {/* Xử lý đơn */}
+            <div className="border-t border-border pt-4">
+              <p className="mb-3 font-heading text-sm font-semibold text-text">{t.handlingTitle}</p>
+              <Label htmlFor="claim-timeout">{t.timeoutLabel}</Label>
+              <Input
+                id="claim-timeout"
+                type="number"
+                min={0}
+                value={claimTimeout}
+                onChange={(e) => setClaimTimeout(e.target.value)}
+                className="max-w-[160px]"
+              />
+              <p className="mt-1.5 text-xs text-text-subtle">{t.timeoutHint}</p>
+
+              <div className="mt-4">
+                <Label htmlFor="refund-timeout">{t.refundTimeoutLabel}</Label>
+                <Input
+                  id="refund-timeout"
+                  type="number"
+                  min={1}
+                  value={refundTimeout}
+                  onChange={(e) => setRefundTimeout(e.target.value)}
+                  className="max-w-[160px]"
+                />
+                <p className="mt-1.5 text-xs text-text-subtle">{t.refundTimeoutHint}</p>
               </div>
             </div>
 
