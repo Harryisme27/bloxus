@@ -1,0 +1,14 @@
+# Cloudflare Pages — HTTP headers cho mọi response.
+# (Tài liệu: dòng path, các dòng header thụt 2 dấu cách bên dưới.)
+
+/*
+  X-Frame-Options: DENY
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: geolocation=(), microphone=(), camera=(), payment=()
+  Cross-Origin-Opener-Policy: same-origin
+  Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://xikeydfwdavqttagrtsj.supabase.co; font-src 'self' data:; connect-src 'self' https://xikeydfwdavqttagrtsj.supabase.co wss://xikeydfwdavqttagrtsj.supabase.co; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'; upgrade-insecure-requests
+
+# Asset có hash (Vite) — cache vĩnh viễn, an toàn vì tên đổi khi nội dung đổi.
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
