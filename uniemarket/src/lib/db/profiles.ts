@@ -130,6 +130,19 @@ export async function listCtvs(): Promise<ProfileRow[]> {
   return (data ?? []) as ProfileRow[];
 }
 
+/** Toàn bộ nhân sự (admin + manager + ctv) — cho "Role List" (chỉ admin đọc — RLS). */
+export async function listStaff(): Promise<ProfileRow[]> {
+  const sb = requireSupabase();
+  const { data, error } = await sb
+    .from("profiles")
+    .select("*")
+    .in("role", ["admin", "manager", "ctv"])
+    .order("role", { ascending: true })
+    .order("username", { ascending: true });
+  if (error) throw new Error(error.message);
+  return (data ?? []) as ProfileRow[];
+}
+
 /** Hồ sơ công khai tối thiểu (tên + avatar) — cho chat hiển thị người gửi. */
 export async function getPublicProfile(id: string): Promise<PublicProfileRow | null> {
   const sb = requireSupabase();

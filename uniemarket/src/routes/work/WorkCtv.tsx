@@ -19,10 +19,10 @@ import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { listApplications, approveCtv } from "@/lib/db/applications";
-import { listCtvs, setUserRole, listCtvCategories, setCtvCategories, requestRoleGrant, listRoleRequests, reviewRoleGrant } from "@/lib/db/profiles";
+import { listStaff, setUserRole, listCtvCategories, setCtvCategories, requestRoleGrant, listRoleRequests, reviewRoleGrant } from "@/lib/db/profiles";
 import { listCategories } from "@/lib/db/catalog";
 import { relativeTime } from "@/lib/format";
-import type { CtvApplicationRow, ProfileRow, UserRole } from "@/types/db";
+import type { CtvApplicationRow, ProfileRow, RoleRequestRow, UserRole } from "@/types/db";
 import { usePick, useLangStore } from "@/i18n";
 import { useAuthStore } from "@/store/authStore";
 
@@ -36,7 +36,7 @@ const STR = {
     title: "Cộng tác viên",
     subtitle: "Cấp quyền trực tiếp theo email và quản lý đội ngũ CTV. Cấp quyền = mở khu làm việc.",
     tabGrant: "Cấp quyền thủ công",
-    tabList: "Danh sách CTV",
+    tabList: "Danh sách vai trò",
     tabApplications: "Đơn ứng tuyển",
     granted: (role: string, email: string) => `Đã cấp quyền ${role} cho ${email}.`,
     grantFail: "Cấp quyền thất bại.",
@@ -84,13 +84,24 @@ const STR = {
     requestsHeading: "Đề xuất cấp quyền",
     requestApproved: "Đã duyệt đề xuất — quyền được cấp.",
     requestRejected: "Đã từ chối đề xuất.",
+    reasonLabel: "Lý do đề xuất (để admin đọc)",
+    reasonPh: "VD: bạn này hỗ trợ khách rất tốt, đề xuất lên CTV…",
+    filterRole: "Lọc vai trò",
+    allRoles: "Tất cả vai trò",
+    reviewerFilter: "Người duyệt",
+    allReviewers: "Tất cả người duyệt",
+    kindApp: "Ứng tuyển CTV",
+    kindRole: "Đề xuất cấp quyền",
+    reviewedBy: (name: string) => `Duyệt bởi ${name}`,
+    proposedBy: "Đề xuất",
+    noStaff: "Chưa có nhân sự nào.",
   },
   en: {
     title: "Collaborators",
     subtitle:
       "Grant roles directly by email and manage your CTV team. Granting a role opens the work area.",
     tabGrant: "Grant manually",
-    tabList: "CTV list",
+    tabList: "Role List",
     tabApplications: "Applications",
     granted: (role: string, email: string) => `Granted the ${role} role to ${email}.`,
     grantFail: "Failed to grant the role.",
@@ -138,6 +149,17 @@ const STR = {
     requestsHeading: "Role grant requests",
     requestApproved: "Request approved — role granted.",
     requestRejected: "Request declined.",
+    reasonLabel: "Reason (for admin to read)",
+    reasonPh: "e.g. handles customers very well, proposing them for CTV…",
+    filterRole: "Filter role",
+    allRoles: "All roles",
+    reviewerFilter: "Reviewed by",
+    allReviewers: "All reviewers",
+    kindApp: "CTV application",
+    kindRole: "Role request",
+    reviewedBy: (name: string) => `Reviewed by ${name}`,
+    proposedBy: "Proposed",
+    noStaff: "No staff members yet.",
   },
 };
 
@@ -164,10 +186,10 @@ export function WorkCtv() {
           <ManualRoleTab isAdmin={isAdmin} />
         </TabsContent>
         <TabsContent value="list" className="pt-5">
-          <CtvListTab />
+          <RoleListTab />
         </TabsContent>
         <TabsContent value="applications" className="pt-5">
-          <ApplicationsTab />
+          <ApplicationsTab isAdmin={isAdmin} />
         </TabsContent>
       </Tabs>
     </div>
@@ -181,12 +203,21 @@ function ManualRoleTab({ isAdmin }: { isAdmin: boolean }) {
   const roleLabels = ROLE_LABELS[lang];
   const [email, setEmail] = useState("");
   const [role, setRole] = useState<UserRole>("ctv");
+  const [reason, setReason] = useState("");
 
   const mutation = useMutation({
-    // Admin cấp thẳng; manager chỉ ĐỀ XUẤT (admin duyệt sau — RPC request_role_grant).
-    mutationFn: async ({ email: e, role: r }: { email: string; role: UserRole }): Promise<void> => {
+    // Admin cấp thẳng; manager chỉ ĐỀ XUẤT kèm lý do (admin duyệt sau).
+    mutationFn: async ({
+      email: e,
+      role: r,
+      note,
+    }: {
+      email: string;
+      role: UserRole;
+      note?: string;
+    }): Promise<void> => {
       if (isAdmin) await setUserRole(e, r);
-      else await requestRoleGrant(e, r);
+      else await requestRoleGrant(e, r, note);
     },
     onSuccess: (_data, vars) => {
       toast.success(
@@ -194,7 +225,9 @@ function ManualRoleTab({ isAdmin }: { isAdmin: boolean }) {
       );
       void queryClient.invalidateQueries({ queryKey: ["ctvs"] });
       void queryClient.invalidateQueries({ queryKey: ["role-requests"] });
+      void queryClient.invalidateQueries({ queryKey: ["applications"] });
       setEmail("");
+      setReason("");
     },
     onError: (err) => toast.error(err instanceof Error ? err.message : t.grantFail),
   });
@@ -203,7 +236,7 @@ function ManualRoleTab({ isAdmin }: { isAdmin: boolean }) {
     e.preventDefault();
     const trimmed = email.trim();
     if (!trimmed || mutation.isPending) return;
-    mutation.mutate({ email: trimmed, role });
+    mutation.mutate({ email: trimmed, role, note: reason.trim() || undefined });
   }
 
   return (
@@ -244,6 +277,21 @@ function ManualRoleTab({ isAdmin }: { isAdmin: boolean }) {
                 ) : null}
               </Select>
             </div>
+            {/* Manager đề xuất -> kèm lý do cho admin đọc. */}
+            {!isAdmin ? (
+              <div>
+                <Label htmlFor="grant-reason">{t.reasonLabel}</Label>
+                <textarea
+                  id="grant-reason"
+                  value={reason}
+                  placeholder={t.reasonPh}
+                  onChange={(e) => setReason(e.target.value)}
+                  rows={3}
+                  disabled={mutation.isPending}
+                  className="w-full resize-none rounded-lg border border-border-strong bg-surface-2 px-3 py-2 text-sm text-text placeholder:text-text-subtle focus-visible:border-yellow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-yellow"
+                />
+              </div>
+            ) : null}
             <Button type="submit" disabled={!email.trim() || mutation.isPending}>
               <KeyRound className="h-4 w-4" aria-hidden />
               {mutation.isPending
@@ -255,117 +303,91 @@ function ManualRoleTab({ isAdmin }: { isAdmin: boolean }) {
           </form>
         </CardContent>
       </Card>
-
-      <RoleRequestsPanel isAdmin={isAdmin} />
     </div>
   );
 }
 
-/** Danh sách đề xuất cấp quyền: admin duyệt/từ chối; manager theo dõi của mình. */
-function RoleRequestsPanel({ isAdmin }: { isAdmin: boolean }) {
+// Mục review gộp: đơn ứng tuyển CTV + đề xuất cấp quyền của manager.
+type ReviewItem = {
+  key: string;
+  kind: "app" | "role";
+  status: "pending" | "approved" | "rejected";
+  reviewedBy: string | null;
+  createdAt: string;
+  app?: CtvApplicationRow;
+  req?: RoleRequestRow;
+};
+
+function ApplicationsTab({ isAdmin }: { isAdmin: boolean }) {
   const queryClient = useQueryClient();
   const t = usePick(STR);
   const lang = useLangStore((state) => state.lang);
   const roleLabels = ROLE_LABELS[lang];
-
-  const query = useQuery({ queryKey: ["role-requests"], queryFn: listRoleRequests });
-
-  const reviewMutation = useMutation({
-    mutationFn: ({ id, approve }: { id: string; approve: boolean }) => reviewRoleGrant(id, approve),
-    onSuccess: (_d, vars) => {
-      toast.success(vars.approve ? t.requestApproved : t.requestRejected);
-      void queryClient.invalidateQueries({ queryKey: ["role-requests"] });
-      void queryClient.invalidateQueries({ queryKey: ["ctvs"] });
-    },
-    onError: (err) => toast.error(err instanceof Error ? err.message : t.actionFail),
-  });
-
-  const rows = query.data ?? [];
-  if (query.isPending || rows.length === 0) return null;
-
-  return (
-    <Card>
-      <CardContent className="p-5">
-        <p className="mb-3 font-heading text-sm font-semibold text-text">{t.requestsHeading}</p>
-        <ul className="space-y-3">
-          {rows.map((r) => (
-            <li
-              key={r.id}
-              className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-border bg-surface-2 px-3 py-2.5"
-            >
-              <div className="min-w-0">
-                <p className="truncate text-sm font-medium text-text">
-                  {r.target_email}
-                  <span className="ml-2 text-xs text-text-subtle">→ {roleLabels[r.requested_role]}</span>
-                </p>
-                <p className="text-xs text-text-subtle">{relativeTime(r.created_at)}</p>
-              </div>
-              {r.status === "pending" && isAdmin ? (
-                <div className="flex gap-1.5">
-                  <Button
-                    size="sm"
-                    disabled={reviewMutation.isPending}
-                    onClick={() => reviewMutation.mutate({ id: r.id, approve: true })}
-                  >
-                    <Check className="h-3.5 w-3.5" aria-hidden />
-                    {t.approve}
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="secondary"
-                    disabled={reviewMutation.isPending}
-                    onClick={() => reviewMutation.mutate({ id: r.id, approve: false })}
-                  >
-                    <X className="h-3.5 w-3.5" aria-hidden />
-                    {t.reject}
-                  </Button>
-                </div>
-              ) : (
-                <Badge
-                  variant={
-                    r.status === "approved" ? "green" : r.status === "rejected" ? "danger" : "gold"
-                  }
-                >
-                  {r.status === "approved"
-                    ? t.badgeApproved
-                    : r.status === "rejected"
-                      ? t.badgeRejected
-                      : t.badgePending}
-                </Badge>
-              )}
-            </li>
-          ))}
-        </ul>
-      </CardContent>
-    </Card>
-  );
-}
-
-function ApplicationsTab() {
-  const queryClient = useQueryClient();
-  const t = usePick(STR);
   const confirm = useConfirm();
-  const query = useQuery({ queryKey: ["applications"], queryFn: () => listApplications() });
+  const [reviewerFilter, setReviewerFilter] = useState("all");
 
-  const mutation = useMutation({
+  const appsQuery = useQuery({ queryKey: ["applications"], queryFn: () => listApplications() });
+  const reqsQuery = useQuery({ queryKey: ["role-requests"], queryFn: listRoleRequests });
+  // Tên người duyệt (chỉ admin đọc được danh sách nhân sự).
+  const staffQuery = useQuery({ queryKey: ["staff"], queryFn: listStaff, enabled: isAdmin });
+
+  const staffName = new Map<string, string>();
+  for (const p of staffQuery.data ?? []) staffName.set(p.id, p.display_name || p.username);
+
+  const appMutation = useMutation({
     mutationFn: ({ id, approve, note }: { id: string; approve: boolean; note?: string }) =>
       approveCtv(id, approve, note),
-    onSuccess: (_data, vars) => {
+    onSuccess: (_d, vars) => {
       toast.success(vars.approve ? t.approvedCtv : t.rejectedApp);
       void queryClient.invalidateQueries({ queryKey: ["applications"] });
       void queryClient.invalidateQueries({ queryKey: ["ctvs"] });
     },
     onError: (err) => toast.error(err instanceof Error ? err.message : t.actionFail),
   });
+  const roleMutation = useMutation({
+    mutationFn: ({ id, approve, note }: { id: string; approve: boolean; note?: string }) =>
+      reviewRoleGrant(id, approve, note),
+    onSuccess: (_d, vars) => {
+      toast.success(vars.approve ? t.requestApproved : t.requestRejected);
+      void queryClient.invalidateQueries({ queryKey: ["role-requests"] });
+      void queryClient.invalidateQueries({ queryKey: ["ctvs"] });
+      void queryClient.invalidateQueries({ queryKey: ["staff"] });
+    },
+    onError: (err) => toast.error(err instanceof Error ? err.message : t.actionFail),
+  });
+  const busy = appMutation.isPending || roleMutation.isPending;
 
-  if (query.isPending) return <Skeleton className="h-40 rounded-2xl" />;
-  if (query.isError) return <p className="text-sm text-danger">{t.loadAppsError}</p>;
+  if (appsQuery.isPending || reqsQuery.isPending) return <Skeleton className="h-40 rounded-2xl" />;
 
-  const apps = query.data ?? [];
-  const pending = apps.filter((a) => a.status === "pending");
-  const reviewed = apps.filter((a) => a.status !== "pending");
+  const items: ReviewItem[] = [
+    ...(appsQuery.data ?? []).map((a) => ({
+      key: "app-" + a.id,
+      kind: "app" as const,
+      status: a.status,
+      reviewedBy: a.reviewed_by,
+      createdAt: a.created_at,
+      app: a,
+    })),
+    ...(reqsQuery.data ?? []).map((r) => ({
+      key: "role-" + r.id,
+      kind: "role" as const,
+      status: r.status,
+      reviewedBy: r.reviewed_by,
+      createdAt: r.created_at,
+      req: r,
+    })),
+  ].sort((a, b) => +new Date(b.createdAt) - +new Date(a.createdAt));
 
-  if (apps.length === 0) {
+  const pending = items.filter((i) => i.status === "pending");
+  let reviewed = items.filter((i) => i.status !== "pending");
+
+  // Danh sách người duyệt xuất hiện trong mục đã xử lý (cho bộ lọc).
+  const reviewerIds = Array.from(
+    new Set(reviewed.map((i) => i.reviewedBy).filter((x): x is string => Boolean(x))),
+  );
+  if (reviewerFilter !== "all") reviewed = reviewed.filter((i) => i.reviewedBy === reviewerFilter);
+
+  if (items.length === 0) {
     return (
       <div className="rounded-2xl border border-dashed border-border-strong bg-surface p-10 text-center text-sm text-text-muted">
         {t.noApps}
@@ -373,33 +395,60 @@ function ApplicationsTab() {
     );
   }
 
+  const approve = (i: ReviewItem, note?: string) => {
+    if (i.kind === "app" && i.app) appMutation.mutate({ id: i.app.id, approve: true, note });
+    if (i.kind === "role" && i.req) roleMutation.mutate({ id: i.req.id, approve: true, note });
+  };
+  const reject = async (i: ReviewItem) => {
+    const r = await confirm({ title: t.reject, input: { label: t.rejectPrompt, multiline: true } });
+    if (!r.ok) return;
+    const note = r.value || undefined;
+    if (i.kind === "app" && i.app) appMutation.mutate({ id: i.app.id, approve: false, note });
+    if (i.kind === "role" && i.req) roleMutation.mutate({ id: i.req.id, approve: false, note });
+  };
+
   return (
     <div className="space-y-6">
       {pending.length > 0 ? (
         <div className="space-y-3">
           <h3 className="text-sm font-semibold text-text">{t.pendingHeading(pending.length)}</h3>
-          {pending.map((app) => (
-            <ApplicationCard
-              key={app.id}
-              app={app}
-              onApprove={() => mutation.mutate({ id: app.id, approve: true })}
-              onReject={async () => {
-                const r = await confirm({
-                  title: t.reject,
-                  input: { label: t.rejectPrompt, multiline: true },
-                });
-                if (r.ok) mutation.mutate({ id: app.id, approve: false, note: r.value || undefined });
-              }}
-              busy={mutation.isPending}
+          {pending.map((i) => (
+            <ReviewCard
+              key={i.key}
+              item={i}
+              roleLabels={roleLabels}
+              staffName={staffName}
+              onApprove={isAdmin ? () => approve(i) : undefined}
+              onReject={isAdmin ? () => reject(i) : undefined}
+              busy={busy}
             />
           ))}
         </div>
       ) : null}
-      {reviewed.length > 0 ? (
+
+      {items.some((i) => i.status !== "pending") ? (
         <div className="space-y-3">
-          <h3 className="text-sm font-semibold text-text-muted">{t.reviewedHeading}</h3>
-          {reviewed.map((app) => (
-            <ApplicationCard key={app.id} app={app} />
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h3 className="text-sm font-semibold text-text-muted">{t.reviewedHeading}</h3>
+            {isAdmin && reviewerIds.length > 0 ? (
+              <div className="w-52">
+                <Select
+                  value={reviewerFilter}
+                  onChange={(e) => setReviewerFilter(e.target.value)}
+                  aria-label={t.reviewerFilter}
+                >
+                  <option value="all">{t.allReviewers}</option>
+                  {reviewerIds.map((id) => (
+                    <option key={id} value={id}>
+                      {staffName.get(id) ?? id.slice(0, 8)}
+                    </option>
+                  ))}
+                </Select>
+              </div>
+            ) : null}
+          </div>
+          {reviewed.map((i) => (
+            <ReviewCard key={i.key} item={i} roleLabels={roleLabels} staffName={staffName} />
           ))}
         </div>
       ) : null}
@@ -407,50 +456,75 @@ function ApplicationsTab() {
   );
 }
 
-function ApplicationCard({
-  app,
+function ReviewCard({
+  item,
+  roleLabels,
+  staffName,
   onApprove,
   onReject,
   busy,
 }: {
-  app: CtvApplicationRow;
+  item: ReviewItem;
+  roleLabels: Record<UserRole, string>;
+  staffName: Map<string, string>;
   onApprove?: () => void;
   onReject?: () => void;
   busy?: boolean;
 }) {
   const t = usePick(STR);
+  const isApp = item.kind === "app";
+  const title = isApp ? item.app!.full_name : item.req!.target_email;
+  const reviewerName = item.reviewedBy ? staffName.get(item.reviewedBy) : null;
+
   return (
     <Card>
       <CardContent className="flex flex-col gap-4 p-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0 space-y-1.5">
-          <div className="flex items-center gap-2">
-            <span className="font-heading font-semibold text-text">{app.full_name}</span>
-            {app.status === "approved" ? (
+          <div className="flex flex-wrap items-center gap-2">
+            <Badge variant={isApp ? "gold" : "success"}>{isApp ? t.kindApp : t.kindRole}</Badge>
+            <span className="font-heading font-semibold text-text">{title}</span>
+            {!isApp ? (
+              <span className="text-xs text-text-subtle">→ {roleLabels[item.req!.requested_role]}</span>
+            ) : null}
+            {item.status === "approved" ? (
               <Badge variant="success">
                 <Check className="h-3 w-3" aria-hidden /> {t.badgeApproved}
               </Badge>
-            ) : app.status === "rejected" ? (
+            ) : item.status === "rejected" ? (
               <Badge variant="danger">{t.badgeRejected}</Badge>
             ) : (
               <Badge variant="gold">{t.badgePending}</Badge>
             )}
-            <span className="text-xs text-text-subtle">{relativeTime(app.created_at)}</span>
+            <span className="text-xs text-text-subtle">{relativeTime(item.createdAt)}</span>
           </div>
-          <p className="text-sm text-text-muted">
-            <span className="text-text-subtle">{t.contactLabel}</span> {app.contact}
-          </p>
-          {app.games ? (
+
+          {isApp ? (
+            <>
+              <p className="text-sm text-text-muted">
+                <span className="text-text-subtle">{t.contactLabel}</span> {item.app!.contact}
+              </p>
+              {item.app!.games ? (
+                <p className="text-sm text-text-muted">
+                  <span className="text-text-subtle">{t.gamesLabel}</span> {item.app!.games}
+                </p>
+              ) : null}
+              {item.app!.experience ? (
+                <p className="text-sm text-text-muted">
+                  <span className="text-text-subtle">{t.experienceLabel}</span> {item.app!.experience}
+                </p>
+              ) : null}
+            </>
+          ) : item.req!.note ? (
             <p className="text-sm text-text-muted">
-              <span className="text-text-subtle">{t.gamesLabel}</span> {app.games}
+              <span className="text-text-subtle">{t.noteLabel}</span> {item.req!.note}
             </p>
           ) : null}
-          {app.experience ? (
-            <p className="text-sm text-text-muted">
-              <span className="text-text-subtle">{t.experienceLabel}</span> {app.experience}
-            </p>
+
+          {reviewerName ? (
+            <p className="text-xs text-text-subtle">{t.reviewedBy(reviewerName)}</p>
           ) : null}
-          {app.note ? <p className="text-xs text-warning">{t.noteLabel} {app.note}</p> : null}
         </div>
+
         {onApprove ? (
           <div className="flex shrink-0 gap-2">
             <Button size="sm" onClick={onApprove} disabled={busy}>
@@ -466,23 +540,51 @@ function ApplicationCard({
   );
 }
 
-function CtvListTab() {
+const ROLE_BADGE: Record<string, "gold" | "success" | "green"> = {
+  admin: "gold",
+  manager: "gold",
+  ctv: "success",
+};
+
+function RoleListTab() {
   const t = usePick(STR);
-  const query = useQuery({ queryKey: ["ctvs"], queryFn: listCtvs });
+  const lang = useLangStore((state) => state.lang);
+  const roleLabels = ROLE_LABELS[lang];
+  const query = useQuery({ queryKey: ["staff"], queryFn: listStaff });
   const [managing, setManaging] = useState<ProfileRow | null>(null);
+  const [roleFilter, setRoleFilter] = useState("all");
 
   if (query.isPending) return <Skeleton className="h-40 rounded-2xl" />;
-  const ctvs = query.data ?? [];
-  if (ctvs.length === 0)
+  const all = query.data ?? [];
+  if (all.length === 0)
     return (
       <div className="rounded-2xl border border-dashed border-border-strong bg-surface p-10 text-center text-sm text-text-muted">
-        {t.noCtvPre} “{t.tabGrant}” {t.noCtvPost}
+        {t.noStaff}
       </div>
     );
+
+  const members = roleFilter === "all" ? all : all.filter((m) => m.role === roleFilter);
+
   return (
     <>
+      <div className="mb-4 flex items-center justify-between gap-3">
+        <p className="text-sm text-text-muted">{members.length}</p>
+        <div className="w-52">
+          <Select
+            value={roleFilter}
+            onChange={(e) => setRoleFilter(e.target.value)}
+            aria-label={t.filterRole}
+          >
+            <option value="all">{t.allRoles}</option>
+            <option value="admin">{roleLabels.admin}</option>
+            <option value="manager">{roleLabels.manager}</option>
+            <option value="ctv">{roleLabels.ctv}</option>
+          </Select>
+        </div>
+      </div>
+
       <div className="overflow-hidden rounded-2xl border border-border">
-        {ctvs.map((c) => (
+        {members.map((c) => (
           <div
             key={c.id}
             className="flex flex-wrap items-center gap-3 border-b border-border bg-surface px-4 py-3 last:border-b-0"
@@ -498,14 +600,17 @@ function CtvListTab() {
                 {c.phone ? ` · ${c.phone}` : ""}
               </p>
             </div>
-            {c.ctv_all_categories ? (
+            {c.ctv_all_categories && c.role === "ctv" ? (
               <Badge variant="gold">{t.allAccessBadge}</Badge>
             ) : null}
-            <Button variant="secondary" size="sm" onClick={() => setManaging(c)}>
-              <FolderCog className="h-4 w-4" aria-hidden /> {t.manageCats}
-            </Button>
-            <Badge variant="success">
-              <BadgeCheck className="h-3 w-3" aria-hidden /> {t.ctvBadge}
+            {/* Phân danh mục chỉ áp cho CTV (admin/manager nhận mọi danh mục). */}
+            {c.role === "ctv" ? (
+              <Button variant="secondary" size="sm" onClick={() => setManaging(c)}>
+                <FolderCog className="h-4 w-4" aria-hidden /> {t.manageCats}
+              </Button>
+            ) : null}
+            <Badge variant={ROLE_BADGE[c.role] ?? "success"}>
+              <BadgeCheck className="h-3 w-3" aria-hidden /> {roleLabels[c.role]}
             </Badge>
           </div>
         ))}

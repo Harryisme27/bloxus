@@ -3,7 +3,7 @@
 // assignedTo cho cache key rõ ràng). Lọc trạng thái bằng pill (kèm đếm),
 // tìm theo mã đơn.
 import { isAdminOrManager } from "@/lib/roles";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -18,6 +18,7 @@ import { WorkOrderStatusBadge, WORK_STATUS_ORDER } from "@/components/work/order
 import { useOrdersRealtime } from "@/components/work/useOrdersRealtime";
 import { countItems, listItemsForOrders } from "@/components/work/workData";
 import { listWorkOrders, deleteOrders, deleteAllOrders } from "@/lib/db/orders";
+import { getSettings } from "@/lib/db/settings";
 import { listCtvs } from "@/lib/db/profiles";
 import { formatPrice, relativeTime } from "@/lib/format";
 import { isSupabaseConfigured } from "@/lib/supabase";
@@ -165,6 +166,15 @@ function OrdersTable({ isAdmin, userId }: { isAdmin: boolean; userId: string }) 
   });
   const deleting = deleteMutation.isPending || deleteAllMutation.isPending;
 
+  // Trạng thái đơn được phép xóa (admin cấu hình trong Settings).
+  const settingsQuery = useQuery({ queryKey: ["settings"], queryFn: getSettings, enabled: canDelete });
+  const deletableSet = useMemo(() => {
+    const raw = settingsQuery.data?.deletable_order_statuses;
+    return new Set(
+      Array.isArray(raw) ? (raw as string[]) : ["paid", "completed", "cancelled", "refunded"],
+    );
+  }, [settingsQuery.data]);
+
   const ordersQuery = useQuery({
     queryKey: isAdmin ? ["work-orders", "all"] : ["work-orders", { assignedTo: userId }],
     queryFn: () => (isAdmin ? listWorkOrders() : listWorkOrders({ assignedTo: userId })),
@@ -237,8 +247,9 @@ function OrdersTable({ isAdmin, userId }: { isAdmin: boolean; userId: string }) 
 
   const itemsMap = itemsQuery.data ?? {};
 
-  // Chọn nhiều để xóa (chỉ admin). Áp trên danh sách đang lọc.
-  const filteredIds = filtered.map((o) => o.id);
+  // Chọn nhiều để xóa (chỉ admin). Chỉ tính các đơn ở trạng thái được phép xóa.
+  const canDeleteOrder = (status: string) => deletableSet.has(status);
+  const filteredIds = filtered.filter((o) => canDeleteOrder(o.status)).map((o) => o.id);
   const allSelected = filteredIds.length > 0 && filteredIds.every((id) => selected.has(id));
   const someSelected = filteredIds.some((id) => selected.has(id));
   function toggleAll() {
@@ -410,13 +421,15 @@ function OrdersTable({ isAdmin, userId }: { isAdmin: boolean; userId: string }) 
                 >
                   {canDelete ? (
                     <td className="px-4 py-3">
-                      <input
-                        type="checkbox"
-                        checked={selected.has(order.id)}
-                        onChange={() => toggleOne(order.id)}
-                        aria-label={`${t.deleteOrder} ${order.order_code}`}
-                        className="h-4 w-4 cursor-pointer rounded border-border-strong bg-surface-2 accent-yellow"
-                      />
+                      {canDeleteOrder(order.status) ? (
+                        <input
+                          type="checkbox"
+                          checked={selected.has(order.id)}
+                          onChange={() => toggleOne(order.id)}
+                          aria-label={`${t.deleteOrder} ${order.order_code}`}
+                          className="h-4 w-4 cursor-pointer rounded border-border-strong bg-surface-2 accent-yellow"
+                        />
+                      ) : null}
                     </td>
                   ) : null}
                   <td className="px-4 py-3">
@@ -473,7 +486,7 @@ function OrdersTable({ isAdmin, userId }: { isAdmin: boolean; userId: string }) 
                       >
                         {t.open}
                       </Link>
-                      {canDelete ? (
+                      {canDelete && canDeleteOrder(order.status) ? (
                         <button
                           type="button"
                           title={t.deleteOrder}

@@ -10,7 +10,9 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { getSettings, updateSetting } from "@/lib/db/settings";
 import { prepareImage, uploadSiteAsset } from "@/components/work-admin/uploads";
 import { GATEWAY_META, parseGateways, type GatewaysSettings } from "@/lib/paymentGateways";
-import { usePick, useLangStore } from "@/i18n";
+import { Toggle } from "@/components/work-admin/Toggle";
+import type { DbOrderStatus } from "@/types/db";
+import { usePick, useLangStore, useT } from "@/i18n";
 
 const STR = {
   vi: {
@@ -47,6 +49,12 @@ const STR = {
     show: "Hiển thị cho khách",
     builtinNote: "Dùng thông tin nhận tiền ở trên.",
     generalTitle: "Thông tin chung",
+    delTitle: "Xóa đơn hàng",
+    delHint:
+      "Chọn trạng thái đơn được phép xóa. Nên giữ lại đơn 'Chờ thanh toán' và 'Đang xử lý' để tránh mất dữ liệu đang chạy.",
+    recruitTitle: "Tuyển cộng tác viên",
+    recruitToggle: "Mở đơn ứng tuyển CTV cho khách",
+    recruitHint: "Bật để khách nộp đơn ứng tuyển CTV ở trang /ctv. Tắt thì trang báo tạm đóng.",
   },
   en: {
     fieldBrand: "Shop name",
@@ -83,8 +91,24 @@ const STR = {
     show: "Show to customers",
     builtinNote: "Uses the payout details above.",
     generalTitle: "General",
+    delTitle: "Order deletion",
+    delHint:
+      "Choose which order statuses admins are allowed to delete. Keep 'Awaiting payment' and 'In progress' to avoid losing active orders.",
+    recruitTitle: "Collaborator recruitment",
+    recruitToggle: "Open CTV applications to customers",
+    recruitHint:
+      "When on, customers can submit CTV applications on the /ctv page. When off, that page shows a closed notice.",
   },
 };
+
+const ORDER_STATUSES: DbOrderStatus[] = [
+  "pending_payment",
+  "paid",
+  "in_progress",
+  "completed",
+  "cancelled",
+  "refunded",
+];
 
 const FIELDS: { key: string; placeholder: string }[] = [
   { key: "brand", placeholder: "Uniemarket" },
@@ -104,9 +128,12 @@ export function WorkSettings() {
   const [claimTimeout, setClaimTimeout] = useState("15");
   const [refundTimeout, setRefundTimeout] = useState("60");
   const [gws, setGws] = useState<GatewaysSettings>({});
+  const [delStatuses, setDelStatuses] = useState<Set<string>>(new Set());
+  const [ctvApplyOpen, setCtvApplyOpen] = useState(false);
   const [uploading, setUploading] = useState(false);
 
   const en = lang === "en";
+  const s = useT();
 
   const fieldLabels: Record<string, string> = {
     brand: t.fieldBrand,
@@ -130,6 +157,15 @@ export function WorkSettings() {
       const rawRefund = query.data.refund_timeout_minutes;
       setRefundTimeout(rawRefund == null ? "60" : String(rawRefund));
       setGws(parseGateways(query.data));
+      const rawDel = query.data.deletable_order_statuses;
+      setDelStatuses(
+        new Set(
+          Array.isArray(rawDel)
+            ? (rawDel as string[])
+            : ["paid", "completed", "cancelled", "refunded"],
+        ),
+      );
+      setCtvApplyOpen(query.data.ctv_apply_open === true);
     }
   }, [query.data]);
 
@@ -140,6 +176,8 @@ export function WorkSettings() {
       await updateSetting("claim_timeout_minutes", Math.max(0, parseInt(claimTimeout, 10) || 0));
       await updateSetting("refund_timeout_minutes", Math.max(1, parseInt(refundTimeout, 10) || 60));
       await updateSetting("payment_gateways", gws);
+      await updateSetting("deletable_order_statuses", Array.from(delStatuses));
+      await updateSetting("ctv_apply_open", ctvApplyOpen);
     },
     onSuccess: () => {
       toast.success(t.saved);
@@ -352,6 +390,50 @@ export function WorkSettings() {
                   className="max-w-[160px]"
                 />
                 <p className="mt-1.5 text-xs text-text-subtle">{t.refundTimeoutHint}</p>
+              </div>
+            </div>
+
+            {/* Xóa đơn hàng — trạng thái nào được phép xóa */}
+            <div className="border-t border-border pt-4">
+              <p className="font-heading text-sm font-semibold text-text">{t.delTitle}</p>
+              <p className="mb-3 mt-0.5 text-xs text-text-subtle">{t.delHint}</p>
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                {ORDER_STATUSES.map((st) => (
+                  <label
+                    key={st}
+                    className="flex cursor-pointer items-center gap-2 rounded-lg border border-border bg-surface-2 px-3 py-2"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={delStatuses.has(st)}
+                      onChange={(e) =>
+                        setDelStatuses((prev) => {
+                          const next = new Set(prev);
+                          e.target.checked ? next.add(st) : next.delete(st);
+                          return next;
+                        })
+                      }
+                      className="h-4 w-4 accent-yellow"
+                    />
+                    <span className="text-sm text-text">{s.status[st]}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            {/* Tuyển CTV — bật/tắt đơn ứng tuyển cho khách */}
+            <div className="border-t border-border pt-4">
+              <p className="font-heading text-sm font-semibold text-text">{t.recruitTitle}</p>
+              <div className="mt-3 flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-text">{t.recruitToggle}</p>
+                  <p className="mt-0.5 text-xs text-text-subtle">{t.recruitHint}</p>
+                </div>
+                <Toggle
+                  checked={ctvApplyOpen}
+                  onCheckedChange={setCtvApplyOpen}
+                  label={t.recruitToggle}
+                />
               </div>
             </div>
 
