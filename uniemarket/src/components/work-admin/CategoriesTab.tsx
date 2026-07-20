@@ -14,6 +14,7 @@ import {
   listCategoryFolders,
   upsertCategoryFolder,
   deleteCategoryFolder,
+  setCategoriesFolder,
 } from "@/lib/db/catalog";
 import { slugify } from "./helpers";
 import type { CategoryRow, CategoryUpsert } from "@/types/db";
@@ -59,6 +60,11 @@ const STR = {
     folderDelConfirm: (name: string) => `Xoá folder "${name}"? Game bên trong sẽ về 'chưa xếp'.`,
     colFolder: "Folder",
     noFolder: "—",
+    selectAll: "Chọn tất cả",
+    selectedN: (n: number) => `Đã chọn ${n}`,
+    moveTo: "Chuyển vào folder…",
+    apply: "Áp dụng",
+    moved: (n: number) => `Đã chuyển ${n} danh mục.`,
   },
   en: {
     hidden: "Category hidden from the store",
@@ -94,6 +100,11 @@ const STR = {
     folderDelConfirm: (name: string) => `Delete folder "${name}"? Its games become 'unassigned'.`,
     colFolder: "Folder",
     noFolder: "—",
+    selectAll: "Select all",
+    selectedN: (n: number) => `${n} selected`,
+    moveTo: "Move to folder…",
+    apply: "Apply",
+    moved: (n: number) => `Moved ${n} categories.`,
   },
 };
 
@@ -187,11 +198,19 @@ export function CategoriesTab() {
   const [deleteTarget, setDeleteTarget] = useState<CategoryRow | null>(null);
   const [pageSize, setPageSize] = useState(10);
   const [page, setPage] = useState(1);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [moveTarget, setMoveTarget] = useState("");
 
   const categoriesQuery = useQuery({
     queryKey: ["categories", "admin"],
     queryFn: () => listCategories({ activeOnly: false }),
   });
+  const foldersQuery = useQuery({ queryKey: ["category-folders"], queryFn: listCategoryFolders });
+  const folderName = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const f of foldersQuery.data ?? []) map.set(f.id, f.name);
+    return map;
+  }, [foldersQuery.data]);
 
   const productsQuery = useQuery({
     queryKey: ["products", "admin"],
@@ -222,6 +241,18 @@ export function CategoriesTab() {
     onError: (err) => toast.error(err.message),
   });
 
+  const moveMutation = useMutation({
+    mutationFn: ({ ids, folderId }: { ids: string[]; folderId: string | null }) =>
+      setCategoriesFolder(ids, folderId),
+    onSuccess: (_d, vars) => {
+      toast.success(t.moved(vars.ids.length));
+      setSelected(new Set());
+      setMoveTarget("");
+      void queryClient.invalidateQueries({ queryKey: ["categories"] });
+    },
+    onError: (err) => toast.error(err instanceof Error ? err.message : "Error"),
+  });
+
   const categories = categoriesQuery.data ?? [];
 
   useEffect(() => {
@@ -232,6 +263,18 @@ export function CategoriesTab() {
   const currentPage = Math.min(page, totalPages);
   const pageStart = (currentPage - 1) * pageSize;
   const paginated = categories.slice(pageStart, pageStart + pageSize);
+
+  // Chọn nhiều (áp trên trang hiện tại).
+  const pageIds = paginated.map((c) => c.id);
+  const allSelected = pageIds.length > 0 && pageIds.every((id) => selected.has(id));
+  const someSelected = pageIds.some((id) => selected.has(id));
+  const toggleAll = () => setSelected(allSelected ? new Set() : new Set(pageIds));
+  const toggleOne = (id: string) =>
+    setSelected((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
 
   return (
     <div className="space-y-4">
@@ -261,6 +304,42 @@ export function CategoriesTab() {
         </div>
       </div>
 
+      {/* Thanh gán folder hàng loạt — hiện khi có chọn */}
+      {selected.size > 0 ? (
+        <div className="flex flex-wrap items-center gap-2 rounded-xl border border-yellow bg-yellow-soft px-4 py-2.5">
+          <span className="text-sm font-medium text-text">{t.selectedN(selected.size)}</span>
+          <div className="ml-auto flex items-center gap-2">
+            <div className="w-48">
+              <Select
+                value={moveTarget}
+                onChange={(e) => setMoveTarget(e.target.value)}
+                aria-label={t.moveTo}
+              >
+                <option value="">{t.moveTo}</option>
+                <option value="__none__">{t.noFolder}</option>
+                {(foldersQuery.data ?? []).map((f) => (
+                  <option key={f.id} value={f.id}>
+                    {f.name}
+                  </option>
+                ))}
+              </Select>
+            </div>
+            <Button
+              size="sm"
+              disabled={!moveTarget || moveMutation.isPending}
+              onClick={() =>
+                moveMutation.mutate({
+                  ids: [...selected],
+                  folderId: moveTarget === "__none__" ? null : moveTarget,
+                })
+              }
+            >
+              {t.apply}
+            </Button>
+          </div>
+        </div>
+      ) : null}
+
       {categoriesQuery.isPending ? (
         <TableSkeleton rows={5} />
       ) : categoriesQuery.isError ? (
@@ -273,7 +352,20 @@ export function CategoriesTab() {
             <table className="w-full min-w-[680px] text-sm">
               <thead>
                 <tr className="border-b border-border text-left text-xs font-semibold uppercase tracking-wider text-text-subtle">
+                  <th className="px-4 py-3">
+                    <input
+                      type="checkbox"
+                      checked={allSelected}
+                      ref={(el) => {
+                        if (el) el.indeterminate = !allSelected && someSelected;
+                      }}
+                      onChange={toggleAll}
+                      aria-label={t.selectAll}
+                      className="h-4 w-4 accent-yellow"
+                    />
+                  </th>
                   <th className="px-4 py-3">{t.colCategory}</th>
+                  <th className="px-4 py-3">{t.colFolder}</th>
                   <th className="px-4 py-3 text-center">{t.colOrder}</th>
                   <th className="px-4 py-3 text-center">{t.colProducts}</th>
                   <th className="px-4 py-3 text-center">{t.colFeatured}</th>
@@ -288,8 +380,18 @@ export function CategoriesTab() {
                     className={cn(
                       "border-b border-border last:border-0",
                       !category.is_active && "opacity-60",
+                      selected.has(category.id) && "bg-yellow-soft/40",
                     )}
                   >
+                    <td className="px-4 py-3">
+                      <input
+                        type="checkbox"
+                        checked={selected.has(category.id)}
+                        onChange={() => toggleOne(category.id)}
+                        aria-label={category.name}
+                        className="h-4 w-4 accent-yellow"
+                      />
+                    </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-3">
                         <span
@@ -302,6 +404,9 @@ export function CategoriesTab() {
                           <p className="truncate font-mono text-xs text-text-subtle">/{category.slug}</p>
                         </div>
                       </div>
+                    </td>
+                    <td className="px-4 py-3 text-text-muted">
+                      {category.folder_id ? folderName.get(category.folder_id) ?? t.noFolder : t.noFolder}
                     </td>
                     <td className="px-4 py-3 text-center font-mono tabular-nums-mono text-text-muted">
                       {category.sort_order}

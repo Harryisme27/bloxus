@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import {
   ShieldCheck,
   PackageCheck,
@@ -11,7 +12,9 @@ import {
   ChevronRight,
   Clock,
   ImageOff,
+  Trash2,
   User2,
+  X,
 } from "lucide-react";
 import { PageContainer } from "@/components/PageContainer";
 import { SectionHeading } from "@/components/SectionHeading";
@@ -28,8 +31,10 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { SetupNotice } from "@/components/SetupNotice";
-import { listProofs, listReviews } from "@/lib/db/content";
+import { useConfirm } from "@/components/ui/confirm";
+import { listProofs, listReviews, deleteProofs } from "@/lib/db/content";
 import { isSupabaseConfigured } from "@/lib/supabase";
+import { useAuthStore } from "@/store/authStore";
 import { formatPrice, relativeTime } from "@/lib/format";
 import { DISCORD_URL } from "@/lib/constants";
 import type { ProofRow, ReviewRow } from "@/types/db";
@@ -58,6 +63,14 @@ const STR = {
     ctaButton: "Vào Discord",
     verified: "Đã xác minh",
     anonymous: "Ẩn danh",
+    selectedN: (n: number) => `Đã chọn ${n}`,
+    deleteSelected: (n: number) => `Xóa đã chọn (${n})`,
+    deleteProof: "Xóa minh chứng",
+    deleted: (n: number) => `Đã xóa ${n} minh chứng.`,
+    confirmDelTitle: "Xóa minh chứng đã chọn?",
+    confirmDelMsg: (n: number) => `${n} minh chứng sẽ bị xóa vĩnh viễn. Không thể hoàn tác.`,
+    confirmDelOne: "Xóa minh chứng này? Không thể hoàn tác.",
+    confirmDelBtn: "Xóa",
     handledBy: "Xử lý bởi",
     verifiedPurchase: "Đã mua hàng",
     viewDetails: "Xem chi tiết",
@@ -91,6 +104,14 @@ const STR = {
     ctaButton: "Open Discord",
     verified: "Verified",
     anonymous: "Anonymous",
+    selectedN: (n: number) => `${n} selected`,
+    deleteSelected: (n: number) => `Delete selected (${n})`,
+    deleteProof: "Delete proof",
+    deleted: (n: number) => `Deleted ${n} proof${n === 1 ? "" : "s"}.`,
+    confirmDelTitle: "Delete selected proofs?",
+    confirmDelMsg: (n: number) => `${n} proof${n === 1 ? "" : "s"} will be permanently deleted. This cannot be undone.`,
+    confirmDelOne: "Delete this proof? This cannot be undone.",
+    confirmDelBtn: "Delete",
     handledBy: "Handled by",
     verifiedPurchase: "Verified purchase",
     viewDetails: "View details",
@@ -109,10 +130,25 @@ const PROOFS_PER_PAGE = 10;
 
 export function Proofs() {
   const t = usePick(STR);
+  const queryClient = useQueryClient();
+  const confirm = useConfirm();
+  const isAdmin = useAuthStore((s) => s.user?.role === "admin");
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+
   const proofsQuery = useQuery({
     queryKey: ["proofs"],
     queryFn: listProofs,
     enabled: isSupabaseConfigured,
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (ids: string[]) => deleteProofs(ids),
+    onSuccess: (_d, ids) => {
+      toast.success(t.deleted(ids.length));
+      setSelected(new Set());
+      void queryClient.invalidateQueries({ queryKey: ["proofs"] });
+    },
+    onError: (err) => toast.error(err instanceof Error ? err.message : "Error"),
   });
   const reviewsQuery = useQuery({
     queryKey: ["reviews"],
@@ -184,9 +220,56 @@ export function Proofs() {
           </div>
         ) : filteredProofs.length > 0 ? (
           <>
+            {/* Thanh xóa hàng loạt — chỉ admin */}
+            {isAdmin && selected.size > 0 ? (
+              <div className="mb-4 flex items-center gap-3 rounded-xl border border-danger bg-danger-soft px-4 py-2.5">
+                <span className="text-sm font-medium text-text">{t.selectedN(selected.size)}</span>
+                <Button
+                  variant="danger"
+                  size="sm"
+                  className="ml-auto"
+                  disabled={deleteMutation.isPending}
+                  onClick={async () => {
+                    const r = await confirm({
+                      title: t.confirmDelTitle,
+                      message: t.confirmDelMsg(selected.size),
+                      confirmText: t.confirmDelBtn,
+                      tone: "danger",
+                    });
+                    if (r.ok) deleteMutation.mutate([...selected]);
+                  }}
+                >
+                  <Trash2 className="h-4 w-4" aria-hidden />
+                  {t.deleteSelected(selected.size)}
+                </Button>
+              </div>
+            ) : null}
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {pageProofs.map((p) => (
-                <ProofItem key={p.id} proof={p} onOpen={() => setDetail(p)} />
+                <ProofItem
+                  key={p.id}
+                  proof={p}
+                  onOpen={() => setDetail(p)}
+                  admin={isAdmin}
+                  selected={selected.has(p.id)}
+                  onToggleSelect={() =>
+                    setSelected((prev) => {
+                      const next = new Set(prev);
+                      next.has(p.id) ? next.delete(p.id) : next.add(p.id);
+                      return next;
+                    })
+                  }
+                  onDelete={async () => {
+                    const r = await confirm({
+                      title: t.deleteProof,
+                      message: t.confirmDelOne,
+                      confirmText: t.confirmDelBtn,
+                      tone: "danger",
+                    });
+                    if (r.ok) deleteMutation.mutate([p.id]);
+                  }}
+                  deleteBusy={deleteMutation.isPending}
+                />
               ))}
             </div>
             {totalPages > 1 ? (
@@ -281,10 +364,54 @@ function GameChip({ label, active, onClick }: { label: string; active: boolean; 
   );
 }
 
-function ProofItem({ proof, onOpen }: { proof: ProofRow; onOpen: () => void }) {
+function ProofItem({
+  proof,
+  onOpen,
+  admin,
+  selected,
+  onToggleSelect,
+  onDelete,
+  deleteBusy,
+}: {
+  proof: ProofRow;
+  onOpen: () => void;
+  admin?: boolean;
+  selected?: boolean;
+  onToggleSelect?: () => void;
+  onDelete?: () => void;
+  deleteBusy?: boolean;
+}) {
   const t = usePick(STR);
   return (
-    <article className="flex flex-col gap-3 rounded-2xl border border-border bg-surface p-4 transition-all duration-200 hover:-translate-y-1 hover:border-yellow hover:shadow-glow-amber">
+    <article
+      className={cn(
+        "relative flex flex-col gap-3 rounded-2xl border border-border bg-surface p-4 transition-all duration-200 hover:-translate-y-1 hover:border-yellow hover:shadow-glow-amber",
+        selected && "border-danger ring-1 ring-danger",
+      )}
+    >
+      {admin ? (
+        <div className="absolute left-2 top-2 z-10 flex items-center gap-1.5">
+          <input
+            type="checkbox"
+            checked={!!selected}
+            onChange={onToggleSelect}
+            aria-label={t.deleteProof}
+            className="h-4 w-4 cursor-pointer accent-danger"
+          />
+        </div>
+      ) : null}
+      {admin ? (
+        <button
+          type="button"
+          title={t.deleteProof}
+          aria-label={t.deleteProof}
+          disabled={deleteBusy}
+          onClick={onDelete}
+          className="absolute right-2 top-2 z-10 flex h-7 w-7 items-center justify-center rounded-full bg-black/60 text-white transition-colors hover:bg-danger disabled:opacity-50"
+        >
+          <X className="h-4 w-4" aria-hidden />
+        </button>
+      ) : null}
       {/* Thumbnail ảnh proof (nếu có) — bấm để phóng to trong dialog */}
       {proof.proof_image_url ? (
         <button

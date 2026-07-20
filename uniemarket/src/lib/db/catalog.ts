@@ -46,6 +46,17 @@ export async function deleteCategoryFolder(id: string): Promise<void> {
   if (error) throw new Error(error.message);
 }
 
+/** Gán nhiều danh mục vào 1 folder cùng lúc (null = gỡ khỏi folder). */
+export async function setCategoriesFolder(
+  ids: string[],
+  folderId: string | null,
+): Promise<void> {
+  if (ids.length === 0) return;
+  const sb = requireSupabase();
+  const { error } = await sb.from("categories").update({ folder_id: folderId }).in("id", ids);
+  if (error) throw new Error(error.message);
+}
+
 // ----------------------------------------------------------------------------
 // Đọc (anon + authenticated — RLS chỉ trả về hàng đang bán cho người thường)
 // ----------------------------------------------------------------------------

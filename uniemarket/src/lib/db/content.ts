@@ -14,6 +14,14 @@ export async function listProofs(): Promise<ProofRow[]> {
   return (data ?? []) as ProofRow[];
 }
 
+/** Admin xóa minh chứng (RLS 'proofs: admin write' đảm bảo chỉ admin). */
+export async function deleteProofs(ids: string[]): Promise<void> {
+  if (ids.length === 0) return;
+  const sb = requireSupabase();
+  const { error } = await sb.from("proofs").delete().in("id", ids);
+  if (error) throw new Error(error.message);
+}
+
 /** Đánh giá của khách, mới nhất trước. */
 export async function listReviews(): Promise<ReviewRow[]> {
   const sb = requireSupabase();
