@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { ImagePlus, Loader2, Trash2 } from "lucide-react";
 import {
@@ -11,8 +11,9 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Select } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { upsertCategory } from "@/lib/db/catalog";
+import { upsertCategory, listCategoryFolders } from "@/lib/db/catalog";
 import type { CategoryRow, CategoryUpsert } from "@/types/db";
 import { usePick, useLangStore } from "@/i18n";
 import { AdminTextarea } from "./Textarea";
@@ -41,6 +42,8 @@ const STR = {
     accentLabel: "Màu nhấn",
     accentAria: "Chọn màu nhấn",
     accentPlaceholder: "#f5b01e (để trống = mặc định)",
+    folderLabel: "Folder (nhóm game)",
+    folderNone: "— Chưa xếp folder —",
     sectionsLabel: "Khu vực sản phẩm (phân cách bằng dấu phẩy, theo thứ tự hiển thị)",
     sectionsPlaceholder: "VD: Pets, Eggs, Sheckles",
     sectionsHint: "Trang game sẽ nhóm sản phẩm theo các khu này — gán khu cho từng sản phẩm ở phần Sửa sản phẩm.",
@@ -82,6 +85,8 @@ const STR = {
     accentLabel: "Accent color",
     accentAria: "Pick accent color",
     accentPlaceholder: "#f5b01e (leave empty = default)",
+    folderLabel: "Folder (game group)",
+    folderNone: "— No folder —",
     sectionsLabel: "Product sections (comma-separated, in display order)",
     sectionsPlaceholder: "e.g. Pets, Eggs, Sheckles",
     sectionsHint: "The game page groups products by these sections — assign each product's section in the product editor.",
@@ -114,6 +119,7 @@ interface CategoryFormState {
   description: string;
   accent_color: string;
   icon_url: string;
+  folder_id: string;
   sectionsText: string;
   contact_field_label: string;
   contact_field_placeholder: string;
@@ -130,6 +136,7 @@ function initForm(category: CategoryRow | null): CategoryFormState {
     description: category?.description ?? "",
     accent_color: category?.accent_color ?? "",
     icon_url: category?.icon_url ?? "",
+    folder_id: category?.folder_id ?? "",
     sectionsText: (category?.sections ?? []).join(", "),
     contact_field_label: category?.contact_field_label ?? "",
     contact_field_placeholder: category?.contact_field_placeholder ?? "",
@@ -155,6 +162,7 @@ export function CategoryDialog({ open, onOpenChange, category }: CategoryDialogP
   const [slugTouched, setSlugTouched] = useState(Boolean(category));
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const foldersQuery = useQuery({ queryKey: ["category-folders"], queryFn: listCategoryFolders });
 
   useEffect(() => {
     if (open) {
@@ -209,6 +217,7 @@ export function CategoryDialog({ open, onOpenChange, category }: CategoryDialogP
       description: form.description.trim() || null,
       accent_color: form.accent_color.trim() || null,
       icon_url: form.icon_url.trim() || null,
+      folder_id: form.folder_id || null,
       // Danh sách khu: tách theo dấu phẩy, bỏ trống + trùng (giữ thứ tự nhập).
       sections: Array.from(
         new Set(form.sectionsText.split(",").map((s) => s.trim()).filter(Boolean)),
@@ -350,6 +359,22 @@ export function CategoryDialog({ open, onOpenChange, category }: CategoryDialogP
                 <p className="text-xs text-text-subtle">{t.imageHint}</p>
               </div>
             </div>
+          </div>
+
+          <div>
+            <Label htmlFor="cat-folder">{t.folderLabel}</Label>
+            <Select
+              id="cat-folder"
+              value={form.folder_id}
+              onChange={(e) => set("folder_id", e.target.value)}
+            >
+              <option value="">{t.folderNone}</option>
+              {(foldersQuery.data ?? []).map((f) => (
+                <option key={f.id} value={f.id}>
+                  {f.name}
+                </option>
+              ))}
+            </Select>
           </div>
 
           <div>

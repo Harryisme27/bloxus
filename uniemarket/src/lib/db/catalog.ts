@@ -1,7 +1,50 @@
 // Data layer — Danh mục & sản phẩm (đọc công khai + CRUD admin).
 // Mọi hàm đều async và ném Error có message tiếng Việt khi thất bại.
 import { requireSupabase } from "@/lib/supabase";
-import type { CategoryRow, CategoryUpsert, ProductRow, ProductUpsert } from "@/types/db";
+import type {
+  CategoryFolderRow,
+  CategoryRow,
+  CategoryUpsert,
+  ProductRow,
+  ProductUpsert,
+} from "@/types/db";
+
+// ----------------------------------------------------------------------------
+// Folder (nhóm danh mục: Roblox, CS2...)
+// ----------------------------------------------------------------------------
+
+export async function listCategoryFolders(): Promise<CategoryFolderRow[]> {
+  const sb = requireSupabase();
+  const { data, error } = await sb
+    .from("category_folders")
+    .select("*")
+    .order("sort_order", { ascending: true })
+    .order("name", { ascending: true });
+  if (error) throw new Error(error.message);
+  return (data ?? []) as CategoryFolderRow[];
+}
+
+export async function upsertCategoryFolder(input: {
+  id?: string;
+  name: string;
+  slug: string;
+  sort_order?: number;
+}): Promise<CategoryFolderRow> {
+  const sb = requireSupabase();
+  const { data, error } = await sb
+    .from("category_folders")
+    .upsert(input, { onConflict: "id" })
+    .select()
+    .single();
+  if (error) throw new Error(error.message);
+  return data as CategoryFolderRow;
+}
+
+export async function deleteCategoryFolder(id: string): Promise<void> {
+  const sb = requireSupabase();
+  const { error } = await sb.from("category_folders").delete().eq("id", id);
+  if (error) throw new Error(error.message);
+}
 
 // ----------------------------------------------------------------------------
 // Đọc (anon + authenticated — RLS chỉ trả về hàng đang bán cho người thường)

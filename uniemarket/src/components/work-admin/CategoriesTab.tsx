@@ -1,11 +1,21 @@
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { ChevronLeft, ChevronRight, EyeOff, Pencil, Plus, Star } from "lucide-react";
+import { ChevronLeft, ChevronRight, EyeOff, FolderPlus, Pencil, Plus, Star, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
-import { deleteCategory, listCategories, listProducts, upsertCategory } from "@/lib/db/catalog";
+import {
+  deleteCategory,
+  listCategories,
+  listProducts,
+  upsertCategory,
+  listCategoryFolders,
+  upsertCategoryFolder,
+  deleteCategoryFolder,
+} from "@/lib/db/catalog";
+import { slugify } from "./helpers";
 import type { CategoryRow, CategoryUpsert } from "@/types/db";
 import { cn } from "@/lib/utils";
 import { usePick } from "@/i18n";
@@ -40,6 +50,15 @@ const STR = {
     showing: (a: number, b: number, total: number) => `${a}–${b} / ${total}`,
     prev: "Trước",
     next: "Sau",
+    foldersTitle: "Folder (nhóm game)",
+    foldersHint: "VD: Roblox, CS2 — gom các game cùng hệ để khách dễ tìm.",
+    folderNamePh: "Tên folder mới…",
+    addFolder: "Thêm folder",
+    folderAdded: "Đã thêm folder.",
+    folderDeleted: "Đã xoá folder.",
+    folderDelConfirm: (name: string) => `Xoá folder "${name}"? Game bên trong sẽ về 'chưa xếp'.`,
+    colFolder: "Folder",
+    noFolder: "—",
   },
   en: {
     hidden: "Category hidden from the store",
@@ -66,8 +85,94 @@ const STR = {
     showing: (a: number, b: number, total: number) => `${a}–${b} of ${total}`,
     prev: "Prev",
     next: "Next",
+    foldersTitle: "Folders (game groups)",
+    foldersHint: "e.g. Roblox, CS2 — group games of the same platform so customers browse easily.",
+    folderNamePh: "New folder name…",
+    addFolder: "Add folder",
+    folderAdded: "Folder added.",
+    folderDeleted: "Folder deleted.",
+    folderDelConfirm: (name: string) => `Delete folder "${name}"? Its games become 'unassigned'.`,
+    colFolder: "Folder",
+    noFolder: "—",
   },
 };
+
+/** Quản lý folder gọn: liệt kê chip + thêm/xoá. */
+function FolderManager({ t }: { t: (typeof STR)["en"] }) {
+  const queryClient = useQueryClient();
+  const [name, setName] = useState("");
+  const query = useQuery({ queryKey: ["category-folders"], queryFn: listCategoryFolders });
+
+  const addMutation = useMutation({
+    mutationFn: (n: string) =>
+      upsertCategoryFolder({ name: n.trim(), slug: slugify(n.trim()) || "folder" }),
+    onSuccess: () => {
+      toast.success(t.folderAdded);
+      setName("");
+      void queryClient.invalidateQueries({ queryKey: ["category-folders"] });
+    },
+    onError: (err) => toast.error(err instanceof Error ? err.message : "Error"),
+  });
+  const delMutation = useMutation({
+    mutationFn: (id: string) => deleteCategoryFolder(id),
+    onSuccess: () => {
+      toast.success(t.folderDeleted);
+      void queryClient.invalidateQueries({ queryKey: ["category-folders"] });
+      void queryClient.invalidateQueries({ queryKey: ["categories"] });
+    },
+    onError: (err) => toast.error(err instanceof Error ? err.message : "Error"),
+  });
+
+  const folders = query.data ?? [];
+
+  return (
+    <Card className="p-4">
+      <p className="font-heading text-sm font-semibold text-text">{t.foldersTitle}</p>
+      <p className="mt-0.5 text-xs text-text-subtle">{t.foldersHint}</p>
+
+      <div className="mt-3 flex flex-wrap gap-2">
+        {folders.map((f) => (
+          <span
+            key={f.id}
+            className="inline-flex items-center gap-1.5 rounded-full border border-border-strong bg-surface-2 py-1 pl-3 pr-1.5 text-sm text-text"
+          >
+            {f.name}
+            <button
+              type="button"
+              aria-label={`Delete ${f.name}`}
+              disabled={delMutation.isPending}
+              onClick={() => {
+                if (confirm(t.folderDelConfirm(f.name))) delMutation.mutate(f.id);
+              }}
+              className="flex h-5 w-5 items-center justify-center rounded-full text-text-subtle hover:bg-danger-soft hover:text-danger"
+            >
+              <X className="h-3.5 w-3.5" aria-hidden />
+            </button>
+          </span>
+        ))}
+      </div>
+
+      <form
+        className="mt-3 flex gap-2"
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (name.trim() && !addMutation.isPending) addMutation.mutate(name);
+        }}
+      >
+        <Input
+          value={name}
+          placeholder={t.folderNamePh}
+          onChange={(e) => setName(e.target.value)}
+          className="max-w-xs"
+        />
+        <Button type="submit" size="sm" variant="secondary" disabled={!name.trim() || addMutation.isPending}>
+          <FolderPlus className="h-4 w-4" aria-hidden />
+          {t.addFolder}
+        </Button>
+      </form>
+    </Card>
+  );
+}
 
 const PAGE_SIZES = [10, 20, 50, 100];
 
@@ -130,6 +235,8 @@ export function CategoriesTab() {
 
   return (
     <div className="space-y-4">
+      <FolderManager t={t} />
+
       <div className="flex items-center justify-between gap-3">
         <p className="text-sm text-text-muted">
           {categoriesQuery.isSuccess ? t.count(categories.length) : " "}

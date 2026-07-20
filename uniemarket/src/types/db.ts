@@ -96,10 +96,20 @@ export interface PublicProfileRow {
   last_seen_at: string | null;
 }
 
+export interface CategoryFolderRow {
+  id: string;
+  name: string;
+  slug: string;
+  sort_order: number;
+  created_at: string;
+}
+
 export interface CategoryRow {
   id: string;
   slug: string;
   name: string;
+  /** Folder (nhóm game) — null nếu chưa xếp. */
+  folder_id: string | null;
   tagline: string | null;
   description: string | null;
   icon_url: string | null;
