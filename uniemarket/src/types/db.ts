@@ -82,6 +82,8 @@ export interface ProfileRow {
   role: UserRole;
   last_seen_at: string | null;
   ctv_all_categories: boolean;
+  /** Số dư ví (VNĐ). */
+  credit_balance: number;
   created_at: string;
   updated_at: string;
 }
@@ -94,6 +96,17 @@ export interface PublicProfileRow {
   avatar_url: string | null;
   role: UserRole;
   last_seen_at: string | null;
+}
+
+export interface CreditTransactionRow {
+  id: string;
+  user_id: string;
+  amount: number;
+  type: "topup" | "spend" | "adjust" | "refund";
+  note: string | null;
+  balance_after: number;
+  order_id: string | null;
+  created_at: string;
 }
 
 export interface CategoryFolderRow {

@@ -22,7 +22,11 @@ import { listApplications, approveCtv } from "@/lib/db/applications";
 import { listStaff, setUserRole, listCtvCategories, setCtvCategories, requestRoleGrant, listRoleRequests, reviewRoleGrant } from "@/lib/db/profiles";
 import { listCategories } from "@/lib/db/catalog";
 import { getSettings, updateSetting } from "@/lib/db/settings";
+import { adminAdjustCredit } from "@/lib/db/credit";
+import { PriceInput } from "@/components/work-admin/PriceInput";
+import { formatPrice } from "@/lib/format";
 import { PERMISSIONS } from "@/lib/usePermissions";
+import { cn } from "@/lib/utils";
 import { relativeTime } from "@/lib/format";
 import type { CtvApplicationRow, ProfileRow, RoleRequestRow, UserRole } from "@/types/db";
 import { usePick, useLangStore } from "@/i18n";
@@ -97,6 +101,14 @@ const STR = {
     reviewedBy: (name: string) => `Duyệt bởi ${name}`,
     proposedBy: "Đề xuất",
     noStaff: "Chưa có nhân sự nào.",
+    tabCredits: "Nạp số dư",
+    creditInfo: "Nạp/điều chỉnh số dư ví cho khách theo email. Số âm để trừ.",
+    creditEmail: "Email khách hàng",
+    creditAmount: "Số tiền (âm để trừ)",
+    creditNote: "Ghi chú (tuỳ chọn)",
+    creditNotePh: "VD: nạp qua chuyển khoản",
+    creditSubmit: "Cập nhật số dư",
+    creditDone: (bal: string) => `Đã cập nhật. Số dư mới: ${bal}.`,
     tabPerms: "Phân quyền",
     permsHint:
       "Bật/tắt quyền cho từng vai trò. Admin luôn có mọi quyền. Thay đổi áp dụng ngay sau khi Lưu.",
@@ -175,6 +187,14 @@ const STR = {
     reviewedBy: (name: string) => `Reviewed by ${name}`,
     proposedBy: "Proposed",
     noStaff: "No staff members yet.",
+    tabCredits: "Credits",
+    creditInfo: "Add/adjust a customer's wallet balance by email. Use a negative amount to deduct.",
+    creditEmail: "Customer email",
+    creditAmount: "Amount (negative to deduct)",
+    creditNote: "Note (optional)",
+    creditNotePh: "e.g. topped up via bank transfer",
+    creditSubmit: "Update balance",
+    creditDone: (bal: string) => `Updated. New balance: ${bal}.`,
     tabPerms: "Permissions",
     permsHint:
       "Toggle what each role can do. Admin always has everything. Changes apply right after you save.",
@@ -209,6 +229,7 @@ export function WorkCtv() {
           <TabsTrigger value="grant">{t.tabGrant}</TabsTrigger>
           <TabsTrigger value="list">{t.tabList}</TabsTrigger>
           <TabsTrigger value="applications">{t.tabApplications}</TabsTrigger>
+          {isAdmin ? <TabsTrigger value="credits">{t.tabCredits}</TabsTrigger> : null}
           {isAdmin ? <TabsTrigger value="perms">{t.tabPerms}</TabsTrigger> : null}
         </TabsList>
         <TabsContent value="grant" className="pt-5">
@@ -220,6 +241,11 @@ export function WorkCtv() {
         <TabsContent value="applications" className="pt-5">
           <ApplicationsTab isAdmin={isAdmin} />
         </TabsContent>
+        {isAdmin ? (
+          <TabsContent value="credits" className="pt-5">
+            <CreditsTab />
+          </TabsContent>
+        ) : null}
         {isAdmin ? (
           <TabsContent value="perms" className="pt-5">
             <PermissionsTab />
@@ -651,6 +677,84 @@ function RoleListTab() {
       </div>
       <CategoryAssignDialog ctv={managing} onClose={() => setManaging(null)} />
     </>
+  );
+}
+
+/** Admin nạp/điều chỉnh số dư ví cho khách theo email. */
+function CreditsTab() {
+  const t = usePick(STR);
+  const [email, setEmail] = useState("");
+  const [amount, setAmount] = useState<number | null>(null);
+  const [note, setNote] = useState("");
+  const [sign, setSign] = useState<1 | -1>(1);
+
+  const mutation = useMutation({
+    mutationFn: () => adminAdjustCredit(email.trim(), (amount ?? 0) * sign, note.trim() || undefined),
+    onSuccess: (bal) => {
+      toast.success(t.creditDone(formatPrice(bal)));
+      setAmount(null);
+      setNote("");
+    },
+    onError: (err) => toast.error(err instanceof Error ? err.message : t.actionFail),
+  });
+
+  return (
+    <div className="max-w-xl space-y-4">
+      <div className="rounded-2xl border border-yellow/40 bg-yellow-soft px-4 py-3 text-sm text-text-muted">
+        {t.creditInfo}
+      </div>
+      <Card>
+        <CardContent className="space-y-4 p-5">
+          <div>
+            <Label htmlFor="credit-email">{t.creditEmail}</Label>
+            <Input
+              id="credit-email"
+              type="email"
+              value={email}
+              placeholder="user@email.com"
+              onChange={(e) => setEmail(e.target.value)}
+            />
+          </div>
+          <div>
+            <Label htmlFor="credit-amount">{t.creditAmount}</Label>
+            <div className="flex gap-2">
+              <div className="flex overflow-hidden rounded-lg border border-border-strong">
+                <button
+                  type="button"
+                  onClick={() => setSign(1)}
+                  className={cn("px-3 text-sm font-semibold", sign === 1 ? "bg-green text-text-on-green" : "text-text-muted")}
+                >
+                  +
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSign(-1)}
+                  className={cn("px-3 text-sm font-semibold", sign === -1 ? "bg-danger text-white" : "text-text-muted")}
+                >
+                  −
+                </button>
+              </div>
+              <PriceInput value={amount} onChange={setAmount} className="flex-1" />
+            </div>
+          </div>
+          <div>
+            <Label htmlFor="credit-note">{t.creditNote}</Label>
+            <Input
+              id="credit-note"
+              value={note}
+              placeholder={t.creditNotePh}
+              onChange={(e) => setNote(e.target.value)}
+            />
+          </div>
+          <Button
+            onClick={() => mutation.mutate()}
+            disabled={!email.trim() || !amount || mutation.isPending}
+          >
+            {mutation.isPending ? t.saving : t.creditSubmit}
+          </Button>
+        </CardContent>
+      </Card>
+    </div>
   );
 }
 

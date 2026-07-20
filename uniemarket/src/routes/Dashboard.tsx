@@ -22,6 +22,7 @@ import { RequireAuth } from "@/components/account/RequireAuth";
 import { WorkOrderStatusBadge } from "@/components/work/orderStatusMeta";
 import { useAuthStore } from "@/store/authStore";
 import { listMyOrders } from "@/lib/db/orders";
+import { listMyCreditTransactions } from "@/lib/db/credit";
 import { isSupabaseConfigured } from "@/lib/supabase";
 import { formatPrice, relativeTime } from "@/lib/format";
 import { orderDisplayStatus } from "@/types/db";
@@ -36,6 +37,14 @@ const STR = {
     shop: "Mua sắm",
     totalOrders: "Tổng số đơn",
     totalSpent: "Tổng chi tiêu",
+    walletTitle: "Số dư ví",
+    walletDesc: "Số dư nạp trước — dùng để thanh toán đơn nhanh.",
+    walletEmpty: "Chưa có giao dịch nào.",
+    topupHint: "Nạp tiền: liên hệ admin để cộng số dư.",
+    txTopup: "Nạp tiền",
+    txSpend: "Thanh toán đơn",
+    txAdjust: "Điều chỉnh",
+    txRefund: "Hoàn tiền",
     activeOrders: "Đơn đang xử lý",
     recentOrders: "Đơn hàng gần đây",
     recentOrdersDesc: "5 giao dịch mới nhất của bạn.",
@@ -59,6 +68,14 @@ const STR = {
     shop: "Shop",
     totalOrders: "Total orders",
     totalSpent: "Total spent",
+    walletTitle: "Wallet balance",
+    walletDesc: "Prepaid balance — use it to pay orders instantly.",
+    walletEmpty: "No transactions yet.",
+    topupHint: "Top up: contact an admin to add balance.",
+    txTopup: "Top-up",
+    txSpend: "Order payment",
+    txAdjust: "Adjustment",
+    txRefund: "Refund",
     activeOrders: "Orders in progress",
     recentOrders: "Recent orders",
     recentOrdersDesc: "Your 5 most recent transactions.",
@@ -145,6 +162,9 @@ function DashboardContent() {
         </div>
       ) : null}
 
+      {/* Ví/số dư */}
+      {!isStaff ? <WalletSection t={t} balance={user.credit_balance ?? 0} /> : null}
+
       {/* Stats */}
       <div className="mt-6 grid gap-4 sm:grid-cols-3">
         <StatCard label={t.totalOrders} value={String(orders.length)} icon={Package} tone="green" />
@@ -218,6 +238,80 @@ function DashboardContent() {
         </div>
       </div>
     </PageContainer>
+  );
+}
+
+function WalletSection({
+  t,
+  balance,
+}: {
+  t: {
+    walletTitle: string;
+    walletDesc: string;
+    walletEmpty: string;
+    topupHint: string;
+    txTopup: string;
+    txSpend: string;
+    txAdjust: string;
+    txRefund: string;
+  };
+  balance: number;
+}) {
+  const txQuery = useQuery({
+    queryKey: ["my-credit-tx"],
+    queryFn: () => listMyCreditTransactions(8),
+    enabled: isSupabaseConfigured,
+  });
+  const txs = txQuery.data ?? [];
+  const typeLabel: Record<string, string> = {
+    topup: t.txTopup,
+    spend: t.txSpend,
+    adjust: t.txAdjust,
+    refund: t.txRefund,
+  };
+
+  return (
+    <div className="mt-6 grid gap-4 lg:grid-cols-[320px_1fr]">
+      <div className="relative overflow-hidden rounded-2xl border border-yellow bg-yellow-soft p-6">
+        <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-yellow">
+          <Wallet className="h-4 w-4" aria-hidden />
+          {t.walletTitle}
+        </div>
+        <p className="mt-3 font-heading text-3xl font-extrabold text-text tabular-nums-mono">
+          {formatPrice(balance)}
+        </p>
+        <p className="mt-2 text-xs text-text-muted">{t.walletDesc}</p>
+        <p className="mt-1 text-xs text-text-subtle">{t.topupHint}</p>
+      </div>
+
+      <div className="rounded-2xl border border-border bg-surface p-4">
+        {txs.length === 0 ? (
+          <p className="py-8 text-center text-sm text-text-subtle">{t.walletEmpty}</p>
+        ) : (
+          <ul className="divide-y divide-border">
+            {txs.map((tx) => (
+              <li key={tx.id} className="flex items-center justify-between gap-3 py-2.5">
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-medium text-text">
+                    {typeLabel[tx.type] ?? tx.type}
+                    {tx.note ? <span className="text-text-subtle"> · {tx.note}</span> : null}
+                  </p>
+                  <p className="text-xs text-text-subtle">{relativeTime(tx.created_at)}</p>
+                </div>
+                <span
+                  className={`shrink-0 font-mono text-sm font-semibold tabular-nums ${
+                    tx.amount >= 0 ? "text-green" : "text-danger"
+                  }`}
+                >
+                  {tx.amount >= 0 ? "+" : "−"}
+                  {formatPrice(Math.abs(tx.amount))}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+    </div>
   );
 }
 

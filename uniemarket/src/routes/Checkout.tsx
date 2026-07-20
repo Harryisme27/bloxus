@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { AtSign, Gamepad2, Landmark, Lock, MessageSquare, ShieldCheck } from "lucide-react";
+import { AtSign, Check, Gamepad2, Landmark, Lock, MessageSquare, ShieldCheck, Wallet } from "lucide-react";
 import { toast } from "sonner";
 import { PageContainer } from "@/components/PageContainer";
 import { Button } from "@/components/ui/button";
@@ -15,9 +15,12 @@ import { useCartStore } from "@/store/cartStore";
 import { useBuyNowStore } from "@/store/buyNowStore";
 import { useAuthStore } from "@/store/authStore";
 import { placeOrder } from "@/lib/db/orders";
+import { payOrderWithCredit } from "@/lib/db/credit";
 import { getPublicGateways } from "@/lib/db/settings";
 import { enabledGateways } from "@/lib/paymentGateways";
 import { isSupabaseConfigured } from "@/lib/supabase";
+import { formatPrice } from "@/lib/format";
+import { cn } from "@/lib/utils";
 import { usePick } from "@/i18n";
 
 const STR = {
@@ -41,6 +44,10 @@ const STR = {
     chatNotice:
       "Sau khi đặt, bạn trao đổi trực tiếp với người bán ngay trong trang đơn hàng — không cần cung cấp liên hệ bên ngoài.",
     paymentMethod: "Phương thức thanh toán",
+    payWithCredit: "Thanh toán bằng số dư ví",
+    balanceLabel: "Số dư",
+    insufficientCredit: "không đủ",
+    creditPayNotice: "Đơn sẽ được thanh toán ngay bằng số dư ví và xử lý luôn.",
     manualPayment: "Thanh toán thủ công",
     manualPaymentDesc:
       "Sau khi tạo đơn, bạn sẽ thấy thông tin chuyển khoản kèm mã đơn. Shop xác nhận nhận được tiền rồi mới bắt đầu xử lý — mọi trao đổi diễn ra ngay trong trang đơn hàng.",
@@ -71,6 +78,10 @@ const STR = {
     chatNotice:
       "After you place the order, you'll chat directly with the seller on the order page — no external contact needed.",
     paymentMethod: "Payment method",
+    payWithCredit: "Pay with wallet balance",
+    balanceLabel: "Balance",
+    insufficientCredit: "insufficient",
+    creditPayNotice: "The order is paid instantly from your wallet balance and processed right away.",
     manualPayment: "Manual payment",
     manualPaymentDesc:
       "After creating the order, you'll see the transfer details along with your order code. The shop starts processing only after confirming payment — all communication happens on the order page.",
@@ -99,10 +110,13 @@ function CheckoutContent() {
   const buyNowLine = useBuyNowStore((state) => state.line);
   const clearBuyNow = useBuyNowStore((state) => state.clear);
   const session = useAuthStore((state) => state.session);
+  const balance = useAuthStore((state) => state.user?.credit_balance ?? 0);
+  const refreshProfile = useAuthStore((state) => state.refreshProfile);
 
   const [gameUsername, setGameUsername] = useState("");
   const [note, setNote] = useState("");
   const [gatewayId, setGatewayId] = useState<string>("");
+  const [useCredit, setUseCredit] = useState(false);
   const placedRef = useRef(false);
 
   // Mua ngay: chỉ hiện đúng món đó; ngược lại dùng giỏ hàng.
@@ -110,6 +124,7 @@ function CheckoutContent() {
   const items = isBuyNow ? [buyNowLine] : cartItems;
   const total = items.reduce((sum, line) => sum + line.unitPrice * line.quantity, 0);
   const email = session?.user.email ?? "";
+  const canUseCredit = total > 0 && balance >= total;
 
   // Cổng thanh toán admin bật (RPC công khai — khách đọc được, đã bỏ secret_key).
   const settingsQuery = useQuery({
@@ -145,18 +160,25 @@ function CheckoutContent() {
   );
 
   const mutation = useMutation({
-    mutationFn: () =>
-      placeOrder({
+    mutationFn: async () => {
+      const orders = await placeOrder({
         items: orderItems,
         // Enum lưu vào đơn chỉ bank_transfer|momo; id cổng thật lưu ở gateway.
-        paymentMethod: selectedGateway?.method ?? "bank_transfer",
-        gateway: selectedGateway?.id,
+        paymentMethod: useCredit ? "bank_transfer" : selectedGateway?.method ?? "bank_transfer",
+        gateway: useCredit ? "credit" : selectedGateway?.id,
         gameUsername: gameUsername.trim(),
         // Trao đổi qua chat trên trang đơn hàng — không cần kênh liên hệ ngoài.
         contactChannel: "",
         contactValue: "",
         note: note.trim() || undefined,
-      }),
+      });
+      // Thanh toán bằng số dư: trả từng đơn ngay, rồi làm mới hồ sơ (số dư đổi).
+      if (useCredit) {
+        for (const o of orders) await payOrderWithCredit(o.id);
+        await refreshProfile();
+      }
+      return orders;
+    },
     onSuccess: (orders) => {
       placedRef.current = true;
       // Mua ngay chỉ xoá buffer mua ngay; ngược lại xoá giỏ.
@@ -266,11 +288,55 @@ function CheckoutContent() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4 pt-5">
-              <PaymentMethodSelector gateways={gateways} value={gatewayId} onChange={setGatewayId} />
-              <div className="rounded-xl border border-dashed border-border-strong bg-surface-2 p-4 text-sm text-text-muted">
-                <p className="font-semibold text-text">{t.manualPayment}</p>
-                <p className="mt-1">{t.manualPaymentDesc}</p>
-              </div>
+              {/* Thanh toán bằng số dư ví */}
+              {balance > 0 ? (
+                <button
+                  type="button"
+                  onClick={() => canUseCredit && setUseCredit((v) => !v)}
+                  disabled={!canUseCredit}
+                  className={cn(
+                    "flex w-full items-center gap-3 rounded-xl border p-4 text-left transition-all",
+                    useCredit ? "border-yellow shadow-glow-amber" : "border-border hover:border-border-strong",
+                    !canUseCredit && "cursor-not-allowed opacity-60",
+                  )}
+                >
+                  <span
+                    className={cn(
+                      "flex h-10 w-10 shrink-0 items-center justify-center rounded-lg",
+                      useCredit ? "bg-yellow text-text-on-yellow" : "bg-surface-3 text-text-muted",
+                    )}
+                  >
+                    <Wallet className="h-5 w-5" aria-hidden />
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block font-heading text-sm font-semibold text-text">
+                      {t.payWithCredit}
+                    </span>
+                    <span className="block text-xs text-text-subtle">
+                      {t.balanceLabel}: {formatPrice(balance)}
+                      {!canUseCredit ? ` · ${t.insufficientCredit}` : ""}
+                    </span>
+                  </span>
+                  {useCredit ? (
+                    <Check className="h-5 w-5 shrink-0 text-yellow" aria-hidden />
+                  ) : null}
+                </button>
+              ) : null}
+
+              {/* Cổng thủ công — ẩn khi trả bằng số dư */}
+              {!useCredit ? (
+                <>
+                  <PaymentMethodSelector gateways={gateways} value={gatewayId} onChange={setGatewayId} />
+                  <div className="rounded-xl border border-dashed border-border-strong bg-surface-2 p-4 text-sm text-text-muted">
+                    <p className="font-semibold text-text">{t.manualPayment}</p>
+                    <p className="mt-1">{t.manualPaymentDesc}</p>
+                  </div>
+                </>
+              ) : (
+                <div className="rounded-xl border border-yellow bg-yellow-soft p-4 text-sm text-text-muted">
+                  {t.creditPayNotice}
+                </div>
+              )}
             </CardContent>
           </Card>
 
