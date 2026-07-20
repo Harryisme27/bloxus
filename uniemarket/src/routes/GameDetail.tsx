@@ -411,7 +411,7 @@ function ProductColumns({
   othersLabel: string;
   countLabel: string;
 }) {
-  // Chỉ 1 nhóm có hàng -> lưới thường (không cần chia cột).
+  // Chỉ 1 nhóm có hàng -> lưới thường (không cần tách section).
   if (featured.length === 0 || others.length === 0) {
     const all = featured.length > 0 ? featured : others;
     return (
@@ -422,8 +422,9 @@ function ProductColumns({
       </div>
     );
   }
+  // Featured lên trên, Other items xuống dưới (xếp dọc).
   return (
-    <div className="grid gap-8 lg:grid-cols-2">
+    <div className="space-y-10">
       <ProductColumn title={featuredLabel} accent={accent} items={featured} countLabel={countLabel} />
       <ProductColumn title={othersLabel} accent={accent} items={others} countLabel={countLabel} />
     </div>
@@ -450,7 +451,7 @@ function ProductColumn({
           {items.length} {countLabel}
         </span>
       </div>
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
         {items.map((p) => (
           <ProductCard key={p.id} product={p} />
         ))}
