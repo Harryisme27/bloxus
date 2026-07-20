@@ -14,8 +14,8 @@ import { PaymentMethodSelector } from "@/components/commerce/PaymentMethodSelect
 import { useCartStore } from "@/store/cartStore";
 import { useAuthStore } from "@/store/authStore";
 import { placeOrder } from "@/lib/db/orders";
-import { getSettings } from "@/lib/db/settings";
-import { enabledGateways, parseGateways } from "@/lib/paymentGateways";
+import { getPublicGateways } from "@/lib/db/settings";
+import { enabledGateways } from "@/lib/paymentGateways";
 import { isSupabaseConfigured } from "@/lib/supabase";
 import { usePick } from "@/i18n";
 
@@ -106,14 +106,14 @@ function CheckoutContent() {
   const total = subtotal();
   const email = session?.user.email ?? "";
 
-  // Cổng thanh toán admin bật.
+  // Cổng thanh toán admin bật (RPC công khai — khách đọc được, đã bỏ secret_key).
   const settingsQuery = useQuery({
-    queryKey: ["settings"],
-    queryFn: getSettings,
+    queryKey: ["public-gateways"],
+    queryFn: getPublicGateways,
     enabled: isSupabaseConfigured,
   });
   const gateways = useMemo(
-    () => enabledGateways(parseGateways(settingsQuery.data)),
+    () => enabledGateways(settingsQuery.data ?? {}),
     [settingsQuery.data],
   );
   // Chọn mặc định cổng đầu tiên khi tải xong.

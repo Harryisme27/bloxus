@@ -21,7 +21,6 @@ import { RequireAuth } from "@/components/account/RequireAuth";
 import { SetupNotice } from "@/components/SetupNotice";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { useConfirm } from "@/components/ui/confirm";
-import { parseGateways } from "@/lib/paymentGateways";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { OrderChatPanel } from "@/components/chat/OrderChatPanel";
@@ -31,7 +30,7 @@ import { DeliveryProofGallery } from "@/components/order/DeliveryProofGallery";
 import { OrderActions } from "@/components/order/OrderActions";
 import { ReviewWidget } from "@/components/order/ReviewWidget";
 import { finalizeCancel, getOrder, listOrderEvents } from "@/lib/db/orders";
-import { getSettings } from "@/lib/db/settings";
+import { getSettings, getPublicGateways } from "@/lib/db/settings";
 import { isSupabaseConfigured } from "@/lib/supabase";
 import { formatPrice, relativeTime } from "@/lib/format";
 import { orderDisplayStatus } from "@/types/db";
@@ -189,6 +188,12 @@ function OrderDetailContent() {
     queryFn: getSettings,
     enabled: isSupabaseConfigured,
   });
+  // Cấu hình cổng (crypto/stripe/paypal) — RPC công khai, khách đọc được.
+  const gatewaysQuery = useQuery({
+    queryKey: ["public-gateways"],
+    queryFn: getPublicGateways,
+    enabled: isSupabaseConfigured,
+  });
 
   const invalidateOrder = () => {
     void queryClient.invalidateQueries({ queryKey: ["order", id] });
@@ -247,7 +252,7 @@ function OrderDetailContent() {
   const isPending = displayStatus === "pending_payment";
   // Cổng thanh toán khách chọn (mặc định theo payment_method nếu thiếu).
   const gwId = order.payment_gateway ?? order.payment_method ?? "bank_transfer";
-  const gwCfg = (parseGateways(settings)[gwId] ?? {}) as Record<string, unknown>;
+  const gwCfg = ((gatewaysQuery.data ?? {})[gwId] ?? {}) as Record<string, unknown>;
 
   // Yêu cầu hủy đang chờ xử lý (đơn paid/in_progress — không tính đã hủy/hoàn thành).
   const cancelPending =
