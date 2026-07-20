@@ -25,8 +25,11 @@ const STR = {
 
 /** /work/catalog (admin) — CRUD danh mục + sản phẩm, upload ảnh, option builder. */
 export function WorkCatalog() {
-  // null = editor đóng; undefined product = tạo mới; ProductRow = sửa.
-  const [editing, setEditing] = useState<{ product: ProductRow | null } | null>(null);
+  // null = editor đóng; product=null = tạo mới (có thể kèm category mặc định).
+  const [editing, setEditing] = useState<{
+    product: ProductRow | null;
+    defaultCategoryId?: string;
+  } | null>(null);
   const t = usePick(STR);
 
   return (
@@ -43,7 +46,7 @@ export function WorkCatalog() {
         </TabsList>
         <TabsContent value="products" className="pt-5">
           <ProductsTab
-            onCreate={() => setEditing({ product: null })}
+            onCreate={(defaultCategoryId) => setEditing({ product: null, defaultCategoryId })}
             onEdit={(product) => setEditing({ product })}
           />
         </TabsContent>
@@ -56,7 +59,11 @@ export function WorkCatalog() {
       <Dialog open={editing !== null} onOpenChange={(open) => !open && setEditing(null)}>
         <DialogContent className="max-h-[85vh] max-w-2xl overflow-y-auto">
           {editing ? (
-            <WorkProductEditor product={editing.product} onClose={() => setEditing(null)} />
+            <WorkProductEditor
+              product={editing.product}
+              defaultCategoryId={editing.defaultCategoryId}
+              onClose={() => setEditing(null)}
+            />
           ) : null}
         </DialogContent>
       </Dialog>

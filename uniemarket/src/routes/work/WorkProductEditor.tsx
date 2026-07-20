@@ -182,6 +182,8 @@ const STR = {
 export interface WorkProductEditorProps {
   /** null = tạo sản phẩm mới. */
   product: ProductRow | null;
+  /** Category mặc định khi tạo mới trong 1 folder danh mục. */
+  defaultCategoryId?: string;
   onClose: () => void;
 }
 
@@ -210,14 +212,14 @@ interface ProductFormState {
  * route riêng). Gồm thông tin cơ bản, giá/kho, ảnh (nén client-side) và
  * builder tuỳ chọn dịch vụ (tiers / rank_range).
  */
-export function WorkProductEditor({ product, onClose }: WorkProductEditorProps) {
+export function WorkProductEditor({ product, defaultCategoryId, onClose }: WorkProductEditorProps) {
   const queryClient = useQueryClient();
   const t = usePick(STR);
   const lang = useLangStore((state) => state.lang);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [form, setForm] = useState<ProductFormState>(() => ({
-    category_id: product?.category_id ?? "",
+    category_id: product?.category_id ?? defaultCategoryId ?? "",
     kind: product?.kind ?? "item",
     name: product?.name ?? "",
     slug: product?.slug ?? "",
