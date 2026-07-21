@@ -64,9 +64,27 @@ export async function listTopupRequests(): Promise<TopupRequestRow[]> {
 }
 
 // ---- Rút tiền (withdrawal) ----
-export async function requestWithdrawal(amount: number, note?: string): Promise<void> {
+export async function requestWithdrawal(
+  amount: number,
+  method: string,
+  destination?: string,
+): Promise<void> {
   const sb = requireSupabase();
-  const { error } = await sb.rpc("request_withdrawal", { p_amount: amount, p_note: note ?? null });
+  const { error } = await sb.rpc("request_withdrawal", {
+    p_amount: amount,
+    p_method: method,
+    p_destination: destination ?? null,
+  });
+  if (error) throw new Error(error.message);
+}
+
+/** Lưu tài khoản nhận tiền (payout_info) của chính mình. */
+export async function setPayoutInfo(info: Record<string, string>): Promise<void> {
+  const sb = requireSupabase();
+  const { data: sess } = await sb.auth.getSession();
+  const uid = sess.session?.user.id;
+  if (!uid) throw new Error("Not signed in");
+  const { error } = await sb.from("profiles").update({ payout_info: info }).eq("id", uid);
   if (error) throw new Error(error.message);
 }
 export async function reviewWithdrawal(id: string, approve: boolean, note?: string): Promise<void> {

@@ -1,8 +1,19 @@
 import { isStaffRole } from "@/lib/roles";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useConfirm } from "@/components/ui/confirm";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Select } from "@/components/ui/select";
 import {
   ShoppingBag,
   Receipt,
@@ -24,9 +35,17 @@ import { RequireAuth } from "@/components/account/RequireAuth";
 import { WorkOrderStatusBadge } from "@/components/work/orderStatusMeta";
 import { useAuthStore } from "@/store/authStore";
 import { listMyOrders } from "@/lib/db/orders";
-import { listMyCreditTransactions, requestTopup, requestWithdrawal } from "@/lib/db/credit";
+import { listMyCreditTransactions, requestTopup, requestWithdrawal, setPayoutInfo } from "@/lib/db/credit";
+import { getSettings } from "@/lib/db/settings";
+import {
+  enabledPayoutMethods,
+  parsePayoutMethods,
+  payoutFee,
+  type PayoutMethodMeta,
+} from "@/lib/payoutMethods";
 import { isSupabaseConfigured } from "@/lib/supabase";
 import { formatPrice, relativeTime } from "@/lib/format";
+import { useLangStore } from "@/i18n";
 import { orderDisplayStatus } from "@/types/db";
 import { SetupNotice } from "@/components/SetupNotice";
 import { usePick } from "@/i18n";
@@ -293,6 +312,7 @@ function WalletSection({
 }) {
   const confirm = useConfirm();
   const queryClient = useQueryClient();
+  const [withdrawOpen, setWithdrawOpen] = useState(false);
   const txQuery = useQuery({
     queryKey: ["my-credit-tx"],
     queryFn: () => listMyCreditTransactions(8),
@@ -316,15 +336,6 @@ function WalletSection({
     },
     onError: (err) => toast.error(err instanceof Error ? err.message : "Error"),
   });
-  const withdrawMut = useMutation({
-    mutationFn: (amount: number) => requestWithdrawal(amount),
-    onSuccess: () => {
-      toast.success(t.withdrawRequested);
-      void queryClient.invalidateQueries({ queryKey: ["my-credit-tx"] });
-    },
-    onError: (err) => toast.error(err instanceof Error ? err.message : "Error"),
-  });
-
   const askAmount = async (title: string) => {
     const r = await confirm({ title, input: { label: title, placeholder: "100000", required: true } });
     if (!r.ok) return null;
@@ -362,17 +373,18 @@ function WalletSection({
             <Button
               size="sm"
               variant="secondary"
-              disabled={withdrawMut.isPending || balance <= 0}
-              onClick={async () => {
-                const n = await askAmount(t.withdrawPrompt);
-                if (n) withdrawMut.mutate(n);
-              }}
+              disabled={balance <= 0}
+              onClick={() => setWithdrawOpen(true)}
             >
               {t.withdrawBtn}
             </Button>
           ) : null}
         </div>
       </div>
+
+      {isStaff ? (
+        <WithdrawDialog open={withdrawOpen} onClose={() => setWithdrawOpen(false)} balance={balance} />
+      ) : null}
 
       <div className="rounded-2xl border border-border bg-surface p-4">
         {txs.length === 0 ? (
@@ -402,6 +414,153 @@ function WalletSection({
         )}
       </div>
     </div>
+  );
+}
+
+/** Dialog rút tiền: chọn phương thức, số tiền, phí theo method, tài khoản nhận. */
+function WithdrawDialog({
+  open,
+  onClose,
+  balance,
+}: {
+  open: boolean;
+  onClose: () => void;
+  balance: number;
+}) {
+  const en = useLangStore((s) => s.lang) === "en";
+  const queryClient = useQueryClient();
+  const payoutInfo = useAuthStore((s) => s.user?.payout_info ?? {});
+  const refreshProfile = useAuthStore((s) => s.refreshProfile);
+
+  const settingsQuery = useQuery({
+    queryKey: ["public-payout"],
+    queryFn: getSettings,
+    enabled: isSupabaseConfigured && open,
+  });
+  const methodsCfg = parsePayoutMethods(settingsQuery.data);
+  const methods = enabledPayoutMethods(methodsCfg);
+
+  const [methodId, setMethodId] = useState("");
+  const [amount, setAmount] = useState("");
+  const [dest, setDest] = useState("");
+
+  const activeMeta: PayoutMethodMeta | undefined =
+    methods.find((m) => m.id === methodId) ?? methods[0];
+  const cfg = activeMeta ? methodsCfg[activeMeta.id] : undefined;
+
+  // Chọn phương thức đầu tiên + prefill tài khoản đã lưu khi mở/đổi method.
+  useEffect(() => {
+    if (open && !methodId && methods.length > 0) setMethodId(methods[0].id);
+  }, [open, methodId, methods]);
+  useEffect(() => {
+    if (activeMeta) setDest(String(payoutInfo[activeMeta.id] ?? ""));
+  }, [activeMeta, payoutInfo]);
+
+  const amt = Number(String(amount).replace(/[^\d]/g, "")) || 0;
+  const fee = payoutFee(cfg, amt);
+  const net = amt - fee;
+  const min = cfg?.min ?? 0;
+
+  const mutation = useMutation({
+    mutationFn: async () => {
+      await requestWithdrawal(amt, activeMeta!.id, dest.trim());
+      // Nhớ tài khoản nhận cho lần sau.
+      await setPayoutInfo({ ...payoutInfo, [activeMeta!.id]: dest.trim() });
+      await refreshProfile();
+    },
+    onSuccess: () => {
+      toast.success(en ? "Withdrawal requested — awaiting approval." : "Đã gửi yêu cầu rút — chờ duyệt.");
+      void queryClient.invalidateQueries({ queryKey: ["my-credit-tx"] });
+      setAmount("");
+      onClose();
+    },
+    onError: (err) => toast.error(err instanceof Error ? err.message : "Error"),
+  });
+
+  const canSubmit = amt > 0 && amt <= balance && amt >= min && net > 0 && !!activeMeta && dest.trim() !== "";
+
+  return (
+    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>{en ? "Withdraw" : "Rút tiền"}</DialogTitle>
+          <DialogDescription>
+            {(en ? "Available balance: " : "Số dư khả dụng: ") + formatPrice(balance)}
+          </DialogDescription>
+        </DialogHeader>
+
+        {methods.length === 0 ? (
+          <p className="py-6 text-center text-sm text-text-muted">
+            {en ? "No payout methods enabled yet." : "Chưa có phương thức rút nào được bật."}
+          </p>
+        ) : (
+          <div className="space-y-4">
+            <div>
+              <Label>{en ? "Payout method" : "Phương thức"}</Label>
+              <Select value={activeMeta?.id ?? ""} onChange={(e) => setMethodId(e.target.value)}>
+                {methods.map((m) => {
+                  const c = methodsCfg[m.id];
+                  const feeStr =
+                    (c?.percent ? `${c.percent}%` : "") +
+                    (c?.percent && c?.flat ? " + " : "") +
+                    (c?.flat ? formatPrice(c.flat) : "");
+                  return (
+                    <option key={m.id} value={m.id}>
+                      {(en ? m.en : m.vi) + (feeStr ? ` (${feeStr})` : "")}
+                    </option>
+                  );
+                })}
+              </Select>
+            </div>
+
+            <div>
+              <Label htmlFor="wd-amount">{en ? "Withdrawal amount" : "Số tiền rút"}</Label>
+              <Input
+                id="wd-amount"
+                inputMode="numeric"
+                value={amount}
+                placeholder={min > 0 ? `${en ? "min " : "tối thiểu "}${formatPrice(min)}` : "0"}
+                onChange={(e) => setAmount(e.target.value)}
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="wd-dest">{en ? activeMeta?.destEn : activeMeta?.destVi}</Label>
+              <Input
+                id="wd-dest"
+                value={dest}
+                placeholder={activeMeta?.destPlaceholder}
+                onChange={(e) => setDest(e.target.value)}
+              />
+            </div>
+
+            <div className="space-y-1.5 rounded-xl border border-border bg-surface-2 p-3.5 text-sm">
+              <div className="flex justify-between text-text-muted">
+                <span>{en ? "Original amount" : "Số tiền rút"}</span>
+                <span className="tabular-nums-mono">{formatPrice(amt)}</span>
+              </div>
+              <div className="flex justify-between text-danger">
+                <span>{en ? "Payout fee" : "Phí rút"}</span>
+                <span className="tabular-nums-mono">-{formatPrice(fee)}</span>
+              </div>
+              <div className="flex justify-between border-t border-border pt-1.5 text-base font-bold text-green">
+                <span>{en ? "You receive" : "Bạn nhận được"}</span>
+                <span className="tabular-nums-mono">{formatPrice(Math.max(0, net))}</span>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-2">
+              <Button variant="secondary" onClick={onClose} disabled={mutation.isPending}>
+                {en ? "Cancel" : "Hủy"}
+              </Button>
+              <Button onClick={() => mutation.mutate()} disabled={!canSubmit || mutation.isPending}>
+                {en ? "Request payout" : "Gửi yêu cầu rút"}
+              </Button>
+            </div>
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
   );
 }
 

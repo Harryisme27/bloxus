@@ -10,6 +10,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { getSettings, updateSetting } from "@/lib/db/settings";
 import { prepareImage, uploadSiteAsset } from "@/components/work-admin/uploads";
 import { GATEWAY_META, parseGateways, type GatewaysSettings } from "@/lib/paymentGateways";
+import { PAYOUT_META, parsePayoutMethods, type PayoutMethods } from "@/lib/payoutMethods";
 import { Toggle } from "@/components/work-admin/Toggle";
 import type { DbOrderStatus } from "@/types/db";
 import { usePick, useLangStore, useT } from "@/i18n";
@@ -58,8 +59,14 @@ const STR = {
     commTitle: "Hoa hồng / chiết khấu (%)",
     commOrderLabel: "Hoa hồng đơn hàng (%)",
     commOrderHint: "Phần trăm shop giữ lại từ mỗi đơn Seller bán. Seller nhận phần còn lại vào ví khi đơn hoàn tất.",
-    commWithdrawLabel: "Phí rút tiền (%)",
-    commWithdrawHint: "Phần trăm phí khi rút tiền. Người rút thực nhận = số tiền rút − phí.",
+    commWithdrawLabel: "Phí rút tiền mặc định (%)",
+    commWithdrawHint: "Dùng khi phương thức rút không đặt phí riêng.",
+    payoutTitle: "Phương thức rút tiền (payout)",
+    payoutHint: "Bật/tắt và đặt phí (%), phí cố định, số tiền tối thiểu cho từng phương thức seller/manager rút.",
+    payoutPercent: "%",
+    payoutFlat: "Phí cố định",
+    payoutMin: "Tối thiểu",
+    payoutShow: "Bật",
   },
   en: {
     fieldBrand: "Shop name",
@@ -106,8 +113,14 @@ const STR = {
     commTitle: "Commissions (%)",
     commOrderLabel: "Order commission (%)",
     commOrderHint: "Percentage the shop keeps from each order a Seller sells. The Seller receives the rest in their wallet when the order completes.",
-    commWithdrawLabel: "Withdrawal fee (%)",
-    commWithdrawHint: "Percentage fee on withdrawals. Net received = withdrawal amount − fee.",
+    commWithdrawLabel: "Default withdrawal fee (%)",
+    commWithdrawHint: "Used when a payout method has no specific fee.",
+    payoutTitle: "Payout methods",
+    payoutHint: "Enable/disable and set fee (%), flat fee, and minimum for each method sellers/managers can withdraw with.",
+    payoutPercent: "%",
+    payoutFlat: "Flat fee",
+    payoutMin: "Minimum",
+    payoutShow: "On",
   },
 };
 
@@ -142,6 +155,7 @@ export function WorkSettings() {
   const [ctvApplyOpen, setCtvApplyOpen] = useState(false);
   const [orderComm, setOrderComm] = useState("0");
   const [withdrawComm, setWithdrawComm] = useState("0");
+  const [payoutM, setPayoutM] = useState<PayoutMethods>({});
   const [uploading, setUploading] = useState(false);
 
   const en = lang === "en";
@@ -180,6 +194,7 @@ export function WorkSettings() {
       setCtvApplyOpen(query.data.ctv_apply_open === true);
       setOrderComm(String(query.data.order_commission_pct ?? 0));
       setWithdrawComm(String(query.data.withdrawal_commission_pct ?? 0));
+      setPayoutM(parsePayoutMethods(query.data));
     }
   }, [query.data]);
 
@@ -194,6 +209,7 @@ export function WorkSettings() {
       await updateSetting("ctv_apply_open", ctvApplyOpen);
       await updateSetting("order_commission_pct", Math.max(0, Math.min(100, parseFloat(orderComm) || 0)));
       await updateSetting("withdrawal_commission_pct", Math.max(0, Math.min(100, parseFloat(withdrawComm) || 0)));
+      await updateSetting("payout_methods", payoutM);
     },
     onSuccess: () => {
       toast.success(t.saved);
@@ -469,6 +485,71 @@ export function WorkSettings() {
                   />
                   <p className="mt-1.5 text-xs text-text-subtle">{t.commWithdrawHint}</p>
                 </div>
+              </div>
+            </div>
+
+            {/* Phương thức rút tiền (payout) */}
+            <div className="border-t border-border pt-4">
+              <p className="font-heading text-sm font-semibold text-text">{t.payoutTitle}</p>
+              <p className="mb-3 mt-0.5 text-xs text-text-subtle">{t.payoutHint}</p>
+              <div className="space-y-3">
+                {PAYOUT_META.map((m) => {
+                  const cfg = payoutM[m.id] ?? {};
+                  const enabled = Boolean(cfg.enabled);
+                  const Icon = m.icon;
+                  const setCfg = (patch: Record<string, unknown>) =>
+                    setPayoutM((prev) => ({ ...prev, [m.id]: { ...(prev[m.id] ?? {}), ...patch } }));
+                  return (
+                    <div key={m.id} className="rounded-xl border border-border bg-surface-2 p-3.5">
+                      <label className="flex items-center gap-3">
+                        <input
+                          type="checkbox"
+                          checked={enabled}
+                          onChange={(e) => setCfg({ enabled: e.target.checked })}
+                          className="h-4 w-4 accent-yellow"
+                        />
+                        <Icon className="h-5 w-5 text-yellow" aria-hidden />
+                        <span className="flex-1 font-heading text-sm font-semibold text-text">
+                          {en ? m.en : m.vi}
+                        </span>
+                        <span className="text-xs text-text-subtle">{t.payoutShow}</span>
+                      </label>
+                      {enabled ? (
+                        <div className="mt-3 grid grid-cols-1 gap-2 pl-7 sm:grid-cols-3">
+                          <div>
+                            <Label>{t.payoutPercent}</Label>
+                            <Input
+                              type="number"
+                              min={0}
+                              max={100}
+                              step="0.1"
+                              value={String(cfg.percent ?? 0)}
+                              onChange={(e) => setCfg({ percent: parseFloat(e.target.value) || 0 })}
+                            />
+                          </div>
+                          <div>
+                            <Label>{t.payoutFlat}</Label>
+                            <Input
+                              type="number"
+                              min={0}
+                              value={String(cfg.flat ?? 0)}
+                              onChange={(e) => setCfg({ flat: parseInt(e.target.value, 10) || 0 })}
+                            />
+                          </div>
+                          <div>
+                            <Label>{t.payoutMin}</Label>
+                            <Input
+                              type="number"
+                              min={0}
+                              value={String(cfg.min ?? 0)}
+                              onChange={(e) => setCfg({ min: parseInt(e.target.value, 10) || 0 })}
+                            />
+                          </div>
+                        </div>
+                      ) : null}
+                    </div>
+                  );
+                })}
               </div>
             </div>
 

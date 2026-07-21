@@ -84,6 +84,8 @@ export interface ProfileRow {
   ctv_all_categories: boolean;
   /** Số dư ví (VNĐ). */
   credit_balance: number;
+  /** Tài khoản nhận tiền theo phương thức: { bank_transfer: "...", crypto: "...", ... }. */
+  payout_info: Record<string, string>;
   created_at: string;
   updated_at: string;
 }
@@ -126,6 +128,8 @@ export interface WithdrawalRequestRow {
   amount: number;
   fee: number;
   net: number;
+  method: string | null;
+  destination: string | null;
   status: "pending" | "approved" | "rejected";
   note: string | null;
   reviewed_by: string | null;
