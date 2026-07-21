@@ -46,9 +46,9 @@ const STR = {
     tabApplications: "Đơn ứng tuyển",
     granted: (role: string, email: string) => `Đã cấp quyền ${role} cho ${email}.`,
     grantFail: "Cấp quyền thất bại.",
-    grantInfo: "Nhập email tài khoản đã đăng ký để cấp quyền ngay, không cần qua đơn ứng tuyển.",
-    emailLabel: "Email tài khoản",
-    emailPlaceholder: "nguoidung@email.com",
+    grantInfo: "Nhập email hoặc username tài khoản đã đăng ký để cấp quyền ngay, không cần qua đơn ứng tuyển.",
+    emailLabel: "Email hoặc username",
+    emailPlaceholder: "email hoặc username",
     roleLabel: "Quyền",
     granting: "Đang cấp…",
     grant: "Cấp quyền",
@@ -132,9 +132,9 @@ const STR = {
     tabApplications: "Applications",
     granted: (role: string, email: string) => `Granted the ${role} role to ${email}.`,
     grantFail: "Failed to grant the role.",
-    grantInfo: "Enter a registered account email to grant a role right away, no application needed.",
-    emailLabel: "Account email",
-    emailPlaceholder: "user@email.com",
+    grantInfo: "Enter a registered account email or username to grant a role right away, no application needed.",
+    emailLabel: "Email or username",
+    emailPlaceholder: "email or username",
     roleLabel: "Role",
     granting: "Granting…",
     grant: "Grant role",
@@ -311,7 +311,7 @@ function ManualRoleTab({ isAdmin }: { isAdmin: boolean }) {
               <Label htmlFor="grant-email">{t.emailLabel}</Label>
               <Input
                 id="grant-email"
-                type="email"
+                type="text"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder={t.emailPlaceholder}
