@@ -24,6 +24,8 @@ import {
   ArrowRight,
   Sparkles,
   Briefcase,
+  ChevronLeft,
+  ChevronRight,
   type LucideIcon,
 } from "lucide-react";
 import { PageContainer } from "@/components/PageContainer";
@@ -70,6 +72,7 @@ const STR = {
     txRefund: "Hoàn tiền",
     txWithdraw: "Rút tiền",
     txEarning: "Hoa hồng đơn",
+    txPage: "Trang",
     topupBtn: "Nạp tiền",
     withdrawBtn: "Rút tiền",
     topupPrompt: "Số tiền muốn nạp (VNĐ)",
@@ -111,6 +114,7 @@ const STR = {
     txRefund: "Refund",
     txWithdraw: "Withdrawal",
     txEarning: "Order commission",
+    txPage: "Page",
     topupBtn: "Top up",
     withdrawBtn: "Withdraw",
     topupPrompt: "Amount to top up (VND)",
@@ -300,6 +304,7 @@ function WalletSection({
     txRefund: string;
     txWithdraw: string;
     txEarning: string;
+    txPage: string;
     topupBtn: string;
     withdrawBtn: string;
     topupPrompt: string;
@@ -314,12 +319,16 @@ function WalletSection({
 }) {
   const [withdrawOpen, setWithdrawOpen] = useState(false);
   const [topupOpen, setTopupOpen] = useState(false);
+  const [txPage, setTxPage] = useState(0);
+  const TX_PER_PAGE = 5;
   const txQuery = useQuery({
     queryKey: ["my-credit-tx"],
-    queryFn: () => listMyCreditTransactions(8),
+    queryFn: () => listMyCreditTransactions(40),
     enabled: isSupabaseConfigured,
   });
-  const txs = txQuery.data ?? [];
+  const allTxs = txQuery.data ?? [];
+  const txPages = Math.max(1, Math.ceil(allTxs.length / TX_PER_PAGE));
+  const txs = allTxs.slice(txPage * TX_PER_PAGE, txPage * TX_PER_PAGE + TX_PER_PAGE);
   const typeLabel: Record<string, string> = {
     topup: t.txTopup,
     spend: t.txSpend,
@@ -362,8 +371,8 @@ function WalletSection({
         <WithdrawDialog open={withdrawOpen} onClose={() => setWithdrawOpen(false)} balance={balance} />
       ) : null}
 
-      <div className="rounded-2xl border border-border bg-surface p-4">
-        {txs.length === 0 ? (
+      <div className="flex flex-col rounded-2xl border border-border bg-surface p-4">
+        {allTxs.length === 0 ? (
           <p className="py-8 text-center text-sm text-text-subtle">{t.walletEmpty}</p>
         ) : (
           <ul className="divide-y divide-border">
@@ -388,6 +397,17 @@ function WalletSection({
             ))}
           </ul>
         )}
+        {txPages > 1 ? (
+          <div className="mt-auto flex items-center justify-center gap-3 pt-3 text-sm text-text-muted">
+            <Button size="sm" variant="secondary" disabled={txPage <= 0} onClick={() => setTxPage((p) => p - 1)}>
+              <ChevronLeft className="h-4 w-4" aria-hidden />
+            </Button>
+            <span>{t.txPage} {txPage + 1}/{txPages}</span>
+            <Button size="sm" variant="secondary" disabled={txPage >= txPages - 1} onClick={() => setTxPage((p) => p + 1)}>
+              <ChevronRight className="h-4 w-4" aria-hidden />
+            </Button>
+          </div>
+        ) : null}
       </div>
     </div>
   );
