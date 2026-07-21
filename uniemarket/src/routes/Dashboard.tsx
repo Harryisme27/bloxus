@@ -3,7 +3,6 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { useConfirm } from "@/components/ui/confirm";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -36,7 +35,10 @@ import { WorkOrderStatusBadge } from "@/components/work/orderStatusMeta";
 import { useAuthStore } from "@/store/authStore";
 import { listMyOrders } from "@/lib/db/orders";
 import { listMyCreditTransactions, requestTopup, requestWithdrawal, setPayoutInfo } from "@/lib/db/credit";
-import { getSettings } from "@/lib/db/settings";
+import { getSettings, getPublicGateways } from "@/lib/db/settings";
+import { enabledGateways } from "@/lib/paymentGateways";
+import { PaymentMethodSelector } from "@/components/commerce/PaymentMethodSelector";
+import { useCurrencyStore, USD_VND_RATE } from "@/store/currencyStore";
 import {
   enabledPayoutMethods,
   parsePayoutMethods,
@@ -310,9 +312,8 @@ function WalletSection({
   balance: number;
   isStaff: boolean;
 }) {
-  const confirm = useConfirm();
-  const queryClient = useQueryClient();
   const [withdrawOpen, setWithdrawOpen] = useState(false);
+  const [topupOpen, setTopupOpen] = useState(false);
   const txQuery = useQuery({
     queryKey: ["my-credit-tx"],
     queryFn: () => listMyCreditTransactions(8),
@@ -328,25 +329,6 @@ function WalletSection({
     earning: t.txEarning,
   };
 
-  const topupMut = useMutation({
-    mutationFn: (amount: number) => requestTopup(amount),
-    onSuccess: () => {
-      toast.success(t.topupRequested);
-      void queryClient.invalidateQueries({ queryKey: ["my-credit-tx"] });
-    },
-    onError: (err) => toast.error(err instanceof Error ? err.message : "Error"),
-  });
-  const askAmount = async (title: string) => {
-    const r = await confirm({ title, input: { label: title, placeholder: "100000", required: true } });
-    if (!r.ok) return null;
-    const n = Number(String(r.value ?? "").replace(/[^\d]/g, ""));
-    if (!Number.isFinite(n) || n <= 0) {
-      toast.error(t.invalidAmount);
-      return null;
-    }
-    return n;
-  };
-
   return (
     <div className="mt-6 grid gap-4 lg:grid-cols-[320px_1fr]">
       <div className="relative overflow-hidden rounded-2xl border border-yellow bg-yellow-soft p-6">
@@ -359,14 +341,7 @@ function WalletSection({
         </p>
         <p className="mt-2 text-xs text-text-muted">{t.walletDesc}</p>
         <div className="mt-4 flex flex-wrap gap-2">
-          <Button
-            size="sm"
-            disabled={topupMut.isPending}
-            onClick={async () => {
-              const n = await askAmount(t.topupPrompt);
-              if (n) topupMut.mutate(n);
-            }}
-          >
+          <Button size="sm" onClick={() => setTopupOpen(true)}>
             {t.topupBtn}
           </Button>
           {isStaff ? (
@@ -382,6 +357,7 @@ function WalletSection({
         </div>
       </div>
 
+      <TopupDialog open={topupOpen} onClose={() => setTopupOpen(false)} />
       {isStaff ? (
         <WithdrawDialog open={withdrawOpen} onClose={() => setWithdrawOpen(false)} balance={balance} />
       ) : null}
@@ -414,6 +390,114 @@ function WalletSection({
         )}
       </div>
     </div>
+  );
+}
+
+/** Dialog nạp tiền: chọn cổng thanh toán + số tiền (theo tiền tệ hiển thị). */
+function TopupDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const en = useLangStore((s) => s.lang) === "en";
+  const currency = useCurrencyStore((s) => s.currency);
+  const queryClient = useQueryClient();
+
+  const gwQuery = useQuery({ queryKey: ["public-gateways"], queryFn: getPublicGateways, enabled: isSupabaseConfigured && open });
+  const settingsQuery = useQuery({ queryKey: ["settings-topup"], queryFn: getSettings, enabled: isSupabaseConfigured && open });
+  const methods = enabledGateways(gwQuery.data ?? {});
+  const settings = settingsQuery.data ?? {};
+
+  const [gatewayId, setGatewayId] = useState("");
+  const [amount, setAmount] = useState("");
+
+  useEffect(() => {
+    if (open && !gatewayId && methods.length > 0) setGatewayId(methods[0].id);
+  }, [open, gatewayId, methods]);
+
+  // Số tiền nhập theo tiền tệ hiển thị -> quy đổi VND để lưu.
+  const displayAmt = Number(String(amount).replace(/[^\d.]/g, "")) || 0;
+  const vnd = currency === "usd" ? Math.round(displayAmt * USD_VND_RATE) : Math.round(displayAmt);
+  const gwCfg = (gwQuery.data ?? {})[gatewayId] ?? {};
+  const asText = (v: unknown) => (typeof v === "string" ? v : "");
+
+  const mutation = useMutation({
+    mutationFn: () => requestTopup(vnd, gatewayId),
+    onSuccess: () => {
+      toast.success(en ? "Top-up requested — pay then wait for approval." : "Đã gửi yêu cầu nạp — chuyển khoản rồi chờ admin duyệt.");
+      void queryClient.invalidateQueries({ queryKey: ["my-credit-tx"] });
+      setAmount("");
+      onClose();
+    },
+    onError: (err) => toast.error(err instanceof Error ? err.message : "Error"),
+  });
+
+  return (
+    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-h-[85vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>{en ? "Top up wallet" : "Nạp tiền vào ví"}</DialogTitle>
+          <DialogDescription>
+            {en ? "Choose a method and amount." : "Chọn phương thức và số tiền."}
+          </DialogDescription>
+        </DialogHeader>
+
+        {methods.length === 0 ? (
+          <p className="py-6 text-center text-sm text-text-muted">
+            {en ? "No payment methods enabled." : "Chưa có phương thức thanh toán nào được bật."}
+          </p>
+        ) : (
+          <div className="space-y-4">
+            <div>
+              <Label>{en ? "Amount" : "Số tiền"}</Label>
+              <Input
+                inputMode="decimal"
+                value={amount}
+                placeholder={currency === "usd" ? "$10" : "250000"}
+                onChange={(e) => setAmount(e.target.value)}
+              />
+              {vnd > 0 ? (
+                <p className="mt-1.5 text-xs text-text-subtle">
+                  {en ? "You top up: " : "Số tiền nạp: "}
+                  <span className="font-semibold text-yellow">{formatPrice(vnd)}</span>
+                </p>
+              ) : null}
+            </div>
+
+            <div>
+              <Label>{en ? "Payment method" : "Phương thức"}</Label>
+              <PaymentMethodSelector gateways={methods} value={gatewayId} onChange={setGatewayId} className="mt-1.5" />
+            </div>
+
+            {/* Hướng dẫn thanh toán theo phương thức */}
+            <div className="rounded-xl border border-dashed border-border-strong bg-surface-2 p-3.5 text-sm text-text-muted">
+              {gatewayId === "bank_transfer" ? (
+                <>
+                  <p><span className="text-text-subtle">Bank:</span> {asText(settings.bank_name) || "—"}</p>
+                  <p><span className="text-text-subtle">{en ? "Account" : "Số TK"}:</span> {asText(settings.bank_account) || "—"}</p>
+                  <p><span className="text-text-subtle">{en ? "Holder" : "Chủ TK"}:</span> {asText(settings.bank_holder) || "—"}</p>
+                </>
+              ) : gatewayId === "momo" ? (
+                <p><span className="text-text-subtle">Momo:</span> {asText(settings.momo_number) || "—"}</p>
+              ) : asText(gwCfg.wallet_address) ? (
+                <p><span className="text-text-subtle">{en ? "Wallet" : "Ví"} ({asText(gwCfg.network)}):</span> {asText(gwCfg.wallet_address)}</p>
+              ) : asText(gwCfg.link) ? (
+                <a href={asText(gwCfg.link)} target="_blank" rel="noreferrer" className="text-yellow underline">
+                  {asText(gwCfg.link)}
+                </a>
+              ) : (
+                <p>{en ? "Pay to the shop, then an admin approves your balance." : "Chuyển khoản cho shop, admin sẽ duyệt cộng số dư."}</p>
+              )}
+            </div>
+
+            <div className="flex justify-end gap-2">
+              <Button variant="secondary" onClick={onClose} disabled={mutation.isPending}>
+                {en ? "Cancel" : "Hủy"}
+              </Button>
+              <Button onClick={() => mutation.mutate()} disabled={vnd <= 0 || !gatewayId || mutation.isPending}>
+                {en ? "Request top-up" : "Gửi yêu cầu nạp"}
+              </Button>
+            </div>
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
   );
 }
 

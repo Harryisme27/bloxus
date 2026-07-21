@@ -42,9 +42,13 @@ export async function payOrderWithCredit(orderId: string): Promise<void> {
 }
 
 // ---- Nạp tiền (topup) ----
-export async function requestTopup(amount: number, note?: string): Promise<void> {
+export async function requestTopup(amount: number, method?: string, note?: string): Promise<void> {
   const sb = requireSupabase();
-  const { error } = await sb.rpc("request_topup", { p_amount: amount, p_note: note ?? null });
+  const { error } = await sb.rpc("request_topup", {
+    p_amount: amount,
+    p_method: method ?? null,
+    p_note: note ?? null,
+  });
   if (error) throw new Error(error.message);
 }
 export async function reviewTopup(id: string, approve: boolean): Promise<void> {
