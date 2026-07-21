@@ -1,6 +1,8 @@
 import { isStaffRole } from "@/lib/roles";
 import { Link } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
+import { useConfirm } from "@/components/ui/confirm";
 import {
   ShoppingBag,
   Receipt,
@@ -16,13 +18,13 @@ import {
 } from "lucide-react";
 import { PageContainer } from "@/components/PageContainer";
 import { SectionHeading } from "@/components/SectionHeading";
-import { buttonVariants } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { RequireAuth } from "@/components/account/RequireAuth";
 import { WorkOrderStatusBadge } from "@/components/work/orderStatusMeta";
 import { useAuthStore } from "@/store/authStore";
 import { listMyOrders } from "@/lib/db/orders";
-import { listMyCreditTransactions } from "@/lib/db/credit";
+import { listMyCreditTransactions, requestTopup, requestWithdrawal } from "@/lib/db/credit";
 import { isSupabaseConfigured } from "@/lib/supabase";
 import { formatPrice, relativeTime } from "@/lib/format";
 import { orderDisplayStatus } from "@/types/db";
@@ -45,6 +47,16 @@ const STR = {
     txSpend: "Thanh toán đơn",
     txAdjust: "Điều chỉnh",
     txRefund: "Hoàn tiền",
+    txWithdraw: "Rút tiền",
+    txEarning: "Hoa hồng đơn",
+    topupBtn: "Nạp tiền",
+    withdrawBtn: "Rút tiền",
+    topupPrompt: "Số tiền muốn nạp (VNĐ)",
+    withdrawPrompt: "Số tiền muốn rút (VNĐ)",
+    invalidAmount: "Số tiền không hợp lệ.",
+    topupRequested: "Đã gửi yêu cầu nạp — chờ admin duyệt.",
+    withdrawRequested: "Đã gửi yêu cầu rút — chờ admin duyệt.",
+    reviewPending: "Chờ duyệt",
     activeOrders: "Đơn đang xử lý",
     recentOrders: "Đơn hàng gần đây",
     recentOrdersDesc: "5 giao dịch mới nhất của bạn.",
@@ -76,6 +88,16 @@ const STR = {
     txSpend: "Order payment",
     txAdjust: "Adjustment",
     txRefund: "Refund",
+    txWithdraw: "Withdrawal",
+    txEarning: "Order commission",
+    topupBtn: "Top up",
+    withdrawBtn: "Withdraw",
+    topupPrompt: "Amount to top up (VND)",
+    withdrawPrompt: "Amount to withdraw (VND)",
+    invalidAmount: "Invalid amount.",
+    topupRequested: "Top-up requested — awaiting admin approval.",
+    withdrawRequested: "Withdrawal requested — awaiting admin approval.",
+    reviewPending: "Pending",
     activeOrders: "Orders in progress",
     recentOrders: "Recent orders",
     recentOrdersDesc: "Your 5 most recent transactions.",
@@ -162,8 +184,8 @@ function DashboardContent() {
         </div>
       ) : null}
 
-      {/* Ví/số dư */}
-      {!isStaff ? <WalletSection t={t} balance={user.credit_balance ?? 0} /> : null}
+      {/* Ví/số dư — mọi người dùng đã đăng nhập */}
+      <WalletSection t={t} balance={user.credit_balance ?? 0} isStaff={isStaff} />
 
       {/* Stats */}
       <div className="mt-6 grid gap-4 sm:grid-cols-3">
@@ -244,6 +266,7 @@ function DashboardContent() {
 function WalletSection({
   t,
   balance,
+  isStaff,
 }: {
   t: {
     walletTitle: string;
@@ -254,9 +277,22 @@ function WalletSection({
     txSpend: string;
     txAdjust: string;
     txRefund: string;
+    txWithdraw: string;
+    txEarning: string;
+    topupBtn: string;
+    withdrawBtn: string;
+    topupPrompt: string;
+    withdrawPrompt: string;
+    invalidAmount: string;
+    topupRequested: string;
+    withdrawRequested: string;
+    reviewPending: string;
   };
   balance: number;
+  isStaff: boolean;
 }) {
+  const confirm = useConfirm();
+  const queryClient = useQueryClient();
   const txQuery = useQuery({
     queryKey: ["my-credit-tx"],
     queryFn: () => listMyCreditTransactions(8),
@@ -268,6 +304,36 @@ function WalletSection({
     spend: t.txSpend,
     adjust: t.txAdjust,
     refund: t.txRefund,
+    withdraw: t.txWithdraw,
+    earning: t.txEarning,
+  };
+
+  const topupMut = useMutation({
+    mutationFn: (amount: number) => requestTopup(amount),
+    onSuccess: () => {
+      toast.success(t.topupRequested);
+      void queryClient.invalidateQueries({ queryKey: ["my-credit-tx"] });
+    },
+    onError: (err) => toast.error(err instanceof Error ? err.message : "Error"),
+  });
+  const withdrawMut = useMutation({
+    mutationFn: (amount: number) => requestWithdrawal(amount),
+    onSuccess: () => {
+      toast.success(t.withdrawRequested);
+      void queryClient.invalidateQueries({ queryKey: ["my-credit-tx"] });
+    },
+    onError: (err) => toast.error(err instanceof Error ? err.message : "Error"),
+  });
+
+  const askAmount = async (title: string) => {
+    const r = await confirm({ title, input: { label: title, placeholder: "100000", required: true } });
+    if (!r.ok) return null;
+    const n = Number(String(r.value ?? "").replace(/[^\d]/g, ""));
+    if (!Number.isFinite(n) || n <= 0) {
+      toast.error(t.invalidAmount);
+      return null;
+    }
+    return n;
   };
 
   return (
@@ -281,7 +347,31 @@ function WalletSection({
           {formatPrice(balance)}
         </p>
         <p className="mt-2 text-xs text-text-muted">{t.walletDesc}</p>
-        <p className="mt-1 text-xs text-text-subtle">{t.topupHint}</p>
+        <div className="mt-4 flex flex-wrap gap-2">
+          <Button
+            size="sm"
+            disabled={topupMut.isPending}
+            onClick={async () => {
+              const n = await askAmount(t.topupPrompt);
+              if (n) topupMut.mutate(n);
+            }}
+          >
+            {t.topupBtn}
+          </Button>
+          {isStaff ? (
+            <Button
+              size="sm"
+              variant="secondary"
+              disabled={withdrawMut.isPending || balance <= 0}
+              onClick={async () => {
+                const n = await askAmount(t.withdrawPrompt);
+                if (n) withdrawMut.mutate(n);
+              }}
+            >
+              {t.withdrawBtn}
+            </Button>
+          ) : null}
+        </div>
       </div>
 
       <div className="rounded-2xl border border-border bg-surface p-4">

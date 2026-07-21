@@ -35,6 +35,7 @@ import { WorkOrderDetail } from "@/routes/work/WorkOrderDetail";
 import { WorkPayments } from "@/routes/work/WorkPayments";
 import { WorkCatalog } from "@/routes/work/WorkCatalog";
 import { WorkCtv } from "@/routes/work/WorkCtv";
+import { WorkWallet } from "@/routes/work/WorkWallet";
 import { WorkChat } from "@/routes/work/WorkChat";
 import { WorkSettings } from "@/routes/work/WorkSettings";
 
@@ -85,6 +86,7 @@ export const router = createBrowserRouter([
           { path: "payments", element: <WorkPayments /> },
           { path: "catalog", element: <WorkCatalog /> },
           { path: "ctv", element: <WorkCtv /> },
+          { path: "wallet", element: <WorkWallet /> },
           { path: "chat", element: <WorkChat /> },
           { path: "settings", element: <WorkSettings /> },
         ],

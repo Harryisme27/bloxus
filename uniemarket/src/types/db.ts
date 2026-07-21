@@ -102,10 +102,34 @@ export interface CreditTransactionRow {
   id: string;
   user_id: string;
   amount: number;
-  type: "topup" | "spend" | "adjust" | "refund";
+  type: "topup" | "spend" | "adjust" | "refund" | "withdraw" | "earning";
   note: string | null;
   balance_after: number;
   order_id: string | null;
+  created_at: string;
+}
+
+export interface TopupRequestRow {
+  id: string;
+  user_id: string;
+  amount: number;
+  status: "pending" | "approved" | "rejected";
+  note: string | null;
+  reviewed_by: string | null;
+  reviewed_at: string | null;
+  created_at: string;
+}
+
+export interface WithdrawalRequestRow {
+  id: string;
+  user_id: string;
+  amount: number;
+  fee: number;
+  net: number;
+  status: "pending" | "approved" | "rejected";
+  note: string | null;
+  reviewed_by: string | null;
+  reviewed_at: string | null;
   created_at: string;
 }
 

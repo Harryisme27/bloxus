@@ -5,6 +5,7 @@ import {
   BadgeDollarSign,
   PackageSearch,
   Users,
+  Wallet,
   MessagesSquare,
   Settings,
   type LucideIcon,
@@ -26,6 +27,7 @@ const STR = {
     payments: "Xác nhận thanh toán",
     catalog: "Danh mục & sản phẩm",
     ctv: "Vai trò",
+    wallet: "Ví (nạp/rút)",
     chat: "Chat nội bộ",
     settings: "Cài đặt",
   },
@@ -38,12 +40,13 @@ const STR = {
     payments: "Confirm payment",
     catalog: "Categories & products",
     ctv: "Roles",
+    wallet: "Wallet",
     chat: "Team chat",
     settings: "Settings",
   },
 };
 
-type NavKey = "dashboard" | "orders" | "payments" | "catalog" | "ctv" | "chat" | "settings";
+type NavKey = "dashboard" | "orders" | "payments" | "catalog" | "ctv" | "wallet" | "chat" | "settings";
 
 interface WorkNavItem {
   to: string;
@@ -62,6 +65,7 @@ const NAV_ITEMS: WorkNavItem[] = [
   { to: "/work/payments", key: "payments", icon: BadgeDollarSign, roles: ["admin", "manager"], perm: "confirm_payment" },
   { to: "/work/catalog", key: "catalog", icon: PackageSearch, roles: ["admin", "manager"], perm: "manage_catalog" },
   { to: "/work/ctv", key: "ctv", icon: Users, roles: ["admin", "manager"], perm: "manage_ctv" },
+  { to: "/work/wallet", key: "wallet", icon: Wallet, roles: ["admin"] },
   { to: "/work/chat", key: "chat", icon: MessagesSquare, roles: ["admin", "manager", "ctv"] },
   { to: "/work/settings", key: "settings", icon: Settings, roles: ["admin"] },
 ];

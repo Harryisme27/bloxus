@@ -55,6 +55,11 @@ const STR = {
     recruitTitle: "Tuyển cộng tác viên",
     recruitToggle: "Mở đơn ứng tuyển CTV cho khách",
     recruitHint: "Bật để khách nộp đơn ứng tuyển CTV ở trang /ctv. Tắt thì trang báo tạm đóng.",
+    commTitle: "Hoa hồng / chiết khấu (%)",
+    commOrderLabel: "Hoa hồng đơn hàng (%)",
+    commOrderHint: "Phần trăm shop giữ lại từ mỗi đơn CTV bán. CTV nhận phần còn lại vào ví khi đơn hoàn tất.",
+    commWithdrawLabel: "Phí rút tiền (%)",
+    commWithdrawHint: "Phần trăm phí khi rút tiền. Người rút thực nhận = số tiền rút − phí.",
   },
   en: {
     fieldBrand: "Shop name",
@@ -98,6 +103,11 @@ const STR = {
     recruitToggle: "Open CTV applications to customers",
     recruitHint:
       "When on, customers can submit CTV applications on the /ctv page. When off, that page shows a closed notice.",
+    commTitle: "Commissions (%)",
+    commOrderLabel: "Order commission (%)",
+    commOrderHint: "Percentage the shop keeps from each order a CTV sells. The CTV receives the rest in their wallet when the order completes.",
+    commWithdrawLabel: "Withdrawal fee (%)",
+    commWithdrawHint: "Percentage fee on withdrawals. Net received = withdrawal amount − fee.",
   },
 };
 
@@ -130,6 +140,8 @@ export function WorkSettings() {
   const [gws, setGws] = useState<GatewaysSettings>({});
   const [delStatuses, setDelStatuses] = useState<Set<string>>(new Set());
   const [ctvApplyOpen, setCtvApplyOpen] = useState(false);
+  const [orderComm, setOrderComm] = useState("0");
+  const [withdrawComm, setWithdrawComm] = useState("0");
   const [uploading, setUploading] = useState(false);
 
   const en = lang === "en";
@@ -166,6 +178,8 @@ export function WorkSettings() {
         ),
       );
       setCtvApplyOpen(query.data.ctv_apply_open === true);
+      setOrderComm(String(query.data.order_commission_pct ?? 0));
+      setWithdrawComm(String(query.data.withdrawal_commission_pct ?? 0));
     }
   }, [query.data]);
 
@@ -178,6 +192,8 @@ export function WorkSettings() {
       await updateSetting("payment_gateways", gws);
       await updateSetting("deletable_order_statuses", Array.from(delStatuses));
       await updateSetting("ctv_apply_open", ctvApplyOpen);
+      await updateSetting("order_commission_pct", Math.max(0, Math.min(100, parseFloat(orderComm) || 0)));
+      await updateSetting("withdrawal_commission_pct", Math.max(0, Math.min(100, parseFloat(withdrawComm) || 0)));
     },
     onSuccess: () => {
       toast.success(t.saved);
@@ -418,6 +434,41 @@ export function WorkSettings() {
                     <span className="text-sm text-text">{s.status[st]}</span>
                   </label>
                 ))}
+              </div>
+            </div>
+
+            {/* Hoa hồng / chiết khấu */}
+            <div className="border-t border-border pt-4">
+              <p className="font-heading text-sm font-semibold text-text">{t.commTitle}</p>
+              <div className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div>
+                  <Label htmlFor="comm-order">{t.commOrderLabel}</Label>
+                  <Input
+                    id="comm-order"
+                    type="number"
+                    min={0}
+                    max={100}
+                    step="0.1"
+                    value={orderComm}
+                    onChange={(e) => setOrderComm(e.target.value)}
+                    className="max-w-[140px]"
+                  />
+                  <p className="mt-1.5 text-xs text-text-subtle">{t.commOrderHint}</p>
+                </div>
+                <div>
+                  <Label htmlFor="comm-withdraw">{t.commWithdrawLabel}</Label>
+                  <Input
+                    id="comm-withdraw"
+                    type="number"
+                    min={0}
+                    max={100}
+                    step="0.1"
+                    value={withdrawComm}
+                    onChange={(e) => setWithdrawComm(e.target.value)}
+                    className="max-w-[140px]"
+                  />
+                  <p className="mt-1.5 text-xs text-text-subtle">{t.commWithdrawHint}</p>
+                </div>
               </div>
             </div>
 

@@ -20,8 +20,10 @@ import {
   Mail,
   LogOut,
   ChevronDown,
+  Wallet,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
+import { formatPrice } from "@/lib/format";
 import { useAuthStore } from "@/store/authStore";
 import { cn } from "@/lib/utils";
 import { usePick } from "@/i18n";
@@ -173,14 +175,21 @@ export function ProfileMenu() {
             <Avatar name={name} avatarUrl={user.avatar_url} size="lg" />
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-semibold text-text">{name}</p>
-              <span
-                className={cn(
-                  "mt-1 inline-block rounded-full px-2 py-0.5 text-[11px] font-semibold",
-                  chipClassName,
-                )}
-              >
-                {chipLabel}
-              </span>
+              <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                <span
+                  className={cn(
+                    "inline-block rounded-full px-2 py-0.5 text-[11px] font-semibold",
+                    chipClassName,
+                  )}
+                >
+                  {chipLabel}
+                </span>
+                {/* Số dư ví */}
+                <span className="inline-flex items-center gap-1 rounded-full bg-surface-3 px-2 py-0.5 text-[11px] font-semibold text-yellow">
+                  <Wallet className="h-3 w-3" aria-hidden />
+                  {formatPrice(user.credit_balance ?? 0)}
+                </span>
+              </div>
             </div>
           </div>
 
