@@ -51,9 +51,11 @@ console.log("— guard tự sửa số dư —");
   ok(prof.credit_balance === 500000, "khách KHÔNG tự sửa được số dư (vẫn 500k)" + (error ? " [update err: " + error.message + "]" : ""));
 }
 
-// 4) trả đơn bằng số dư
+// 4) trả đơn bằng số dư (nạp đủ trước)
 console.log("— thanh toán đơn bằng số dư —");
 {
+  await admin.from("profiles").update({ credit_balance: 5000000 }).eq("id", custId);
+  const start = 5000000;
   const { data: prod } = await admin.from("products").select("id,stock").eq("kind", "item").eq("instant_delivery", false).limit(1).maybeSingle();
   const prev = prod.stock;
   if (prev !== null) await admin.from("products").update({ stock: prev + 2 }).eq("id", prod.id);
@@ -65,7 +67,7 @@ console.log("— thanh toán đơn bằng số dư —");
   const { data: paid, error } = await cust.rpc("pay_order_with_credit", { p_order_id: order.id });
   ok(!error && paid?.status === "paid", "trả đơn bằng số dư -> paid" + (error ? " — " + error.message : ""));
   const { data: prof } = await admin.from("profiles").select("credit_balance").eq("id", custId).maybeSingle();
-  ok(prof.credit_balance === 500000 - order.total, "số dư trừ đúng: " + prof.credit_balance + " (= 500k - " + order.total + ")");
+  ok(prof.credit_balance === start - order.total, "số dư trừ đúng: " + prof.credit_balance + " (= " + start + " - " + order.total + ")");
   const { data: tx } = await admin.from("credit_transactions").select("*").eq("order_id", order.id);
   ok(tx?.[0]?.type === "spend" && tx[0].amount === -order.total, "giao dịch spend đúng số");
   await admin.from("orders").delete().eq("id", order.id);
