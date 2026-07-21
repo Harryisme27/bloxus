@@ -58,11 +58,7 @@ export async function reviewTopup(id: string, approve: boolean): Promise<void> {
 }
 export async function listTopupRequests(): Promise<TopupRequestRow[]> {
   const sb = requireSupabase();
-  const { data, error } = await sb
-    .from("topup_requests")
-    .select("*")
-    .order("created_at", { ascending: false })
-    .limit(50);
+  const { data, error } = await sb.rpc("list_topup_requests");
   if (error) throw new Error(error.message);
   return (data ?? []) as TopupRequestRow[];
 }
@@ -102,11 +98,7 @@ export async function reviewWithdrawal(id: string, approve: boolean, note?: stri
 }
 export async function listWithdrawalRequests(): Promise<WithdrawalRequestRow[]> {
   const sb = requireSupabase();
-  const { data, error } = await sb
-    .from("withdrawal_requests")
-    .select("*")
-    .order("created_at", { ascending: false })
-    .limit(50);
+  const { data, error } = await sb.rpc("list_withdrawal_requests");
   if (error) throw new Error(error.message);
   return (data ?? []) as WithdrawalRequestRow[];
 }

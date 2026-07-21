@@ -116,10 +116,16 @@ export interface TopupRequestRow {
   user_id: string;
   amount: number;
   status: "pending" | "approved" | "rejected";
+  method: string | null;
   note: string | null;
+  code: string | null;
   reviewed_by: string | null;
   reviewed_at: string | null;
   created_at: string;
+  /** Chỉ có khi lấy qua RPC admin list_topup_requests. */
+  username?: string | null;
+  display_name?: string | null;
+  email?: string | null;
 }
 
 export interface WithdrawalRequestRow {
@@ -132,9 +138,14 @@ export interface WithdrawalRequestRow {
   destination: string | null;
   status: "pending" | "approved" | "rejected";
   note: string | null;
+  code: string | null;
   reviewed_by: string | null;
   reviewed_at: string | null;
   created_at: string;
+  /** Chỉ có khi lấy qua RPC admin list_withdrawal_requests. */
+  username?: string | null;
+  display_name?: string | null;
+  email?: string | null;
 }
 
 export interface CategoryFolderRow {
