@@ -1,11 +1,11 @@
-// Data layer — Tuyển CTV (đơn ứng tuyển + duyệt).
+// Data layer — Tuyển Seller (đơn ứng tuyển + duyệt).
 import { requireSupabase } from "@/lib/supabase";
 import { useLangStore } from "@/i18n";
 import type { CtvApplicationInput, CtvApplicationRow, CtvApplicationStatus } from "@/types/db";
 
 const isEn = () => useLangStore.getState().lang === "en";
 
-/** Nộp đơn ứng tuyển CTV (mỗi người tối đa 1 đơn đang chờ — DB chặn đơn trùng). */
+/** Nộp đơn ứng tuyển Seller (mỗi người tối đa 1 đơn đang chờ — DB chặn đơn trùng). */
 export async function submitApplication(
   input: CtvApplicationInput,
 ): Promise<CtvApplicationRow> {
@@ -15,8 +15,8 @@ export async function submitApplication(
   if (!uid)
     throw new Error(
       isEn()
-        ? "You must be logged in to apply as a collaborator."
-        : "Bạn cần đăng nhập để ứng tuyển CTV.",
+        ? "You must be logged in to apply as a seller."
+        : "Bạn cần đăng nhập để ứng tuyển Seller.",
     );
   const { data, error } = await sb
     .from("ctv_applications")

@@ -396,7 +396,7 @@ function OrderDetailContent() {
           {/* Buyer actions: Hoàn tất đơn (Complete Order) + Yêu cầu hoàn tiền */}
           <OrderActions order={order} />
 
-          {/* Đánh giá CTV khi đơn đã hoàn thành */}
+          {/* Đánh giá Seller khi đơn đã hoàn thành */}
           {order.status === "completed" ? <ReviewWidget orderId={order.id} /> : null}
 
           {/* Payment instructions while pending */}

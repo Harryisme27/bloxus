@@ -1,4 +1,4 @@
-// Dialog "Đã giao hàng" (CTV được giao / admin): chọn nhiều ảnh minh chứng,
+// Dialog "Đã giao hàng" (Seller được giao / admin): chọn nhiều ảnh minh chứng,
 // upload lên bucket proof-images rồi gọi mark_delivered. Bắt buộc ≥ 1 ảnh.
 import { useState, type ChangeEvent } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";

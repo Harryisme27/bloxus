@@ -1,5 +1,5 @@
 // Bảng thao tác cho KHÁCH (chủ đơn): Hoàn tất đơn (Complete Order) + Yêu cầu hoàn tiền.
-// Tự ẩn HOÀN TOÀN nếu người xem không phải chủ đơn (nhân viên/CTV xem sẽ không thấy gì).
+// Tự ẩn HOÀN TOÀN nếu người xem không phải chủ đơn (nhân viên/Seller xem sẽ không thấy gì).
 // Mọi mutation dùng useMutation + invalidate ['order', id]/['my-orders']/['work-orders'].
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";

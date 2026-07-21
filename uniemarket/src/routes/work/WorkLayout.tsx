@@ -71,8 +71,8 @@ const NAV_ITEMS: WorkNavItem[] = [
 ];
 
 /**
- * Khung khu làm việc /work (admin + CTV). Sidebar bên trái, nội dung bên phải.
- * Các mục admin-only được ẩn với CTV và gắn nhãn "Admin" cho admin.
+ * Khung khu làm việc /work (admin + Seller). Sidebar bên trái, nội dung bên phải.
+ * Các mục admin-only được ẩn với Seller và gắn nhãn "Admin" cho admin.
  */
 export function WorkLayout() {
   const user = useAuthStore((state) => state.user);

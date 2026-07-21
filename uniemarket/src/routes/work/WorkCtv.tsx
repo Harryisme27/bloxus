@@ -33,14 +33,14 @@ import { usePick, useLangStore } from "@/i18n";
 import { useAuthStore } from "@/store/authStore";
 
 const ROLE_LABELS: { vi: Record<UserRole, string>; en: Record<UserRole, string> } = {
-  vi: { ctv: "Cộng tác viên", manager: "Quản lý", admin: "Quản trị", customer: "Khách" },
-  en: { ctv: "Collaborator", manager: "Manager", admin: "Admin", customer: "Customer" },
+  vi: { ctv: "Người bán", manager: "Quản lý", admin: "Quản trị", customer: "Khách" },
+  en: { ctv: "Seller", manager: "Manager", admin: "Admin", customer: "Customer" },
 };
 
 const STR = {
   vi: {
-    title: "Cộng tác viên",
-    subtitle: "Cấp quyền trực tiếp theo email và quản lý đội ngũ CTV. Cấp quyền = mở khu làm việc.",
+    title: "Người bán",
+    subtitle: "Cấp quyền trực tiếp theo email và quản lý đội ngũ Seller. Cấp quyền = mở khu làm việc.",
     tabGrant: "Cấp quyền thủ công",
     tabList: "Danh sách vai trò",
     tabApplications: "Đơn ứng tuyển",
@@ -52,7 +52,7 @@ const STR = {
     roleLabel: "Quyền",
     granting: "Đang cấp…",
     grant: "Cấp quyền",
-    approvedCtv: "Đã duyệt CTV.",
+    approvedCtv: "Đã duyệt Seller.",
     rejectedApp: "Đã từ chối đơn.",
     actionFail: "Thao tác thất bại.",
     loadAppsError: "Không tải được danh sách đơn.",
@@ -69,14 +69,14 @@ const STR = {
     noteLabel: "Ghi chú:",
     approve: "Duyệt",
     reject: "Từ chối",
-    noCtvPre: "Chưa có CTV nào. Dùng tab",
-    noCtvPost: "để thêm CTV theo email.",
-    ctvBadge: "CTV",
+    noCtvPre: "Chưa có Seller nào. Dùng tab",
+    noCtvPost: "để thêm Seller theo email.",
+    ctvBadge: "Seller",
     manageCats: "Phân danh mục",
     catDialogTitle: (name: string) => `Danh mục cho ${name}`,
-    catDialogDesc: "Chọn danh mục CTV được phép nhận đơn, hoặc cho phép toàn bộ.",
+    catDialogDesc: "Chọn danh mục Seller được phép nhận đơn, hoặc cho phép toàn bộ.",
     allCats: "Toàn bộ danh mục",
-    catsSaved: "Đã cập nhật danh mục cho CTV.",
+    catsSaved: "Đã cập nhật danh mục cho Seller.",
     catsSaveFail: "Không lưu được.",
     saveCats: "Lưu",
     saving: "Đang lưu...",
@@ -91,12 +91,12 @@ const STR = {
     requestApproved: "Đã duyệt đề xuất — quyền được cấp.",
     requestRejected: "Đã từ chối đề xuất.",
     reasonLabel: "Lý do đề xuất (để admin đọc)",
-    reasonPh: "VD: bạn này hỗ trợ khách rất tốt, đề xuất lên CTV…",
+    reasonPh: "VD: bạn này hỗ trợ khách rất tốt, đề xuất lên Seller…",
     filterRole: "Lọc vai trò",
     allRoles: "Tất cả vai trò",
     reviewerFilter: "Người duyệt",
     allReviewers: "Tất cả người duyệt",
-    kindApp: "Ứng tuyển CTV",
+    kindApp: "Ứng tuyển Seller",
     kindRole: "Đề xuất cấp quyền",
     reviewedBy: (name: string) => `Duyệt bởi ${name}`,
     proposedBy: "Đề xuất",
@@ -116,17 +116,17 @@ const STR = {
     savePerms: "Lưu phân quyền",
     permName: {
       manage_catalog: "Quản lý danh mục & sản phẩm",
-      manage_ctv: "Quản lý vai trò (phân danh mục CTV)",
-      assign_orders: "Giao đơn cho CTV",
+      manage_ctv: "Quản lý vai trò (phân danh mục Seller)",
+      assign_orders: "Giao đơn cho Seller",
       confirm_payment: "Xác nhận thanh toán",
       resolve_refund: "Duyệt hoàn tiền",
       claim_orders: "Tự nhận đơn",
     } as Record<string, string>,
   },
   en: {
-    title: "Collaborators",
+    title: "Sellers",
     subtitle:
-      "Grant roles directly by email and manage your CTV team. Granting a role opens the work area.",
+      "Grant roles directly by email and manage your Seller team. Granting a role opens the work area.",
     tabGrant: "Grant manually",
     tabList: "Role List",
     tabApplications: "Applications",
@@ -138,7 +138,7 @@ const STR = {
     roleLabel: "Role",
     granting: "Granting…",
     grant: "Grant role",
-    approvedCtv: "Collaborator approved.",
+    approvedCtv: "Seller approved.",
     rejectedApp: "Application declined.",
     actionFail: "Action failed.",
     loadAppsError: "Couldn't load the application list.",
@@ -155,14 +155,14 @@ const STR = {
     noteLabel: "Note:",
     approve: "Approve",
     reject: "Decline",
-    noCtvPre: "No collaborators yet. Use the",
-    noCtvPost: "tab to add a CTV by email.",
-    ctvBadge: "CTV",
+    noCtvPre: "No sellers yet. Use the",
+    noCtvPost: "tab to add a Seller by email.",
+    ctvBadge: "Seller",
     manageCats: "Assign categories",
     catDialogTitle: (name: string) => `Categories for ${name}`,
-    catDialogDesc: "Choose which categories this collaborator can claim orders from, or allow all.",
+    catDialogDesc: "Choose which categories this seller can claim orders from, or allow all.",
     allCats: "All categories",
-    catsSaved: "Collaborator categories updated.",
+    catsSaved: "Seller categories updated.",
     catsSaveFail: "Couldn't save.",
     saveCats: "Save",
     saving: "Saving...",
@@ -177,12 +177,12 @@ const STR = {
     requestApproved: "Request approved — role granted.",
     requestRejected: "Request declined.",
     reasonLabel: "Reason (for admin to read)",
-    reasonPh: "e.g. handles customers very well, proposing them for CTV…",
+    reasonPh: "e.g. handles customers very well, proposing them for Seller…",
     filterRole: "Filter role",
     allRoles: "All roles",
     reviewerFilter: "Reviewed by",
     allReviewers: "All reviewers",
-    kindApp: "CTV application",
+    kindApp: "Seller application",
     kindRole: "Role request",
     reviewedBy: (name: string) => `Reviewed by ${name}`,
     proposedBy: "Proposed",
@@ -202,8 +202,8 @@ const STR = {
     savePerms: "Save permissions",
     permName: {
       manage_catalog: "Manage categories & products",
-      manage_ctv: "Manage roles (assign CTV categories)",
-      assign_orders: "Assign orders to CTV",
+      manage_ctv: "Manage roles (assign Seller categories)",
+      assign_orders: "Assign orders to Seller",
       confirm_payment: "Confirm payment",
       resolve_refund: "Approve refunds",
       claim_orders: "Claim orders",
@@ -211,7 +211,7 @@ const STR = {
   },
 };
 
-/** /work/ctv (admin) — duyệt đơn ứng tuyển + danh sách CTV. */
+/** /work/ctv (admin) — duyệt đơn ứng tuyển + danh sách Seller. */
 export function WorkCtv() {
   const t = usePick(STR);
   // Cấp/đổi vai trò là quyền admin (guard_profile_role chặn ở DB) — manager chỉ
@@ -367,7 +367,7 @@ function ManualRoleTab({ isAdmin }: { isAdmin: boolean }) {
   );
 }
 
-// Mục review gộp: đơn ứng tuyển CTV + đề xuất cấp quyền của manager.
+// Mục review gộp: đơn ứng tuyển Seller + đề xuất cấp quyền của manager.
 type ReviewItem = {
   key: string;
   kind: "app" | "role";
@@ -663,7 +663,7 @@ function RoleListTab() {
             {c.ctv_all_categories && c.role === "ctv" ? (
               <Badge variant="gold">{t.allAccessBadge}</Badge>
             ) : null}
-            {/* Phân danh mục chỉ áp cho CTV (admin/manager nhận mọi danh mục). */}
+            {/* Phân danh mục chỉ áp cho Seller (admin/manager nhận mọi danh mục). */}
             {c.role === "ctv" ? (
               <Button variant="secondary" size="sm" onClick={() => setManaging(c)}>
                 <FolderCog className="h-4 w-4" aria-hidden /> {t.manageCats}
@@ -758,7 +758,7 @@ function CreditsTab() {
   );
 }
 
-/** Ma trận phân quyền: hàng = quyền, cột = Manager / CTV. Admin luôn full. */
+/** Ma trận phân quyền: hàng = quyền, cột = Manager / Seller. Admin luôn full. */
 function PermissionsTab() {
   const queryClient = useQueryClient();
   const t = usePick(STR);

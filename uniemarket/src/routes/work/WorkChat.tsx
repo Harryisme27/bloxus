@@ -1,4 +1,4 @@
-// /work/chat — chat nội bộ đội ngũ (kênh # Chung, chỉ admin + CTV thấy).
+// /work/chat — chat nội bộ đội ngũ (kênh # Chung, chỉ admin + Seller thấy).
 // Trang này nằm sau RequireRole(['admin','ctv']) nên session/role đã bảo đảm.
 import type { ReactNode } from "react";
 import { useSearchParams } from "react-router-dom";
@@ -24,12 +24,12 @@ const STR = {
     emptyBodyPre: "Kênh",
     emptyBodyMid: "được tạo sẵn khi chạy file",
     emptyBodyPost:
-      ". Nếu bạn vừa được duyệt CTV, thử tải lại trang; nếu vẫn không thấy, báo admin kiểm tra bước cài đặt.",
+      ". Nếu bạn vừa được duyệt Seller, thử tải lại trang; nếu vẫn không thấy, báo admin kiểm tra bước cài đặt.",
     backToChannels: "Danh sách kênh",
     pickChannel: "Chọn một kênh để bắt đầu.",
     title: "Chat nội bộ",
     subtitle:
-      "Kênh # Chung của đội ngũ — khách hàng không thấy nội dung ở đây. Tên người gửi kèm nhãn vai trò (Admin / CTV).",
+      "Kênh # Chung của đội ngũ — khách hàng không thấy nội dung ở đây. Tên người gửi kèm nhãn vai trò (Admin / Seller).",
   },
   en: {
     loadError: "Couldn't load the team chat channels.",
@@ -38,12 +38,12 @@ const STR = {
     emptyBodyPre: "The",
     emptyBodyMid: "channel is created automatically when you run",
     emptyBodyPost:
-      ". If you were just approved as a CTV, try reloading the page; if it still doesn't appear, ask an admin to check the setup step.",
+      ". If you were just approved as a Seller, try reloading the page; if it still doesn't appear, ask an admin to check the setup step.",
     backToChannels: "Channel list",
     pickChannel: "Pick a channel to get started.",
     title: "Team chat",
     subtitle:
-      "The team's # Chung channel — customers can't see anything here. Sender names include a role label (Admin / CTV).",
+      "The team's # Chung channel — customers can't see anything here. Sender names include a role label (Admin / Seller).",
   },
 };
 

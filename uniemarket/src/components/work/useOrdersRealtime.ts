@@ -1,5 +1,5 @@
 // Realtime hàng đợi khu làm việc: lắng nghe INSERT/UPDATE trên public.orders
-// (admin: mọi đơn; CTV: chỉ đơn được giao cho mình), rồi invalidate cache
+// (admin: mọi đơn; Seller: chỉ đơn được giao cho mình), rồi invalidate cache
 // ['work-orders'] + toast thông báo. Dùng ở dashboard + danh sách đơn.
 import { useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -37,7 +37,7 @@ export function useOrdersRealtime(): void {
     if (role !== "admin" && role !== "manager" && role !== "ctv") return;
 
     const sb = supabase;
-    // Admin/manager nghe toàn bộ; CTV chỉ nghe đơn được giao cho mình.
+    // Admin/manager nghe toàn bộ; Seller chỉ nghe đơn được giao cho mình.
     const filter = role === "admin" || role === "manager" ? undefined : `assigned_ctv=eq.${uid}`;
 
     const invalidate = (orderId?: string) => {

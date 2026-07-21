@@ -165,7 +165,7 @@ export function MessagePane({ thread, className, compact, hideHeader }: MessageP
   // Realtime đơn hàng: trạng thái đổi -> sidebar (dùng cùng cache) cập nhật ngay.
   useOrderRealtime(isOrderThread ? (thread.order_id ?? undefined) : undefined);
 
-  // Người đối diện: tôi là khách -> CTV được giao ("Đội hỗ trợ" khi chưa giao);
+  // Người đối diện: tôi là khách -> Seller được giao ("Đội hỗ trợ" khi chưa giao);
   // tôi là staff -> khách đặt đơn.
   const iAmBuyer = order && myId ? order.user_id === myId : false;
   const counterpartyId = order ? (iAmBuyer ? order.assigned_ctv : order.user_id) : null;
@@ -426,7 +426,7 @@ export function MessagePane({ thread, className, compact, hideHeader }: MessageP
                   ) : null}
                   {profile?.role === "ctv" ? (
                     <Badge variant="green" className="px-1.5 py-0 text-[10px]">
-                      CTV
+                      Seller
                     </Badge>
                   ) : null}
                   <span>· {isTemp ? t.sending : relativeTime(msg.created_at)}</span>

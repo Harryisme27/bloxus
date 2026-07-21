@@ -2,7 +2,7 @@
 // - Chưa đăng nhập: panel hướng dẫn -> /login và /faq (không còn bot demo).
 // - Khách đã đăng nhập: hiện thread đơn hàng gần nhất (MessagePane compact),
 //   không có thread thì dẫn tới /messages.
-// - Staff (admin/CTV): dẫn tới /work/chat.
+// - Staff (admin/Seller): dẫn tới /work/chat.
 import { isStaffRole } from "@/lib/roles";
 import { useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";

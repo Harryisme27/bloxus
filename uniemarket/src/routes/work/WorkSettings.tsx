@@ -39,7 +39,7 @@ const STR = {
     handlingTitle: "Xử lý đơn",
     timeoutLabel: "Thời gian giữ đơn tối đa (phút)",
     timeoutHint:
-      "CTV nhận đơn mà quá số phút này chưa giao thì đơn tự trả về hàng đợi. Đặt 0 để tắt.",
+      "Seller nhận đơn mà quá số phút này chưa giao thì đơn tự trả về hàng đợi. Đặt 0 để tắt.",
     refundTimeoutLabel: "Thời gian tự hoàn tiền (phút)",
     refundTimeoutHint:
       "Sau khi khách yêu cầu hoàn tiền, nếu admin chưa xử lý thì khách được tự chốt hoàn tiền sau số phút này.",
@@ -52,12 +52,12 @@ const STR = {
     delTitle: "Xóa đơn hàng",
     delHint:
       "Chọn trạng thái đơn được phép xóa. Nên giữ lại đơn 'Chờ thanh toán' và 'Đang xử lý' để tránh mất dữ liệu đang chạy.",
-    recruitTitle: "Tuyển cộng tác viên",
-    recruitToggle: "Mở đơn ứng tuyển CTV cho khách",
-    recruitHint: "Bật để khách nộp đơn ứng tuyển CTV ở trang /ctv. Tắt thì trang báo tạm đóng.",
+    recruitTitle: "Tuyển người bán",
+    recruitToggle: "Mở đơn ứng tuyển Seller cho khách",
+    recruitHint: "Bật để khách nộp đơn ứng tuyển Seller ở trang /ctv. Tắt thì trang báo tạm đóng.",
     commTitle: "Hoa hồng / chiết khấu (%)",
     commOrderLabel: "Hoa hồng đơn hàng (%)",
-    commOrderHint: "Phần trăm shop giữ lại từ mỗi đơn CTV bán. CTV nhận phần còn lại vào ví khi đơn hoàn tất.",
+    commOrderHint: "Phần trăm shop giữ lại từ mỗi đơn Seller bán. Seller nhận phần còn lại vào ví khi đơn hoàn tất.",
     commWithdrawLabel: "Phí rút tiền (%)",
     commWithdrawHint: "Phần trăm phí khi rút tiền. Người rút thực nhận = số tiền rút − phí.",
   },
@@ -86,7 +86,7 @@ const STR = {
     handlingTitle: "Order handling",
     timeoutLabel: "Max order hold time (minutes)",
     timeoutHint:
-      "If a collaborator claims an order but doesn't deliver within this many minutes, it returns to the queue. Set 0 to disable.",
+      "If a seller claims an order but doesn't deliver within this many minutes, it returns to the queue. Set 0 to disable.",
     refundTimeoutLabel: "Auto-refund time (minutes)",
     refundTimeoutHint:
       "After a customer requests a refund, if an admin hasn't handled it they can finalize the refund themselves after this many minutes.",
@@ -99,13 +99,13 @@ const STR = {
     delTitle: "Order deletion",
     delHint:
       "Choose which order statuses admins are allowed to delete. Keep 'Awaiting payment' and 'In progress' to avoid losing active orders.",
-    recruitTitle: "Collaborator recruitment",
-    recruitToggle: "Open CTV applications to customers",
+    recruitTitle: "Seller recruitment",
+    recruitToggle: "Open Seller applications to customers",
     recruitHint:
-      "When on, customers can submit CTV applications on the /ctv page. When off, that page shows a closed notice.",
+      "When on, customers can submit Seller applications on the /ctv page. When off, that page shows a closed notice.",
     commTitle: "Commissions (%)",
     commOrderLabel: "Order commission (%)",
-    commOrderHint: "Percentage the shop keeps from each order a CTV sells. The CTV receives the rest in their wallet when the order completes.",
+    commOrderHint: "Percentage the shop keeps from each order a Seller sells. The Seller receives the rest in their wallet when the order completes.",
     commWithdrawLabel: "Withdrawal fee (%)",
     commWithdrawHint: "Percentage fee on withdrawals. Net received = withdrawal amount − fee.",
   },
@@ -472,7 +472,7 @@ export function WorkSettings() {
               </div>
             </div>
 
-            {/* Tuyển CTV — bật/tắt đơn ứng tuyển cho khách */}
+            {/* Tuyển Seller — bật/tắt đơn ứng tuyển cho khách */}
             <div className="border-t border-border pt-4">
               <p className="font-heading text-sm font-semibold text-text">{t.recruitTitle}</p>
               <div className="mt-3 flex items-center justify-between gap-3">

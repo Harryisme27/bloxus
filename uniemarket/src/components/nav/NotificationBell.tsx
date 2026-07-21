@@ -74,7 +74,7 @@ export function NotificationBell() {
       );
       void queryClient.invalidateQueries({ queryKey: UNREAD_KEY });
       toast.info(n.title, { description: n.body ?? undefined });
-      // Đơn mới (admin) hoặc đơn vào hàng chờ nhận (CTV) -> phát âm thanh.
+      // Đơn mới (admin) hoặc đơn vào hàng chờ nhận (Seller) -> phát âm thanh.
       if (
         (n.type === "order_new" || n.type === "order_claimable") &&
         isStaffRole(role)

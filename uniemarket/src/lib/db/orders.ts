@@ -11,7 +11,7 @@ import type {
 
 /**
  * Đặt hàng (yêu cầu đăng nhập). MỖI MÓN trong giỏ được tách thành 1 ĐƠN riêng
- * để các CTV khác nhau có thể nhận từng món → trả về MẢNG đơn đã tạo.
+ * để các Seller khác nhau có thể nhận từng món → trả về MẢNG đơn đã tạo.
  * Server đọc lại giá từ DB — giá client chỉ để hiển thị.
  */
 export async function placeOrder(payload: PlaceOrderPayload): Promise<OrderRow[]> {
@@ -33,7 +33,7 @@ export async function placeOrder(payload: PlaceOrderPayload): Promise<OrderRow[]
   return (data ?? []) as OrderRow[];
 }
 
-/** CTV/Admin tự nhận 1 đơn trong hàng đợi (paid → in_progress). */
+/** Seller/Admin tự nhận 1 đơn trong hàng đợi (paid → in_progress). */
 export async function claimOrder(orderId: string): Promise<OrderRow> {
   const sb = requireSupabase();
   const { data, error } = await sb.rpc("claim_order", { p_order_id: orderId });
@@ -41,7 +41,7 @@ export async function claimOrder(orderId: string): Promise<OrderRow> {
   return data as OrderRow;
 }
 
-/** Hàng đợi đơn CTV có thể nhận (đã thanh toán, chưa ai nhận, đúng danh mục được phân). */
+/** Hàng đợi đơn Seller có thể nhận (đã thanh toán, chưa ai nhận, đúng danh mục được phân). */
 export async function listClaimableOrders(): Promise<OrderRow[]> {
   const sb = requireSupabase();
   const { data, error } = await sb.rpc("list_claimable_orders");
@@ -72,7 +72,7 @@ export async function listMyOrders(): Promise<OrderRow[]> {
   return (data ?? []) as OrderRow[];
 }
 
-/** Chi tiết 1 đơn kèm dòng hàng (RLS: chủ đơn / CTV được giao / admin). */
+/** Chi tiết 1 đơn kèm dòng hàng (RLS: chủ đơn / Seller được giao / admin). */
 export async function getOrder(id: string): Promise<OrderWithItems | null> {
   const sb = requireSupabase();
   const { data, error } = await sb
@@ -86,7 +86,7 @@ export async function getOrder(id: string): Promise<OrderWithItems | null> {
   return { ...order, items: order_items ?? [] };
 }
 
-/** Hàng đợi khu làm việc: admin thấy tất cả, CTV chỉ thấy đơn được giao (RLS lo). */
+/** Hàng đợi khu làm việc: admin thấy tất cả, Seller chỉ thấy đơn được giao (RLS lo). */
 export async function listWorkOrders(opts?: {
   status?: DbOrderStatus;
   assignedTo?: string;
@@ -111,7 +111,7 @@ export async function confirmPayment(orderId: string, ref?: string): Promise<Ord
   return data as OrderRow;
 }
 
-/** Admin giao đơn cho CTV: paid → in_progress. */
+/** Admin giao đơn cho Seller: paid → in_progress. */
 export async function assignOrder(orderId: string, ctvId: string): Promise<OrderRow> {
   const sb = requireSupabase();
   const { data, error } = await sb.rpc("assign_order", {
@@ -122,7 +122,7 @@ export async function assignOrder(orderId: string, ctvId: string): Promise<Order
   return data as OrderRow;
 }
 
-/** Admin: mọi bước hợp lệ; CTV: chỉ in_progress → completed trên đơn của mình. */
+/** Admin: mọi bước hợp lệ; Seller: chỉ in_progress → completed trên đơn của mình. */
 export async function updateOrderStatus(
   orderId: string,
   status: DbOrderStatus,
@@ -175,7 +175,7 @@ export async function finalizeCancel(orderId: string): Promise<OrderRow> {
   return data as OrderRow;
 }
 
-/** CTV/Admin đánh dấu đã giao kèm ảnh proof (paths trong bucket proof-images). */
+/** Seller/Admin đánh dấu đã giao kèm ảnh proof (paths trong bucket proof-images). */
 export async function markDelivered(orderId: string, proofImages: string[], note?: string): Promise<OrderRow> {
   const sb = requireSupabase();
   const { data, error } = await sb.rpc("mark_delivered", {

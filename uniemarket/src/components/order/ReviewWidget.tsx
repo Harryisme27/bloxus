@@ -1,4 +1,4 @@
-// Widget đánh giá CTV — hiện ở trang chi tiết đơn của KHÁCH khi đơn đã HOÀN
+// Widget đánh giá Seller — hiện ở trang chi tiết đơn của KHÁCH khi đơn đã HOÀN
 // THÀNH. Cho chọn 1–5 sao + nhận xét tuỳ chọn, gửi 1 lần / đơn.
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -13,7 +13,7 @@ import { cn } from "@/lib/utils";
 const STR = {
   vi: {
     title: "Đánh giá người xử lý đơn",
-    subtitle: "Cho biết trải nghiệm của bạn với cộng tác viên đã giao đơn này.",
+    subtitle: "Cho biết trải nghiệm của bạn với người bán đã giao đơn này.",
     placeholder: "Nhận xét của bạn (không bắt buộc)...",
     submit: "Gửi đánh giá",
     submitting: "Đang gửi...",
@@ -24,7 +24,7 @@ const STR = {
   },
   en: {
     title: "Rate the person who handled your order",
-    subtitle: "Share your experience with the collaborator who delivered this order.",
+    subtitle: "Share your experience with the seller who delivered this order.",
     placeholder: "Your review (optional)...",
     submit: "Submit review",
     submitting: "Submitting...",

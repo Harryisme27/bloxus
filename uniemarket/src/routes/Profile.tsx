@@ -32,7 +32,7 @@ const STR = {
   vi: {
     roles: {
       admin: "Quản trị viên",
-      ctv: "Cộng tác viên",
+      ctv: "Người bán",
       customer: "Khách hàng",
     } as Record<UserRole, string>,
     saved: "Đã lưu hồ sơ",
@@ -69,7 +69,7 @@ const STR = {
   en: {
     roles: {
       admin: "Administrator",
-      ctv: "Collaborator",
+      ctv: "Seller",
       customer: "Customer",
     } as Record<UserRole, string>,
     saved: "Profile saved",

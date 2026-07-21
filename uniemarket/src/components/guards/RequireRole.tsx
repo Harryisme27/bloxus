@@ -15,13 +15,13 @@ const STR = {
     loadingProfile: "Đang tải hồ sơ…",
     noAccessTitle: "Không có quyền truy cập",
     noAccessBody: (who: string) =>
-      `Trang này chỉ dành cho ${who}. Nếu bạn muốn trở thành cộng tác viên, hãy ứng tuyển tại trang CTV.`,
+      `Trang này chỉ dành cho ${who}. Nếu bạn muốn trở thành người bán, hãy ứng tuyển tại trang Seller.`,
     and: " và ",
     backHome: "Về trang chủ",
-    applyCtv: "Ứng tuyển CTV",
+    applyCtv: "Ứng tuyển Seller",
     roleAdmin: "quản trị viên",
     roleManager: "quản lý",
-    roleCtv: "cộng tác viên",
+    roleCtv: "người bán",
     roleCustomer: "khách hàng",
   },
   en: {
@@ -29,13 +29,13 @@ const STR = {
     loadingProfile: "Loading your profile…",
     noAccessTitle: "You don't have access",
     noAccessBody: (who: string) =>
-      `This page is only for ${who}. If you'd like to become a collaborator, apply on the CTV page.`,
+      `This page is only for ${who}. If you'd like to become a seller, apply on the Seller page.`,
     and: " and ",
     backHome: "Back to home",
-    applyCtv: "Apply to be a CTV",
+    applyCtv: "Apply to be a Seller",
     roleAdmin: "administrators",
     roleManager: "managers",
-    roleCtv: "collaborators",
+    roleCtv: "sellers",
     roleCustomer: "customers",
   },
 };

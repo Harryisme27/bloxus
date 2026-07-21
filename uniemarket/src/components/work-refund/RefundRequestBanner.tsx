@@ -1,5 +1,5 @@
 // Banner cảnh báo khách đang YÊU CẦU HOÀN TIỀN.
-// Admin có nút "Duyệt hoàn tiền" / "Từ chối" (resolveRefund). CTV chỉ thấy cảnh báo.
+// Admin có nút "Duyệt hoàn tiền" / "Từ chối" (resolveRefund). Seller chỉ thấy cảnh báo.
 // Tự ẩn khi chưa có yêu cầu hoàn tiền, hoặc đơn đã hoàn tiền / đã hủy.
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";

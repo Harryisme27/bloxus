@@ -1,4 +1,4 @@
-// Dialog giao đơn cho CTV (admin): chọn 1 CTV từ danh sách đã duyệt rồi
+// Dialog giao đơn cho Seller (admin): chọn 1 Seller từ danh sách đã duyệt rồi
 // xác nhận -> assignOrder (paid -> in_progress).
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -21,25 +21,25 @@ import { usePick } from "@/i18n";
 
 const STR = {
   vi: {
-    assigned: (code: string) => `Đã giao đơn ${code} cho CTV.`,
-    title: "Giao đơn cho CTV",
-    descPrefix: "Chọn CTV thực hiện đơn",
+    assigned: (code: string) => `Đã giao đơn ${code} cho Seller.`,
+    title: "Giao đơn cho Seller",
+    descPrefix: "Chọn Seller thực hiện đơn",
     descSuffix: "Đơn sẽ chuyển sang trạng thái “Đang thực hiện”.",
-    loadError: "Không tải được danh sách CTV.",
+    loadError: "Không tải được danh sách Seller.",
     retry: "Thử lại",
-    noCtv: "Chưa có CTV nào được duyệt. Duyệt đơn ứng tuyển trong mục CTV trước nhé.",
+    noCtv: "Chưa có Seller nào được duyệt. Duyệt đơn ứng tuyển trong mục Seller trước nhé.",
     close: "Đóng",
     assigning: "Đang giao...",
     assign: "Giao đơn",
   },
   en: {
-    assigned: (code: string) => `Order ${code} assigned to a collaborator.`,
-    title: "Assign to a collaborator",
-    descPrefix: "Choose a collaborator to handle order",
+    assigned: (code: string) => `Order ${code} assigned to a seller.`,
+    title: "Assign to a seller",
+    descPrefix: "Choose a seller to handle order",
     descSuffix: "The order will move to the “In progress” status.",
-    loadError: "Couldn't load the collaborator list.",
+    loadError: "Couldn't load the seller list.",
     retry: "Try again",
-    noCtv: "No collaborators have been approved yet. Approve an application in the CTV section first.",
+    noCtv: "No sellers have been approved yet. Approve an application in the Seller section first.",
     close: "Close",
     assigning: "Assigning...",
     assign: "Assign order",

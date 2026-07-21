@@ -1,5 +1,5 @@
 // /work/orders — bảng đơn hàng khu làm việc.
-// Admin: mọi đơn + lọc theo CTV; CTV: chỉ đơn được giao (RLS lo, vẫn truyền
+// Admin: mọi đơn + lọc theo Seller; Seller: chỉ đơn được giao (RLS lo, vẫn truyền
 // assignedTo cho cache key rõ ràng). Lọc trạng thái bằng pill (kèm đếm),
 // tìm theo mã đơn.
 import { isAdminOrManager } from "@/lib/roles";
@@ -31,15 +31,15 @@ import { usePick, useT } from "@/i18n";
 const STR = {
   vi: {
     title: "Đơn hàng",
-    subtitleAdmin: "Toàn bộ đơn hàng — lọc theo trạng thái, CTV hoặc tìm theo mã đơn.",
+    subtitleAdmin: "Toàn bộ đơn hàng — lọc theo trạng thái, Seller hoặc tìm theo mã đơn.",
     subtitleCtv: "Các đơn được giao cho bạn — lọc theo trạng thái hoặc tìm theo mã đơn.",
     loadError: (msg: string) => `Không tải được danh sách đơn. ${msg}`,
     retry: "Thử lại",
     all: (n: number) => `Tất cả (${n})`,
     searchPlaceholder: "Tìm mã đơn (UM-...)",
     searchAria: "Tìm theo mã đơn",
-    ctvFilterAria: "Lọc theo CTV",
-    allCtv: "Mọi CTV",
+    ctvFilterAria: "Lọc theo Seller",
+    allCtv: "Mọi Seller",
     emptyNone: "Chưa có đơn hàng nào.",
     emptyNoMatch: "Không tìm thấy đơn nào khớp bộ lọc.",
     colCode: "Mã đơn",
@@ -48,7 +48,7 @@ const STR = {
     colItems: "Món",
     colTotal: "Tổng",
     colStatus: "Trạng thái",
-    colCtv: "CTV",
+    colCtv: "Seller",
     open: "Mở",
     refundRequest: "Yêu cầu hoàn tiền",
     refundTag: "Yêu cầu hoàn tiền",
@@ -70,15 +70,15 @@ const STR = {
   },
   en: {
     title: "Orders",
-    subtitleAdmin: "All orders — filter by status, collaborator, or search by order code.",
+    subtitleAdmin: "All orders — filter by status, seller, or search by order code.",
     subtitleCtv: "Orders assigned to you — filter by status or search by order code.",
     loadError: (msg: string) => `Couldn't load the order list. ${msg}`,
     retry: "Try again",
     all: (n: number) => `All (${n})`,
     searchPlaceholder: "Search order code (UM-...)",
     searchAria: "Search by order code",
-    ctvFilterAria: "Filter by collaborator",
-    allCtv: "All collaborators",
+    ctvFilterAria: "Filter by seller",
+    allCtv: "All sellers",
     emptyNone: "No orders yet.",
     emptyNoMatch: "No orders match the filters.",
     colCode: "Order code",
@@ -87,7 +87,7 @@ const STR = {
     colItems: "Items",
     colTotal: "Total",
     colStatus: "Status",
-    colCtv: "CTV",
+    colCtv: "Seller",
     open: "Open",
     refundRequest: "Refund request",
     refundTag: "Refund requested",
@@ -109,7 +109,7 @@ const STR = {
   },
 };
 
-/** /work/orders — danh sách đơn (admin: tất cả; CTV: đơn được giao). */
+/** /work/orders — danh sách đơn (admin: tất cả; Seller: đơn được giao). */
 export function WorkOrders() {
   const user = useAuthStore((state) => state.user);
   const t = usePick(STR);
@@ -317,7 +317,7 @@ function OrdersTable({ isAdmin, userId }: { isAdmin: boolean; userId: string }) 
         />
       </div>
 
-      {/* Tìm kiếm + lọc CTV */}
+      {/* Tìm kiếm + lọc Seller */}
       <div className="flex flex-wrap items-center gap-3">
         <div className="relative w-full max-w-xs">
           <Search
@@ -474,7 +474,7 @@ function OrdersTable({ isAdmin, userId }: { isAdmin: boolean; userId: string }) 
                   {isAdmin ? (
                     <td className="max-w-[140px] truncate px-4 py-3 text-text-muted">
                       {order.assigned_ctv
-                        ? ctvNameById.get(order.assigned_ctv) ?? "CTV"
+                        ? ctvNameById.get(order.assigned_ctv) ?? "Seller"
                         : "—"}
                     </td>
                   ) : null}

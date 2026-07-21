@@ -1,7 +1,7 @@
 // /work — dashboard khu làm việc, tách theo vai trò:
-// - Admin: 4 thẻ thống kê + hàng đợi giao đơn (paid chưa có CTV) + strip
+// - Admin: 4 thẻ thống kê + hàng đợi giao đơn (paid chưa có Seller) + strip
 //   nhắc đơn chờ xác nhận tiền -> /work/payments.
-// - CTV: "Đơn của tôi" nhóm Mới giao / Đang thực hiện / Hoàn thành gần đây.
+// - Seller: "Đơn của tôi" nhóm Mới giao / Đang thực hiện / Hoàn thành gần đây.
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -39,16 +39,16 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 const STR = {
   vi: {
     title: "Bảng làm việc",
-    subtitleAdmin: "Tổng quan hàng đợi: xác nhận tiền, giao đơn cho CTV và tiến độ hôm nay.",
+    subtitleAdmin: "Tổng quan hàng đợi: xác nhận tiền, giao đơn cho Seller và tiến độ hôm nay.",
     subtitleCtv: "Các đơn được giao cho bạn — mở đơn để xem chi tiết và chat với khách.",
     statPendingPay: "Chờ xác nhận tiền",
-    statPendingAssign: "Chờ giao CTV",
+    statPendingAssign: "Chờ giao Seller",
     statInProgress: "Đang thực hiện",
     statCompletedToday: "Hoàn thành hôm nay",
     strip: (n: number) => `${n} đơn đang chờ xác nhận thanh toán.`,
     reconcileNow: "Đối chiếu ngay",
     queueTitle: "Hàng đợi xử lý",
-    queueCount: (n: number) => `${n} đơn đã thanh toán, chưa giao CTV`,
+    queueCount: (n: number) => `${n} đơn đã thanh toán, chưa giao Seller`,
     queueEmpty: "Không có đơn nào chờ giao — hàng đợi sạch bong.",
     assign: "Giao đơn",
     open: "Mở",
@@ -76,7 +76,7 @@ const STR = {
   en: {
     title: "Dashboard",
     subtitleAdmin:
-      "Queue overview: confirm payments, assign orders to collaborators, and track today's progress.",
+      "Queue overview: confirm payments, assign orders to sellers, and track today's progress.",
     subtitleCtv: "Orders assigned to you — open one to see details and chat with the customer.",
     statPendingPay: "Awaiting payment",
     statPendingAssign: "Awaiting assignment",
@@ -327,7 +327,7 @@ function StatCard({
 }
 
 // ---------------------------------------------------------------------------
-// CTV
+// Seller
 // ---------------------------------------------------------------------------
 
 function CtvDashboard({ userId }: { userId: string }) {
@@ -491,7 +491,7 @@ function CtvOrderGroup({
 }
 
 // ---------------------------------------------------------------------------
-// Hàng đợi đơn CTV tự nhận
+// Hàng đợi đơn Seller tự nhận
 // ---------------------------------------------------------------------------
 
 function ClaimableQueue() {

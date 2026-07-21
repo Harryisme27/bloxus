@@ -1,5 +1,5 @@
 // Banner cảnh báo khách đang YÊU CẦU HỦY đơn — tạm dừng giao hàng.
-// Admin có nút "Duyệt hủy" / "Từ chối" (resolveCancel). CTV chỉ thấy cảnh báo.
+// Admin có nút "Duyệt hủy" / "Từ chối" (resolveCancel). Seller chỉ thấy cảnh báo.
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { AlertTriangle, Ban, X } from "lucide-react";

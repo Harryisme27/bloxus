@@ -33,7 +33,7 @@ interface AuthState {
   login: (identifier: string, password: string) => Promise<AuthResult>;
   register: (payload: RegisterPayload) => Promise<AuthResult>;
   logout: () => Promise<void>;
-  /** Tải lại profile từ DB (sau khi cập nhật hồ sơ / được duyệt CTV). */
+  /** Tải lại profile từ DB (sau khi cập nhật hồ sơ / được duyệt Seller). */
   refreshProfile: () => Promise<void>;
 }
 

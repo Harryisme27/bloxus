@@ -1,4 +1,4 @@
-// /ctv (public) — tuyển Cộng tác viên. Bật/tắt bằng setting ctv_apply_open.
+// /ctv (public) — tuyển Người bán. Bật/tắt bằng setting ctv_apply_open.
 //  - Đóng: hiện thông báo tạm đóng.
 //  - Mở: hiện form ứng tuyển (cần đăng nhập). Đã nộp -> hiện trạng thái đơn.
 import { useState, type FormEvent } from "react";
@@ -20,11 +20,11 @@ import { usePick } from "@/i18n";
 
 const STR = {
   vi: {
-    closedTitle: "Tuyển Cộng tác viên tạm đóng",
+    closedTitle: "Tuyển Người bán tạm đóng",
     closedBody:
-      "Chương trình tuyển Cộng tác viên hiện đang tạm đóng. Vui lòng quay lại sau hoặc liên hệ quản trị viên.",
+      "Chương trình tuyển Người bán hiện đang tạm đóng. Vui lòng quay lại sau hoặc liên hệ quản trị viên.",
     home: "Về trang chủ",
-    openTitle: "Ứng tuyển Cộng tác viên",
+    openTitle: "Ứng tuyển Người bán",
     openSubtitle: "Điền thông tin bên dưới. Quản trị viên sẽ xem xét và phản hồi bạn.",
     loginNeeded: "Bạn cần đăng nhập để nộp đơn ứng tuyển.",
     login: "Đăng nhập",
@@ -43,15 +43,15 @@ const STR = {
     statusPendingTitle: "Đơn của bạn đang chờ duyệt",
     statusPendingBody: "Quản trị viên sẽ xem xét và phản hồi sớm. Cảm ơn bạn đã ứng tuyển!",
     statusApprovedTitle: "Đơn của bạn đã được duyệt 🎉",
-    statusApprovedBody: "Bạn đã trở thành Cộng tác viên — vào khu làm việc để bắt đầu.",
+    statusApprovedBody: "Bạn đã trở thành Người bán — vào khu làm việc để bắt đầu.",
     workArea: "Vào khu làm việc",
   },
   en: {
-    closedTitle: "Collaborator recruitment is paused",
+    closedTitle: "Seller recruitment is paused",
     closedBody:
-      "Our collaborator (CTV) recruitment is currently paused. Please check back later or contact an administrator.",
+      "Our seller recruitment is currently paused. Please check back later or contact an administrator.",
     home: "Back to home",
-    openTitle: "Apply as a Collaborator",
+    openTitle: "Apply as a Seller",
     openSubtitle: "Fill in the details below. An administrator will review and get back to you.",
     loginNeeded: "You need to log in to submit an application.",
     login: "Log in",
@@ -70,7 +70,7 @@ const STR = {
     statusPendingTitle: "Your application is under review",
     statusPendingBody: "An administrator will review it and respond soon. Thanks for applying!",
     statusApprovedTitle: "Your application was approved 🎉",
-    statusApprovedBody: "You're now a Collaborator — head to the work area to get started.",
+    statusApprovedBody: "You're now a Seller — head to the work area to get started.",
     workArea: "Go to work area",
   },
 };

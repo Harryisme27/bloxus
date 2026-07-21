@@ -12,6 +12,15 @@
 insert into public.app_settings (key, value) values ('order_commission_pct', '0'::jsonb) on conflict (key) do nothing;
 insert into public.app_settings (key, value) values ('withdrawal_commission_pct', '0'::jsonb) on conflict (key) do nothing;
 
+-- Cho seller đọc % hoa hồng để hiện bảng "bạn nhận được" (không nhạy cảm).
+drop policy if exists "app_settings: public keys read" on public.app_settings;
+create policy "app_settings: public keys read" on public.app_settings
+  for select to anon, authenticated
+  using (
+    key in ('bank_name','bank_account','bank_holder','momo_number','momo_qr_url','brand','ctv_apply_open','role_permissions','order_commission_pct','withdrawal_commission_pct')
+    or public.is_admin()
+  );
+
 -- Helper đọc % (0..100).
 create or replace function public.commission_pct(p_key text)
 returns numeric language sql stable security definer set search_path = public as $$

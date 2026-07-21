@@ -26,7 +26,7 @@ import { Tutorial } from "@/routes/Tutorial";
 import { Ctv } from "@/routes/Ctv";
 import { NotFound } from "@/routes/NotFound";
 
-// Khu làm việc /work (admin + CTV) — Phase 1 mới có khung + stub.
+// Khu làm việc /work (admin + Seller) — Phase 1 mới có khung + stub.
 import { RequireRole } from "@/components/guards/RequireRole";
 import { WorkLayout } from "@/routes/work/WorkLayout";
 import { WorkDashboard } from "@/routes/work/WorkDashboard";

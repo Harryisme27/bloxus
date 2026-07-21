@@ -22,7 +22,7 @@ export function RootLayout() {
   const currency = useCurrencyStore((s) => s.currency);
 
   // Khách (guest/customer) chỉ dùng EN + USD — VI/VND là đặc quyền của staff.
-  // Chờ auth load xong mới ép, để không ghi đè lựa chọn của admin/CTV lúc refresh.
+  // Chờ auth load xong mới ép, để không ghi đè lựa chọn của admin/Seller lúc refresh.
   const user = useAuthStore((s) => s.user);
   const authLoading = useAuthStore((s) => s.loading);
   const lang = useLangStore((s) => s.lang);

@@ -1,7 +1,7 @@
 // /work/orders/:id — workview 2 cột:
 // TRÁI: header + thẻ khách + dòng hàng + timeline + điều khiển theo vai trò
-//   (admin: xác nhận tiền / giao CTV / hoàn thành / hoàn tiền / hủy;
-//    CTV: hoàn thành đơn + gọi hỗ trợ vào kênh nội bộ).
+//   (admin: xác nhận tiền / giao Seller / hoàn thành / hoàn tiền / hủy;
+//    Seller: hoàn thành đơn + gọi hỗ trợ vào kênh nội bộ).
 // PHẢI: OrderChatPanel (Agent D) — chat đơn realtime.
 import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
@@ -46,6 +46,7 @@ import { DeliveredPanel } from "@/components/work-deliver/DeliveredPanel";
 import { RefundRequestBanner } from "@/components/work-refund/RefundRequestBanner";
 import { useOrderRealtime } from "@/components/realtime/useOrderRealtime";
 import { confirmPayment, getOrder, listOrderEvents, updateOrderStatus } from "@/lib/db/orders";
+import { getSettings } from "@/lib/db/settings";
 import { listMyThreads, postMessage } from "@/lib/db/chat";
 import { formatPrice, relativeTime } from "@/lib/format";
 import { isSupabaseConfigured } from "@/lib/supabase";
@@ -86,6 +87,10 @@ const STR = {
     subtotal: "Tạm tính",
     discount: "Giảm giá",
     total: "Tổng",
+    earnOrderPrice: "Giá đơn",
+    earnCommission: "Chiết khấu",
+    earnYouReceive: "Bạn nhận được",
+    earnNote: "Tiền được cộng vào ví khi khách xác nhận đã nhận hàng.",
     logTitle: "Nhật ký đơn",
     logError: (msg: string) => `Không tải được nhật ký. ${msg}`,
     noEvents: "Chưa có sự kiện nào.",
@@ -94,7 +99,7 @@ const STR = {
     paymentRefPlaceholder: "VD: FT2607xxxx từ app ngân hàng",
     confirming: "Đang xác nhận...",
     confirmReceived: "Xác nhận đã nhận tiền",
-    assignToCtv: "Giao đơn cho CTV",
+    assignToCtv: "Giao đơn cho Seller",
     markDelivered: "Đã giao hàng",
     sending: "Đang gửi...",
     needHelp: "Cần hỗ trợ",
@@ -115,7 +120,7 @@ const STR = {
     event: {
       created: "Tạo đơn",
       payment_confirmed: "Xác nhận đã nhận tiền",
-      assigned: "Giao đơn cho CTV",
+      assigned: "Giao đơn cho Seller",
       status_changed: "Đổi trạng thái",
       note: "Ghi chú",
       cancelled: "Hủy đơn",
@@ -150,6 +155,10 @@ const STR = {
     subtotal: "Subtotal",
     discount: "Discount",
     total: "Total",
+    earnOrderPrice: "Order price",
+    earnCommission: "Commission",
+    earnYouReceive: "You receive",
+    earnNote: "Funds are added to your wallet when the buyer confirms receipt.",
     logTitle: "Order log",
     logError: (msg: string) => `Couldn't load the log. ${msg}`,
     noEvents: "No events yet.",
@@ -158,7 +167,7 @@ const STR = {
     paymentRefPlaceholder: "e.g. FT2607xxxx from the bank app",
     confirming: "Confirming...",
     confirmReceived: "Confirm payment received",
-    assignToCtv: "Assign to a collaborator",
+    assignToCtv: "Assign to a seller",
     markDelivered: "Mark delivered",
     sending: "Sending...",
     needHelp: "Need help",
@@ -180,7 +189,7 @@ const STR = {
     event: {
       created: "Order created",
       payment_confirmed: "Payment confirmed",
-      assigned: "Assigned to a collaborator",
+      assigned: "Assigned to a seller",
       status_changed: "Status changed",
       note: "Note",
       cancelled: "Order cancelled",
@@ -329,7 +338,7 @@ function OrderDetailView({
     );
   }
 
-  // Đơn tôi đang xử lý (CTV hoặc manager tự nhận / được giao).
+  // Đơn tôi đang xử lý (Seller hoặc manager tự nhận / được giao).
   const isMyCtvOrder =
     (role === "ctv" || role === "manager") && order.assigned_ctv === userId;
   const displayStatus = orderDisplayStatus(order);
@@ -493,6 +502,9 @@ function OrderDetailView({
                 <span className="tabular-nums-mono">{formatPrice(order.total)}</span>
               </div>
             </div>
+
+            {/* Chiết khấu — chỉ seller được giao đơn thấy */}
+            {isMyCtvOrder ? <SellerEarnings total={order.total} /> : null}
           </section>
 
           {/* Timeline */}
@@ -558,6 +570,35 @@ function OrderDetailView({
 // Điều khiển theo vai trò/trạng thái
 // ---------------------------------------------------------------------------
 
+/** Bảng chiết khấu cho seller: Giá đơn − chiết khấu = bạn nhận. */
+function SellerEarnings({ total }: { total: number }) {
+  const t = usePick(STR);
+  const settingsQuery = useQuery({ queryKey: ["settings"], queryFn: getSettings });
+  const pct = Math.max(0, Math.min(100, Number(settingsQuery.data?.order_commission_pct ?? 0)));
+  const commission = Math.floor((total * pct) / 100);
+  const youReceive = total - commission;
+  return (
+    <div className="mt-4 space-y-1.5 rounded-xl border border-border bg-surface-2 p-3.5 text-sm">
+      <div className="flex justify-between text-text-muted">
+        <span>{t.earnOrderPrice}</span>
+        <span className="tabular-nums-mono">{formatPrice(total)}</span>
+      </div>
+      <div className="flex justify-between text-danger">
+        <span>
+          {t.earnCommission}
+          {pct > 0 ? ` (${pct}%)` : ""}
+        </span>
+        <span className="tabular-nums-mono">-{formatPrice(commission)}</span>
+      </div>
+      <div className="flex justify-between border-t border-border pt-1.5 text-base font-bold text-green">
+        <span>{t.earnYouReceive}</span>
+        <span className="tabular-nums-mono">{formatPrice(youReceive)}</span>
+      </div>
+      <p className="pt-1 text-xs text-text-subtle">{t.earnNote}</p>
+    </div>
+  );
+}
+
 function OrderControls({
   order,
   displayStatus,
@@ -580,7 +621,7 @@ function OrderControls({
   displayStatus: OrderDisplayStatus;
   hasPendingCancel: boolean;
   isAdmin: boolean;
-  /** Admin hoặc manager — được giao đơn cho CTV. */
+  /** Admin hoặc manager — được giao đơn cho Seller. */
   canAssign: boolean;
   isMyCtvOrder: boolean;
   paymentRef: string;
@@ -606,7 +647,7 @@ function OrderControls({
   const adminRefund = canAssign && status === "completed";
   const adminCanCancel =
     isAdmin && (status === "pending_payment" || status === "paid" || status === "in_progress");
-  // CTV luôn thấy nút hỗ trợ khi đơn đang thực hiện (kể cả lúc đang chờ giao/duyệt hủy).
+  // Seller luôn thấy nút hỗ trợ khi đơn đang thực hiện (kể cả lúc đang chờ giao/duyệt hủy).
   const ctvHelp = isMyCtvOrder && status === "in_progress";
 
   const showSection =
@@ -647,7 +688,7 @@ function OrderControls({
         </div>
       ) : null}
 
-      {/* Đã giao hàng — CTV được giao hoặc admin, khi chưa có yêu cầu hủy */}
+      {/* Đã giao hàng — Seller được giao hoặc admin, khi chưa có yêu cầu hủy */}
       {canDeliver || ctvHelp ? (
         <div className="mt-3 flex flex-wrap gap-2">
           {canDeliver ? (

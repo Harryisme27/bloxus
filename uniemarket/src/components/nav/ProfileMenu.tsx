@@ -41,7 +41,7 @@ const STR = {
     logout: "Đăng xuất",
     roleAdmin: "Admin",
     roleManager: "Quản lý",
-    roleCtv: "CTV",
+    roleCtv: "Seller",
     roleCustomer: "Khách",
   },
   en: {
@@ -55,7 +55,7 @@ const STR = {
     logout: "Log out",
     roleAdmin: "Admin",
     roleManager: "Manager",
-    roleCtv: "CTV",
+    roleCtv: "Seller",
     roleCustomer: "Customer",
   },
 };

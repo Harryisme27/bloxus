@@ -1,6 +1,6 @@
 // Dịch ghi chú order_events sang EN ở client.
 // Server (RPC/trigger) ghi note bằng tiếng Việt cố định — khách xem EN vẫn thấy
-// tiếng Việt. Các mẫu câu chuẩn được dịch tại đây; ghi chú tự do của admin/CTV
+// tiếng Việt. Các mẫu câu chuẩn được dịch tại đây; ghi chú tự do của admin/Seller
 // (không khớp mẫu) giữ nguyên. Xem VI thì trả nguyên văn.
 import type { Lang } from "@/i18n";
 
@@ -8,8 +8,8 @@ import type { Lang } from "@/i18n";
 const EXACT: Record<string, string> = {
   "Khách đặt đơn hàng.": "Customer placed the order.",
   "Admin xác nhận đã nhận thanh toán.": "Admin confirmed the payment.",
-  "CTV tự nhận đơn.": "A collaborator claimed the order.",
-  "Admin giao đơn cho CTV.": "Admin assigned the order to a collaborator.",
+  "Seller tự nhận đơn.": "A seller claimed the order.",
+  "Admin giao đơn cho Seller.": "Admin assigned the order to a seller.",
   "Người bán đã giao hàng — chờ khách xác nhận.":
     "The seller marked the order as delivered — waiting for the customer to confirm.",
   "Khách xác nhận đã nhận hàng — hoàn thành.":

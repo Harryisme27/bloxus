@@ -11,7 +11,7 @@ export interface OrderItemLite {
 }
 
 /**
- * Tải dòng hàng cho nhiều đơn cùng lúc (RLS: admin thấy tất cả, CTV chỉ thấy
+ * Tải dòng hàng cho nhiều đơn cùng lúc (RLS: admin thấy tất cả, Seller chỉ thấy
  * đơn được giao). Trả về map order_id -> danh sách dòng hàng rút gọn.
  */
 export async function listItemsForOrders(

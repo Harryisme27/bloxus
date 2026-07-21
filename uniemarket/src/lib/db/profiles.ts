@@ -9,7 +9,7 @@ export async function touchLastSeen(): Promise<void> {
   await sb.rpc("touch_last_seen");
 }
 
-/** Danh sách category_id đã phân cho 1 CTV (admin đọc). */
+/** Danh sách category_id đã phân cho 1 Seller (admin đọc). */
 export async function listCtvCategories(ctvId: string): Promise<string[]> {
   const sb = requireSupabase();
   const { data, error } = await sb.from("ctv_categories").select("category_id").eq("ctv_id", ctvId);
@@ -17,7 +17,7 @@ export async function listCtvCategories(ctvId: string): Promise<string[]> {
   return (data ?? []).map((r) => (r as { category_id: string }).category_id);
 }
 
-/** Admin phân danh mục cho CTV (all = truy cập mọi danh mục). */
+/** Admin phân danh mục cho Seller (all = truy cập mọi danh mục). */
 export async function setCtvCategories(
   ctvId: string,
   categoryIds: string[],
@@ -118,7 +118,7 @@ export async function updateMyProfile(
   return data as ProfileRow;
 }
 
-/** Danh sách người nhận đơn được (CTV + manager). Dùng cho màn giao đơn + trang CTV. */
+/** Danh sách người nhận đơn được (Seller + manager). Dùng cho màn giao đơn + trang Seller. */
 export async function listCtvs(): Promise<ProfileRow[]> {
   const sb = requireSupabase();
   const { data, error } = await sb
