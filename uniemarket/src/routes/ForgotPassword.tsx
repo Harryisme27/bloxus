@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { requireSupabase, isSupabaseConfigured } from "@/lib/supabase";
+import { TurnstileWidget, turnstileEnabled } from "@/components/account/TurnstileWidget";
 import { usePick } from "@/i18n";
 
 const STR = {
@@ -39,6 +40,7 @@ export function ForgotPassword() {
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -53,6 +55,7 @@ export function ForgotPassword() {
     const sb = requireSupabase();
     const { error: err } = await sb.auth.resetPasswordForEmail(trimmed, {
       redirectTo: `${window.location.origin}/reset-password`,
+      ...(captchaToken ? { captchaToken } : {}),
     });
     setSubmitting(false);
     if (err) {
@@ -95,7 +98,13 @@ export function ForgotPassword() {
             </div>
           </div>
           {error ? <p className="text-sm text-danger">{error}</p> : null}
-          <Button type="submit" size="lg" className="w-full" disabled={submitting}>
+          <TurnstileWidget onToken={setCaptchaToken} />
+          <Button
+            type="submit"
+            size="lg"
+            className="w-full"
+            disabled={submitting || (turnstileEnabled && !captchaToken)}
+          >
             {submitting ? t.sending : t.send}
           </Button>
         </form>

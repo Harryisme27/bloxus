@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuthStore } from "@/store/authStore";
+import { TurnstileWidget, turnstileEnabled } from "@/components/account/TurnstileWidget";
 import { usePick } from "@/i18n";
 
 const STR = {
@@ -82,6 +83,7 @@ export function Register() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
 
   if (user) return <Navigate to="/dashboard" replace />;
 
@@ -99,7 +101,7 @@ export function Register() {
     }
 
     setSubmitting(true);
-    const result = await register({ username, email, password });
+    const result = await register({ username, email, password, captchaToken: captchaToken ?? undefined });
     if (result.success) {
       // Nếu Confirm email đang bật, đăng ký xong chưa có phiên — hướng người
       // dùng sang trang đăng nhập sau khi xác nhận email.
@@ -231,7 +233,15 @@ export function Register() {
           </div>
         ) : null}
 
-        <Button type="submit" variant="primary" size="lg" className="w-full" disabled={submitting}>
+        <TurnstileWidget onToken={setCaptchaToken} />
+
+        <Button
+          type="submit"
+          variant="primary"
+          size="lg"
+          className="w-full"
+          disabled={submitting || (turnstileEnabled && !captchaToken)}
+        >
           <UserPlus className="h-4 w-4" aria-hidden />
           {submitting ? t.creating : t.signUp}
         </Button>

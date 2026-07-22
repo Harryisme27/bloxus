@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuthStore } from "@/store/authStore";
+import { TurnstileWidget, turnstileEnabled } from "@/components/account/TurnstileWidget";
 import { usePick } from "@/i18n";
 
 const STR = {
@@ -82,6 +83,7 @@ export function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
 
   // Already signed in → skip the form.
   if (user) return <Navigate to={from} replace />;
@@ -91,7 +93,7 @@ export function Login() {
     setError(null);
     setSubmitting(true);
 
-    const result = await login(email, password);
+    const result = await login(email, password, captchaToken ?? undefined);
     if (result.success) {
       toast.success(t.signedIn, { description: t.signedInDesc });
       navigate(from, { replace: true });
@@ -196,7 +198,15 @@ export function Login() {
           </div>
         ) : null}
 
-        <Button type="submit" variant="primary" size="lg" className="w-full" disabled={submitting}>
+        <TurnstileWidget onToken={setCaptchaToken} />
+
+        <Button
+          type="submit"
+          variant="primary"
+          size="lg"
+          className="w-full"
+          disabled={submitting || (turnstileEnabled && !captchaToken)}
+        >
           <LogIn className="h-4 w-4" aria-hidden />
           {submitting ? t.signingIn : t.signIn}
         </Button>

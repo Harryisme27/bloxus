@@ -18,6 +18,8 @@ export interface RegisterPayload {
   email: string;
   password: string;
   username: string;
+  /** Token Cloudflare Turnstile (khi Supabase Auth bật captcha). */
+  captchaToken?: string;
 }
 
 export type AuthResult = { success: true } | { success: false; error: string };
@@ -30,7 +32,7 @@ interface AuthState {
   loading: boolean;
   /** Gọi đúng 1 lần khi app khởi động (main.tsx). */
   init: () => void;
-  login: (identifier: string, password: string) => Promise<AuthResult>;
+  login: (identifier: string, password: string, captchaToken?: string) => Promise<AuthResult>;
   register: (payload: RegisterPayload) => Promise<AuthResult>;
   logout: () => Promise<void>;
   /** Tải lại profile từ DB (sau khi cập nhật hồ sơ / được duyệt Seller). */
@@ -116,7 +118,7 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
     });
   },
 
-  login: async (identifier, password) => {
+  login: async (identifier, password, captchaToken) => {
     if (!isSupabaseConfigured || !supabase) {
       return { success: false, error: NOT_CONFIGURED_MESSAGE };
     }
@@ -136,6 +138,7 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
+      options: captchaToken ? { captchaToken } : undefined,
     });
     if (error) {
       return { success: false, error: translateAuthError(error.message) };
@@ -145,7 +148,7 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
     return { success: true };
   },
 
-  register: async ({ email, password, username }) => {
+  register: async ({ email, password, username, captchaToken }) => {
     if (!isSupabaseConfigured || !supabase) {
       return { success: false, error: NOT_CONFIGURED_MESSAGE };
     }
@@ -156,7 +159,7 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
     const { data, error } = await supabase.auth.signUp({
       email: email.trim(),
       password,
-      options: { data: { username: trimmedUsername } },
+      options: { data: { username: trimmedUsername }, ...(captchaToken ? { captchaToken } : {}) },
     });
     if (error) {
       return { success: false, error: translateAuthError(error.message) };

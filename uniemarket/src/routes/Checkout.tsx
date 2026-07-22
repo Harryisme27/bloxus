@@ -14,6 +14,7 @@ import { PaymentMethodSelector } from "@/components/commerce/PaymentMethodSelect
 import { useCartStore } from "@/store/cartStore";
 import { useBuyNowStore } from "@/store/buyNowStore";
 import { useAuthStore } from "@/store/authStore";
+import { TurnstileWidget, turnstileEnabled } from "@/components/account/TurnstileWidget";
 import { placeOrder } from "@/lib/db/orders";
 import { payOrderWithCredit } from "@/lib/db/credit";
 import { getPublicGateways } from "@/lib/db/settings";
@@ -145,6 +146,7 @@ function GuestCheckout() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
 
   if (items.length === 0) return <Navigate to="/cart" replace />;
 
@@ -152,7 +154,7 @@ function GuestCheckout() {
     e.preventDefault();
     setError(null);
     setSubmitting(true);
-    const result = await login(identity, password);
+    const result = await login(identity, password, captchaToken ?? undefined);
     if (result.success) {
       toast.success(t.signinOk);
       // Session cập nhật -> Checkout tự render CheckoutContent, giỏ giữ nguyên.
@@ -216,7 +218,13 @@ function GuestCheckout() {
                   </div>
                 </div>
                 {error ? <p className="text-sm text-danger">{error}</p> : null}
-                <Button type="submit" size="lg" className="w-full" disabled={submitting}>
+                <TurnstileWidget onToken={setCaptchaToken} />
+                <Button
+                  type="submit"
+                  size="lg"
+                  className="w-full"
+                  disabled={submitting || (turnstileEnabled && !captchaToken)}
+                >
                   {submitting ? t.signinBusy : t.signinBtn}
                 </Button>
               </form>
