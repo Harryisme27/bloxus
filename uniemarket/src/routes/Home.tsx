@@ -49,10 +49,12 @@ export function Home() {
             <ProofTicker />
           </Reveal>
 
-          {/* (g) Reviews preview */}
-          <Reveal>
-            <ReviewsPreview />
-          </Reveal>
+          {/* (g) Reviews preview — TẠM ẨN theo yêu cầu; bỏ `false &&` để hiện lại. */}
+          {false && (
+            <Reveal>
+              <ReviewsPreview />
+            </Reveal>
+          )}
         </>
       ) : (
         <PageContainer className="py-10">

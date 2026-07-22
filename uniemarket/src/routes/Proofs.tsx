@@ -305,32 +305,34 @@ export function Proofs() {
 
       <ProofDetailDialog proof={detail} onClose={() => setDetail(null)} />
 
-      {/* Reviews */}
-      <div className="mt-14">
-        <SectionHeading eyebrow={t.reviewsEyebrow} title={t.reviewsTitle} />
-        {reviews.length > 0 ? (
-          <>
-            <div className="mb-6 flex items-center gap-4 rounded-2xl border border-border bg-surface p-5">
-              <span className="font-heading text-4xl font-extrabold text-yellow">
-                {avgStars.toFixed(1)}
-              </span>
-              <div>
-                <Stars value={avgStars} size={18} />
-                <p className="mt-1 text-xs text-text-muted">{t.basedOn(reviews.length)}</p>
+      {/* Reviews — TẠM ẨN theo yêu cầu; bỏ `false &&` để hiện lại. */}
+      {false && (
+        <div className="mt-14">
+          <SectionHeading eyebrow={t.reviewsEyebrow} title={t.reviewsTitle} />
+          {reviews.length > 0 ? (
+            <>
+              <div className="mb-6 flex items-center gap-4 rounded-2xl border border-border bg-surface p-5">
+                <span className="font-heading text-4xl font-extrabold text-yellow">
+                  {avgStars.toFixed(1)}
+                </span>
+                <div>
+                  <Stars value={avgStars} size={18} />
+                  <p className="mt-1 text-xs text-text-muted">{t.basedOn(reviews.length)}</p>
+                </div>
               </div>
-            </div>
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {reviews.map((r) => (
-                <ReviewItem key={r.id} review={r} />
-              ))}
-            </div>
-          </>
-        ) : (
-          <p className="rounded-2xl border border-dashed border-border-strong bg-surface p-10 text-center text-sm text-text-muted">
-            {t.noReviews}
-          </p>
-        )}
-      </div>
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {reviews.map((r) => (
+                  <ReviewItem key={r.id} review={r} />
+                ))}
+              </div>
+            </>
+          ) : (
+            <p className="rounded-2xl border border-dashed border-border-strong bg-surface p-10 text-center text-sm text-text-muted">
+              {t.noReviews}
+            </p>
+          )}
+        </div>
+      )}
 
       {/* Discord CTA */}
       <div className="mt-14 flex flex-col items-center gap-4 rounded-2xl border border-border bg-surface p-8 text-center">
