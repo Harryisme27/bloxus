@@ -111,6 +111,14 @@ export async function confirmPayment(orderId: string, ref?: string): Promise<Ord
   return data as OrderRow;
 }
 
+/** Khách báo "Tôi đã chuyển khoản" — thông báo admin vào kiểm tra. */
+export async function markPaymentSent(orderId: string): Promise<OrderRow> {
+  const sb = requireSupabase();
+  const { data, error } = await sb.rpc("mark_payment_sent", { p_order_id: orderId });
+  if (error) throw new Error(error.message);
+  return data as OrderRow;
+}
+
 /** Admin giao đơn cho Seller: paid → in_progress. */
 export async function assignOrder(orderId: string, ctvId: string): Promise<OrderRow> {
   const sb = requireSupabase();

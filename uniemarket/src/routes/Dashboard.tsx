@@ -36,7 +36,18 @@ import { RequireAuth } from "@/components/account/RequireAuth";
 import { WorkOrderStatusBadge } from "@/components/work/orderStatusMeta";
 import { useAuthStore } from "@/store/authStore";
 import { listMyOrders } from "@/lib/db/orders";
-import { listMyCreditTransactions, requestTopup, requestWithdrawal, setPayoutInfo } from "@/lib/db/credit";
+import {
+  listMyCreditTransactions,
+  requestTopup,
+  requestWithdrawal,
+  setPayoutInfo,
+  listMyTopupRequests,
+  listMyWithdrawalRequests,
+  cancelTopupRequest,
+  cancelWithdrawalRequest,
+} from "@/lib/db/credit";
+import { Badge } from "@/components/ui/badge";
+import { useConfirm } from "@/components/ui/confirm";
 import { getSettings, getPublicGateways } from "@/lib/db/settings";
 import { enabledGateways } from "@/lib/paymentGateways";
 import { PaymentMethodSelector } from "@/components/commerce/PaymentMethodSelector";
@@ -51,6 +62,7 @@ import { isSupabaseConfigured } from "@/lib/supabase";
 import { formatPrice, relativeTime } from "@/lib/format";
 import { useLangStore } from "@/i18n";
 import { orderDisplayStatus } from "@/types/db";
+import type { TopupRequestRow, WithdrawalRequestRow } from "@/types/db";
 import { SetupNotice } from "@/components/SetupNotice";
 import { usePick } from "@/i18n";
 
@@ -339,6 +351,7 @@ function WalletSection({
   };
 
   return (
+    <>
     <div className="mt-6 grid gap-4 lg:grid-cols-[320px_1fr]">
       <div className="relative overflow-hidden rounded-2xl border border-yellow bg-yellow-soft p-6">
         <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-yellow">
@@ -410,6 +423,114 @@ function WalletSection({
         ) : null}
       </div>
     </div>
+    <MyWalletRequests isStaff={isStaff} />
+    </>
+  );
+}
+
+/** Yêu cầu nạp/rút CỦA TÔI: trạng thái + nút hủy khi đang chờ. */
+function MyWalletRequests({ isStaff }: { isStaff: boolean }) {
+  const en = useLangStore((s) => s.lang) === "en";
+  const queryClient = useQueryClient();
+  const confirm = useConfirm();
+  const refreshProfile = useAuthStore((s) => s.refreshProfile);
+
+  const topupQ = useQuery({
+    queryKey: ["my-topup-reqs"],
+    queryFn: () => listMyTopupRequests(5),
+    enabled: isSupabaseConfigured,
+  });
+  const withdrawQ = useQuery({
+    queryKey: ["my-withdraw-reqs"],
+    queryFn: () => listMyWithdrawalRequests(5),
+    enabled: isSupabaseConfigured && isStaff,
+  });
+
+  const invalidateAll = () => {
+    void queryClient.invalidateQueries({ queryKey: ["my-topup-reqs"] });
+    void queryClient.invalidateQueries({ queryKey: ["my-withdraw-reqs"] });
+    void queryClient.invalidateQueries({ queryKey: ["my-credit-tx"] });
+    void refreshProfile();
+  };
+  const cancelTopupMut = useMutation({
+    mutationFn: cancelTopupRequest,
+    onSuccess: () => { toast.success(en ? "Top-up request cancelled." : "Đã hủy yêu cầu nạp."); invalidateAll(); },
+    onError: (err) => toast.error(err instanceof Error ? err.message : "Error"),
+  });
+  const cancelWithdrawMut = useMutation({
+    mutationFn: cancelWithdrawalRequest,
+    onSuccess: () => { toast.success(en ? "Withdrawal cancelled — funds returned." : "Đã hủy yêu cầu rút — tiền đã hoàn về ví."); invalidateAll(); },
+    onError: (err) => toast.error(err instanceof Error ? err.message : "Error"),
+  });
+
+  type Req = (TopupRequestRow | WithdrawalRequestRow) & { kind: "topup" | "withdraw" };
+  const rows: Req[] = [
+    ...(topupQ.data ?? []).map((r) => ({ ...r, kind: "topup" as const })),
+    ...(withdrawQ.data ?? []).map((r) => ({ ...r, kind: "withdraw" as const })),
+  ]
+    .filter((r) => r.status !== "cancelled")
+    .sort((a, b) => (a.created_at < b.created_at ? 1 : -1))
+    .slice(0, 6);
+
+  if (rows.length === 0) return null;
+
+  const statusBadge = (s: string) =>
+    s === "approved" ? (
+      <Badge variant="success">{en ? "Approved" : "Đã duyệt"}</Badge>
+    ) : s === "rejected" ? (
+      <Badge variant="danger">{en ? "Rejected" : "Bị từ chối"}</Badge>
+    ) : (
+      <Badge variant="gold">{en ? "Pending" : "Chờ duyệt"}</Badge>
+    );
+
+  return (
+    <div className="mt-4 rounded-2xl border border-border bg-surface p-4">
+      <h3 className="mb-3 text-sm font-semibold text-text">
+        {en ? "My top-up / withdrawal requests" : "Yêu cầu nạp / rút của tôi"}
+      </h3>
+      <ul className="divide-y divide-border">
+        {rows.map((r) => (
+          <li key={r.kind + r.id} className="flex flex-wrap items-center justify-between gap-3 py-2.5">
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-2">
+                <p className="text-sm font-medium text-text">
+                  {r.kind === "topup" ? (en ? "Top-up" : "Nạp tiền") : (en ? "Withdrawal" : "Rút tiền")}
+                  <span className="font-mono font-bold"> {formatPrice(r.amount)}</span>
+                </p>
+                {r.code ? <Badge variant="outline" className="font-mono text-[11px]">{r.code}</Badge> : null}
+              </div>
+              <p className="text-xs text-text-subtle">{relativeTime(r.created_at)}</p>
+            </div>
+            <div className="flex items-center gap-2">
+              {statusBadge(r.status)}
+              {r.status === "pending" ? (
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  disabled={cancelTopupMut.isPending || cancelWithdrawMut.isPending}
+                  onClick={() => {
+                    void confirm({
+                      title: en ? "Cancel this request?" : "Hủy yêu cầu này?",
+                      message:
+                        r.kind === "withdraw"
+                          ? (en ? "Held funds will be returned to your wallet." : "Tiền đang giữ sẽ được hoàn về ví.")
+                          : (en ? "You can create a new request afterwards." : "Bạn có thể tạo yêu cầu mới sau đó."),
+                      confirmText: en ? "Cancel request" : "Hủy yêu cầu",
+                    }).then((okc) => {
+                      if (!okc) return;
+                      if (r.kind === "topup") cancelTopupMut.mutate();
+                      else cancelWithdrawMut.mutate();
+                    });
+                  }}
+                >
+                  {en ? "Cancel" : "Hủy"}
+                </Button>
+              ) : null}
+            </div>
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }
 
@@ -442,6 +563,7 @@ function TopupDialog({ open, onClose }: { open: boolean; onClose: () => void }) 
     onSuccess: () => {
       toast.success(en ? "Top-up requested — pay then wait for approval." : "Đã gửi yêu cầu nạp — chuyển khoản rồi chờ admin duyệt.");
       void queryClient.invalidateQueries({ queryKey: ["my-credit-tx"] });
+      void queryClient.invalidateQueries({ queryKey: ["my-topup-reqs"] });
       setAmount("");
       onClose();
     },
@@ -478,6 +600,19 @@ function TopupDialog({ open, onClose }: { open: boolean; onClose: () => void }) 
                   <span className="font-semibold text-yellow">{formatPrice(vnd)}</span>
                 </p>
               ) : null}
+              {(() => {
+                const min = Number(settings.topup_min) || 0;
+                const max = Number(settings.topup_max) || 0;
+                if (!min && !max) return null;
+                return (
+                  <p className="mt-1 text-xs text-text-subtle">
+                    {en ? "Limit: " : "Giới hạn: "}
+                    {min ? `${en ? "min" : "tối thiểu"} ${formatPrice(min)}` : ""}
+                    {min && max ? " · " : ""}
+                    {max ? `${en ? "max" : "tối đa"} ${formatPrice(max)}` : ""}
+                  </p>
+                );
+              })()}
             </div>
 
             <div>
@@ -575,6 +710,7 @@ function WithdrawDialog({
     onSuccess: () => {
       toast.success(en ? "Withdrawal requested — awaiting approval." : "Đã gửi yêu cầu rút — chờ duyệt.");
       void queryClient.invalidateQueries({ queryKey: ["my-credit-tx"] });
+      void queryClient.invalidateQueries({ queryKey: ["my-withdraw-reqs"] });
       setAmount("");
       onClose();
     },

@@ -29,7 +29,7 @@ import { CancelRequestDialog } from "@/components/order/CancelRequestDialog";
 import { DeliveryProofGallery } from "@/components/order/DeliveryProofGallery";
 import { OrderActions } from "@/components/order/OrderActions";
 import { ReviewWidget } from "@/components/order/ReviewWidget";
-import { finalizeCancel, getOrder, listOrderEvents } from "@/lib/db/orders";
+import { finalizeCancel, getOrder, listOrderEvents, markPaymentSent } from "@/lib/db/orders";
 import { getSettings, getPublicGateways } from "@/lib/db/settings";
 import { isSupabaseConfigured } from "@/lib/supabase";
 import { formatPrice, relativeTime } from "@/lib/format";
@@ -77,6 +77,9 @@ const STR = {
     payInstrBold: "mã đơn",
     payInstrSuffix:
       " vào nội dung. Shop sẽ xác nhận và bắt đầu xử lý ngay khi nhận được tiền.",
+    paymentSentBtn: "✓ Tôi đã chuyển khoản",
+    paymentSentOk: "Đã báo cho shop — chờ xác nhận nhé!",
+    paymentSentDone: "Đã báo chuyển khoản — shop đang kiểm tra.",
     momoNumber: "Số Momo",
     momoQrAlt: "QR Momo",
     bank: "Ngân hàng",
@@ -137,6 +140,9 @@ const STR = {
     payInstrBold: "order code",
     payInstrSuffix:
       " in the transfer note. The shop will confirm and start processing as soon as the money arrives.",
+    paymentSentBtn: "✓ I have paid",
+    paymentSentOk: "The shop has been notified — hang tight!",
+    paymentSentDone: "Payment reported — the shop is checking.",
     momoNumber: "Momo number",
     momoQrAlt: "Momo QR",
     bank: "Bank",
@@ -205,6 +211,15 @@ function OrderDetailContent() {
     void queryClient.invalidateQueries({ queryKey: ["my-orders"] });
     void queryClient.invalidateQueries({ queryKey: ["work-orders"] });
   };
+
+  const paymentSentMutation = useMutation({
+    mutationFn: () => markPaymentSent(id),
+    onSuccess: () => {
+      toast.success(t.paymentSentOk);
+      invalidateOrder();
+    },
+    onError: (err) => toast.error(err instanceof Error ? err.message : "Error"),
+  });
 
   const finalizeCancelMutation = useMutation({
     mutationFn: () => finalizeCancel(id),
@@ -469,6 +484,20 @@ function OrderDetailContent() {
                   onCopy={copy}
                   highlight
                 />
+                {order.payment_sent_at ? (
+                  <p className="rounded-lg bg-green-soft px-3 py-2 text-xs font-medium text-green">
+                    {t.paymentSentDone}
+                  </p>
+                ) : (
+                  <Button
+                    size="sm"
+                    className="w-full"
+                    disabled={paymentSentMutation.isPending}
+                    onClick={() => paymentSentMutation.mutate()}
+                  >
+                    {t.paymentSentBtn}
+                  </Button>
+                )}
               </CardContent>
             </Card>
           ) : null}

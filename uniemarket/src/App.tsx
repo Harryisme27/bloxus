@@ -10,12 +10,15 @@ import { Checkout } from "@/routes/Checkout";
 import { OrderSuccess } from "@/routes/OrderSuccess";
 import { Login } from "@/routes/Login";
 import { Register } from "@/routes/Register";
+import { ForgotPassword } from "@/routes/ForgotPassword";
+import { ResetPassword } from "@/routes/ResetPassword";
 import { Profile } from "@/routes/Profile";
 import { Dashboard } from "@/routes/Dashboard";
 import { OrderHistory } from "@/routes/OrderHistory";
 import { OrderDetail } from "@/routes/OrderDetail";
 import { Proofs } from "@/routes/Proofs";
 import { Messages } from "@/routes/Messages";
+import { Notifications } from "@/routes/Notifications";
 import { About } from "@/routes/About";
 import { Faq } from "@/routes/Faq";
 import { Contact } from "@/routes/Contact";
@@ -56,12 +59,15 @@ export const router = createBrowserRouter([
       { path: "order-success", element: <OrderSuccess /> },
       { path: "login", element: <Login /> },
       { path: "register", element: <Register /> },
+      { path: "forgot-password", element: <ForgotPassword /> },
+      { path: "reset-password", element: <ResetPassword /> },
       { path: "profile", element: <Profile /> },
       { path: "dashboard", element: <Dashboard /> },
       { path: "orders", element: <OrderHistory /> },
       { path: "orders/:id", element: <OrderDetail /> },
       { path: "proofs", element: <Proofs /> },
       { path: "messages", element: <Messages /> },
+      { path: "notifications", element: <Notifications /> },
       { path: "ctv", element: <Ctv /> },
       { path: "about", element: <About /> },
       { path: "faq", element: <Faq /> },

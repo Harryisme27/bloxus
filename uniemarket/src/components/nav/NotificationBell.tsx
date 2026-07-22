@@ -35,6 +35,7 @@ const STR = {
     loading: "Đang tải...",
     empty: "Chưa có thông báo nào.",
     markAllRead: "Đánh dấu đã đọc tất cả",
+    viewAll: "Xem tất cả",
   },
   en: {
     notifications: "Notifications",
@@ -42,6 +43,7 @@ const STR = {
     loading: "Loading...",
     empty: "No notifications yet.",
     markAllRead: "Mark all as read",
+    viewAll: "View all",
   },
 };
 
@@ -223,19 +225,27 @@ export function NotificationBell() {
             )}
           </div>
 
-          {hasUnread ? (
-            <div className="border-t border-border">
-              <button
-                type="button"
-                onClick={() => markAllMut.mutate()}
-                disabled={markAllMut.isPending}
-                className="flex w-full items-center justify-center gap-1.5 px-4 py-2.5 text-sm font-medium text-text-muted transition-colors hover:bg-surface-3 hover:text-text disabled:opacity-50"
-              >
-                <CheckCheck className="h-4 w-4" aria-hidden="true" />
-                {t.markAllRead}
-              </button>
-            </div>
-          ) : null}
+          <div className="grid grid-cols-2 border-t border-border">
+            <button
+              type="button"
+              onClick={() => {
+                setOpen(false);
+                navigate("/notifications");
+              }}
+              className="flex items-center justify-center gap-1.5 px-4 py-2.5 text-sm font-medium text-text-muted transition-colors hover:bg-surface-3 hover:text-text"
+            >
+              {t.viewAll}
+            </button>
+            <button
+              type="button"
+              onClick={() => markAllMut.mutate()}
+              disabled={markAllMut.isPending || !hasUnread}
+              className="flex items-center justify-center gap-1.5 border-l border-border px-4 py-2.5 text-sm font-medium text-text-muted transition-colors hover:bg-surface-3 hover:text-text disabled:opacity-50"
+            >
+              <CheckCheck className="h-4 w-4" aria-hidden="true" />
+              {t.markAllRead}
+            </button>
+          </div>
         </div>
       ) : null}
     </div>

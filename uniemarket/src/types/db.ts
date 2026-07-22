@@ -115,7 +115,7 @@ export interface TopupRequestRow {
   id: string;
   user_id: string;
   amount: number;
-  status: "pending" | "approved" | "rejected";
+  status: "pending" | "approved" | "rejected" | "cancelled";
   method: string | null;
   note: string | null;
   code: string | null;
@@ -136,7 +136,7 @@ export interface WithdrawalRequestRow {
   net: number;
   method: string | null;
   destination: string | null;
-  status: "pending" | "approved" | "rejected";
+  status: "pending" | "approved" | "rejected" | "cancelled";
   note: string | null;
   code: string | null;
   reviewed_by: string | null;
@@ -242,6 +242,8 @@ export interface OrderRow {
   /** Nội dung giao ngay (tài khoản/mã…) — chỉ có khi đơn instant delivery đã giao. */
   delivery_content: string | null;
   buyer_confirmed_at: string | null;
+  /** Khách đã bấm "Tôi đã chuyển khoản" (33-wallet-ux.sql). */
+  payment_sent_at: string | null;
   // Luồng hoàn tiền (07-refund-realtime.sql):
   refund_requested_at: string | null;
   refund_reason: string | null;

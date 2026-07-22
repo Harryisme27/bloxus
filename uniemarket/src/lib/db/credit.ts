@@ -51,6 +51,29 @@ export async function requestTopup(amount: number, method?: string, note?: strin
   });
   if (error) throw new Error(error.message);
 }
+/** Yêu cầu nạp của CHÍNH TÔI (RLS own read) — hiện trạng thái pending/approved... */
+export async function listMyTopupRequests(limit = 10): Promise<TopupRequestRow[]> {
+  const sb = requireSupabase();
+  const { data: sess } = await sb.auth.getSession();
+  const uid = sess.session?.user.id;
+  if (!uid) return [];
+  const { data, error } = await sb
+    .from("topup_requests")
+    .select("*")
+    .eq("user_id", uid)
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  if (error) throw new Error(error.message);
+  return (data ?? []) as TopupRequestRow[];
+}
+
+/** Tự hủy yêu cầu nạp đang chờ. */
+export async function cancelTopupRequest(): Promise<void> {
+  const sb = requireSupabase();
+  const { error } = await sb.rpc("cancel_topup_request");
+  if (error) throw new Error(error.message);
+}
+
 export async function reviewTopup(id: string, approve: boolean): Promise<void> {
   const sb = requireSupabase();
   const { error } = await sb.rpc("review_topup", { p_id: id, p_approve: approve });
@@ -75,6 +98,29 @@ export async function requestWithdrawal(
     p_method: method,
     p_destination: destination ?? null,
   });
+  if (error) throw new Error(error.message);
+}
+
+/** Yêu cầu rút của CHÍNH TÔI (RLS own read) — seller xem trạng thái/lịch sử. */
+export async function listMyWithdrawalRequests(limit = 10): Promise<WithdrawalRequestRow[]> {
+  const sb = requireSupabase();
+  const { data: sess } = await sb.auth.getSession();
+  const uid = sess.session?.user.id;
+  if (!uid) return [];
+  const { data, error } = await sb
+    .from("withdrawal_requests")
+    .select("*")
+    .eq("user_id", uid)
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  if (error) throw new Error(error.message);
+  return (data ?? []) as WithdrawalRequestRow[];
+}
+
+/** Tự hủy yêu cầu rút đang chờ (hoàn tiền giữ về ví). */
+export async function cancelWithdrawalRequest(): Promise<void> {
+  const sb = requireSupabase();
+  const { error } = await sb.rpc("cancel_withdrawal_request");
   if (error) throw new Error(error.message);
 }
 

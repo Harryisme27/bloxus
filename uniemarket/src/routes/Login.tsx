@@ -181,14 +181,12 @@ export function Login() {
             />
             {t.remember}
           </label>
-          <button
-            type="button"
-            disabled
-            title={t.forgotTitle}
-            className="cursor-not-allowed text-sm text-text-subtle"
+          <Link
+            to="/forgot-password"
+            className="text-sm text-text-muted transition-colors hover:text-yellow"
           >
             {t.forgot}
-          </button>
+          </Link>
         </div>
 
         {error ? (

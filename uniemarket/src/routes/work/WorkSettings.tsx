@@ -155,6 +155,10 @@ export function WorkSettings() {
   const [ctvApplyOpen, setCtvApplyOpen] = useState(false);
   const [orderComm, setOrderComm] = useState("0");
   const [withdrawComm, setWithdrawComm] = useState("0");
+  const [topupMin, setTopupMin] = useState("0");
+  const [topupMax, setTopupMax] = useState("0");
+  const [withdrawMin, setWithdrawMin] = useState("0");
+  const [withdrawMax, setWithdrawMax] = useState("0");
   const [payoutM, setPayoutM] = useState<PayoutMethods>({});
   const [uploading, setUploading] = useState(false);
 
@@ -194,6 +198,10 @@ export function WorkSettings() {
       setCtvApplyOpen(query.data.ctv_apply_open === true);
       setOrderComm(String(query.data.order_commission_pct ?? 0));
       setWithdrawComm(String(query.data.withdrawal_commission_pct ?? 0));
+      setTopupMin(String(query.data.topup_min ?? 0));
+      setTopupMax(String(query.data.topup_max ?? 0));
+      setWithdrawMin(String(query.data.withdraw_min ?? 0));
+      setWithdrawMax(String(query.data.withdraw_max ?? 0));
       setPayoutM(parsePayoutMethods(query.data));
     }
   }, [query.data]);
@@ -209,6 +217,10 @@ export function WorkSettings() {
       await updateSetting("ctv_apply_open", ctvApplyOpen);
       await updateSetting("order_commission_pct", Math.max(0, Math.min(100, parseFloat(orderComm) || 0)));
       await updateSetting("withdrawal_commission_pct", Math.max(0, Math.min(100, parseFloat(withdrawComm) || 0)));
+      await updateSetting("topup_min", Math.max(0, parseInt(topupMin, 10) || 0));
+      await updateSetting("topup_max", Math.max(0, parseInt(topupMax, 10) || 0));
+      await updateSetting("withdraw_min", Math.max(0, parseInt(withdrawMin, 10) || 0));
+      await updateSetting("withdraw_max", Math.max(0, parseInt(withdrawMax, 10) || 0));
       await updateSetting("payout_methods", payoutM);
     },
     onSuccess: () => {
@@ -485,6 +497,35 @@ export function WorkSettings() {
                   />
                   <p className="mt-1.5 text-xs text-text-subtle">{t.commWithdrawHint}</p>
                 </div>
+              </div>
+            </div>
+
+            {/* Giới hạn nạp/rút (VNĐ, 0 = không giới hạn) */}
+            <div className="border-t border-border pt-4">
+              <p className="font-heading text-sm font-semibold text-text">
+                {en ? "Top-up / withdrawal limits (VND)" : "Giới hạn nạp / rút (VNĐ)"}
+              </p>
+              <p className="mb-3 mt-0.5 text-xs text-text-subtle">
+                {en ? "0 = no limit." : "0 = không giới hạn."}
+              </p>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                {[
+                  { id: "lim-topup-min", label: en ? "Min top-up" : "Nạp tối thiểu", val: topupMin, set: setTopupMin },
+                  { id: "lim-topup-max", label: en ? "Max top-up" : "Nạp tối đa", val: topupMax, set: setTopupMax },
+                  { id: "lim-wd-min", label: en ? "Min withdrawal" : "Rút tối thiểu", val: withdrawMin, set: setWithdrawMin },
+                  { id: "lim-wd-max", label: en ? "Max withdrawal" : "Rút tối đa", val: withdrawMax, set: setWithdrawMax },
+                ].map((f) => (
+                  <div key={f.id}>
+                    <Label htmlFor={f.id}>{f.label}</Label>
+                    <Input
+                      id={f.id}
+                      type="number"
+                      min={0}
+                      value={f.val}
+                      onChange={(e) => f.set(e.target.value)}
+                    />
+                  </div>
+                ))}
               </div>
             </div>
 
