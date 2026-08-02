@@ -4,6 +4,7 @@ import { Link, Navigate, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { User2, Mail, Lock, Eye, EyeOff, UserPlus, AlertCircle } from "lucide-react";
 import { AuthCard } from "@/components/account/AuthCard";
+import { SocialLoginButtons } from "@/components/account/SocialLoginButtons";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -24,10 +25,10 @@ const STR = {
     haveAccount: "Đã có tài khoản?",
     signIn: "Đăng nhập",
     displayName: "Tên hiển thị",
-    displayNamePlaceholder: "VD: KhoiNguyen",
+    displayNamePlaceholder: "name@example.com",
     displayNameHint: "Tên in-game để nhận hàng sẽ được hỏi riêng cho từng đơn hàng.",
     email: "Email",
-    emailPlaceholder: "ban@email.com",
+    emailPlaceholder: "name@example.com",
     password: "Mật khẩu",
     passwordPlaceholder: "Tối thiểu 6 ký tự",
     hidePassword: "Ẩn mật khẩu",
@@ -52,10 +53,10 @@ const STR = {
     haveAccount: "Already have an account?",
     signIn: "Log in",
     displayName: "Display name",
-    displayNamePlaceholder: "e.g. KhoiNguyen",
+    displayNamePlaceholder: "name@example.com",
     displayNameHint: "Your in-game name for delivery is asked separately for each order.",
     email: "Email",
-    emailPlaceholder: "you@email.com",
+    emailPlaceholder: "name@example.com",
     password: "Password",
     passwordPlaceholder: "At least 6 characters",
     hidePassword: "Hide password",
@@ -139,10 +140,9 @@ export function Register() {
         <div>
           <Label htmlFor="reg-username">{t.displayName}</Label>
           <div className="relative">
-            <User2
-              className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-subtle"
-              aria-hidden
-            />
+            <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-text-subtle">
+              <User2 className="um-icon-bob h-4 w-4" aria-hidden />
+            </span>
             <Input
               id="reg-username"
               type="text"
@@ -160,10 +160,9 @@ export function Register() {
         <div>
           <Label htmlFor="reg-email">{t.email}</Label>
           <div className="relative">
-            <Mail
-              className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-subtle"
-              aria-hidden
-            />
+            <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-text-subtle">
+              <Mail className="um-icon-bob h-4 w-4" aria-hidden style={{ animationDelay: "-1.3s" }} />
+            </span>
             <Input
               id="reg-email"
               type="email"
@@ -180,10 +179,9 @@ export function Register() {
         <div>
           <Label htmlFor="reg-password">{t.password}</Label>
           <div className="relative">
-            <Lock
-              className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-subtle"
-              aria-hidden
-            />
+            <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-text-subtle">
+              <Lock className="um-icon-sway h-4 w-4" aria-hidden />
+            </span>
             <Input
               id="reg-password"
               type={showPassword ? "text" : "password"}
@@ -242,10 +240,12 @@ export function Register() {
           className="w-full"
           disabled={submitting || (turnstileEnabled && !captchaToken)}
         >
-          <UserPlus className="h-4 w-4" aria-hidden />
+          <UserPlus className="um-icon-bob h-4 w-4" aria-hidden />
           {submitting ? t.creating : t.signUp}
         </Button>
       </form>
+
+      <SocialLoginButtons />
     </AuthCard>
   );
 }

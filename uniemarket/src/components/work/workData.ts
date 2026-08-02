@@ -92,7 +92,7 @@ export function paymentMethodLabel(method: string | null, lang: Lang): string {
     case "momo":
       return "MoMo";
     case "stripe":
-      return vi ? "Stripe (thẻ)" : "Stripe (card)";
+      return "Card / Apple Pay";
     case "crypto":
       return "Crypto";
     case "paypal":

@@ -6,6 +6,7 @@ import {
   ArrowLeft,
   ChevronLeft,
   ChevronRight,
+  Eye,
   EyeOff,
   Folder,
   FolderPlus,
@@ -21,7 +22,7 @@ import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { useConfirm } from "@/components/ui/confirm";
 import {
-  deleteCategory,
+  hardDeleteCategory,
   listCategories,
   listProducts,
   upsertCategory,
@@ -29,13 +30,13 @@ import {
   upsertCategoryFolder,
   deleteCategoryFolder,
   setCategoriesFolder,
+  setCategoriesActive,
 } from "@/lib/db/catalog";
 import { slugify } from "./helpers";
 import type { CategoryRow, CategoryUpsert } from "@/types/db";
 import { cn } from "@/lib/utils";
 import { usePick } from "@/i18n";
 import { CategoryDialog } from "./CategoryDialog";
-import { ConfirmDialog } from "./ConfirmDialog";
 import { Toggle } from "./Toggle";
 import { EmptyBlock, LoadError, TableSkeleton } from "./States";
 
@@ -87,6 +88,21 @@ const STR = {
     renamePrompt: "Tên folder mới:",
     openFolder: "Mở folder",
     emptyFolder: "Folder này chưa có game. Bấm 'Thêm danh mục' để tạo.",
+    hideFolder: "Ẩn cả folder",
+    showFolder: "Hiện cả folder",
+    folderHideConfirm: (name: string, n: number) =>
+      `Ẩn cả ${n} game trong folder "${name}" khỏi cửa hàng? Không xóa dữ liệu, bật lại được.`,
+    folderShowConfirm: (name: string, n: number) => `Hiện lại ${n} game trong folder "${name}"?`,
+    folderHidden: (n: number) => `Đã ẩn ${n} game.`,
+    folderShown: (n: number) => `Đã hiện ${n} game.`,
+    deleteCat: "Xóa",
+    deleteCatConfirm: (name: string, products: number) =>
+      `XÓA HẲN danh mục "${name}"${products > 0 ? ` cùng ${products} sản phẩm bên trong` : ""}? Không khôi phục được (đơn hàng cũ vẫn giữ nguyên). Nếu chỉ muốn tạm gỡ khỏi cửa hàng, dùng nút Ẩn.`,
+    deletedCat: "Đã xóa danh mục.",
+    bulkHide: "Ẩn",
+    bulkShow: "Hiện",
+    bulkHidden: (n: number) => `Đã ẩn ${n} danh mục.`,
+    bulkShown: (n: number) => `Đã hiện ${n} danh mục.`,
   },
   en: {
     hidden: "Category hidden from the store",
@@ -135,6 +151,21 @@ const STR = {
     renamePrompt: "New folder name:",
     openFolder: "Open folder",
     emptyFolder: "This folder has no games yet. Click 'Add category' to create one.",
+    hideFolder: "Hide whole folder",
+    showFolder: "Show whole folder",
+    folderHideConfirm: (name: string, n: number) =>
+      `Hide all ${n} games in folder "${name}" from the store? No data is deleted; you can re-enable anytime.`,
+    folderShowConfirm: (name: string, n: number) => `Show the ${n} games in folder "${name}" again?`,
+    folderHidden: (n: number) => `${n} games hidden.`,
+    folderShown: (n: number) => `${n} games shown.`,
+    deleteCat: "Delete",
+    deleteCatConfirm: (name: string, products: number) =>
+      `PERMANENTLY delete category "${name}"${products > 0 ? ` along with its ${products} products` : ""}? This cannot be undone (past orders keep their data). Use Hide if you just want it off the store.`,
+    deletedCat: "Category deleted.",
+    bulkHide: "Hide",
+    bulkShow: "Show",
+    bulkHidden: (n: number) => `${n} categories hidden.`,
+    bulkShown: (n: number) => `${n} categories shown.`,
   },
 };
 
@@ -151,7 +182,6 @@ export function CategoriesTab() {
     open: false,
     category: null,
   });
-  const [deleteTarget, setDeleteTarget] = useState<CategoryRow | null>(null);
   const [pageSize, setPageSize] = useState(10);
   const [page, setPage] = useState(1);
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -195,16 +225,6 @@ export function CategoriesTab() {
     onError: (err) => toast.error(err.message),
   });
 
-  const deleteMutation = useMutation({
-    mutationFn: (id: string) => deleteCategory(id),
-    onSuccess: () => {
-      toast.success(t.hidden);
-      queryClient.invalidateQueries({ queryKey: ["categories"] });
-      setDeleteTarget(null);
-    },
-    onError: (err) => toast.error(err.message),
-  });
-
   const moveMutation = useMutation({
     mutationFn: ({ ids, folderId }: { ids: string[]; folderId: string | null }) =>
       setCategoriesFolder(ids, folderId),
@@ -235,6 +255,28 @@ export function CategoriesTab() {
     },
     onError: (err) => toast.error(err instanceof Error ? err.message : "Error"),
   });
+  // Ẩn/hiện hàng loạt danh mục (nút ẩn cả folder + thanh chọn nhiều).
+  const bulkActiveMutation = useMutation({
+    mutationFn: ({ ids, active }: { ids: string[]; active: boolean }) =>
+      setCategoriesActive(ids, active),
+    onSuccess: (_d, vars) => {
+      toast.success(vars.active ? t.folderShown(vars.ids.length) : t.folderHidden(vars.ids.length));
+      setSelected(new Set());
+      void queryClient.invalidateQueries({ queryKey: ["categories"] });
+    },
+    onError: (err) => toast.error(err instanceof Error ? err.message : "Error"),
+  });
+
+  // Xóa hẳn danh mục (khác nút Ẩn — không khôi phục được).
+  const hardDeleteMutation = useMutation({
+    mutationFn: (id: string) => hardDeleteCategory(id),
+    onSuccess: () => {
+      toast.success(t.deletedCat);
+      void queryClient.invalidateQueries({ queryKey: ["categories"] });
+    },
+    onError: (err) => toast.error(err instanceof Error ? err.message : "Error"),
+  });
+
   const deleteFolderMutation = useMutation({
     mutationFn: (id: string) => deleteCategoryFolder(id),
     onSuccess: () => {
@@ -293,20 +335,6 @@ export function CategoriesTab() {
         category={dialog.category}
         defaultFolderId={openFolder?.id ?? null}
       />
-      <ConfirmDialog
-        open={deleteTarget !== null}
-        onOpenChange={(open) => {
-          if (!open) setDeleteTarget(null);
-        }}
-        title={t.confirmTitle(deleteTarget?.name ?? "")}
-        description={t.confirmDesc}
-        confirmLabel={t.confirmLabel}
-        danger
-        loading={deleteMutation.isPending}
-        onConfirm={() => {
-          if (deleteTarget) deleteMutation.mutate(deleteTarget.id);
-        }}
-      />
     </>
   );
 
@@ -345,7 +373,9 @@ export function CategoriesTab() {
         ) : (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {folders.map((f) => {
-              const count = categories.filter((c) => c.folder_id === f.id).length;
+              const inFolder = categories.filter((c) => c.folder_id === f.id);
+              const count = inFolder.length;
+              const anyActive = inFolder.some((c) => c.is_active);
               return (
                 <div
                   key={f.id}
@@ -368,6 +398,36 @@ export function CategoriesTab() {
                     </span>
                   </button>
                   <div className="absolute right-3 top-3 flex gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+                    {count > 0 ? (
+                      <button
+                        type="button"
+                        title={anyActive ? t.hideFolder : t.showFolder}
+                        aria-label={anyActive ? t.hideFolder : t.showFolder}
+                        disabled={bulkActiveMutation.isPending}
+                        onClick={async () => {
+                          const r = await confirm({
+                            title: anyActive ? t.hideFolder : t.showFolder,
+                            message: anyActive
+                              ? t.folderHideConfirm(f.name, count)
+                              : t.folderShowConfirm(f.name, count),
+                            tone: anyActive ? "danger" : undefined,
+                          });
+                          if (r.ok) {
+                            bulkActiveMutation.mutate({
+                              ids: inFolder.map((c) => c.id),
+                              active: !anyActive,
+                            });
+                          }
+                        }}
+                        className="rounded-md p-1.5 text-text-subtle hover:bg-surface-2 hover:text-text"
+                      >
+                        {anyActive ? (
+                          <EyeOff className="h-3.5 w-3.5" aria-hidden />
+                        ) : (
+                          <Eye className="h-3.5 w-3.5" aria-hidden />
+                        )}
+                      </button>
+                    ) : null}
                     <button
                       type="button"
                       aria-label={t.renameFolder}
@@ -477,6 +537,24 @@ export function CategoriesTab() {
         <div className="flex flex-wrap items-center gap-2 rounded-xl border border-yellow bg-yellow-soft px-4 py-2.5">
           <span className="text-sm font-medium text-text">{t.selectedN(selected.size)}</span>
           <div className="ml-auto flex items-center gap-2">
+            <Button
+              size="sm"
+              variant="secondary"
+              disabled={bulkActiveMutation.isPending}
+              onClick={() => bulkActiveMutation.mutate({ ids: [...selected], active: false })}
+            >
+              <EyeOff className="h-3.5 w-3.5" aria-hidden />
+              {t.bulkHide}
+            </Button>
+            <Button
+              size="sm"
+              variant="secondary"
+              disabled={bulkActiveMutation.isPending}
+              onClick={() => bulkActiveMutation.mutate({ ids: [...selected], active: true })}
+            >
+              <Eye className="h-3.5 w-3.5" aria-hidden />
+              {t.bulkShow}
+            </Button>
             <div className="w-48">
               <Select
                 value={moveTarget}
@@ -634,12 +712,26 @@ export function CategoriesTab() {
                           <Pencil className="h-3.5 w-3.5" aria-hidden />
                           {t.edit}
                         </Button>
-                        {category.is_active ? (
-                          <Button variant="ghost" size="sm" onClick={() => setDeleteTarget(category)}>
-                            <EyeOff className="h-3.5 w-3.5" aria-hidden />
-                            {t.hide}
-                          </Button>
-                        ) : null}
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          disabled={hardDeleteMutation.isPending}
+                          className="text-danger hover:text-danger"
+                          onClick={async () => {
+                            const r = await confirm({
+                              title: t.deleteCat,
+                              message: t.deleteCatConfirm(
+                                category.name,
+                                productCounts.get(category.id) ?? 0,
+                              ),
+                              tone: "danger",
+                            });
+                            if (r.ok) hardDeleteMutation.mutate(category.id);
+                          }}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" aria-hidden />
+                          {t.deleteCat}
+                        </Button>
                       </div>
                     </td>
                   </tr>

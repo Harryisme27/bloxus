@@ -2,7 +2,29 @@
 // (lưu trong app_settings key 'payment_gateways'); Checkout hiển thị cổng đang
 // bật; OrderDetail hiện hướng dẫn theo cổng khách chọn.
 import { Landmark, Wallet, CreditCard, Bitcoin, DollarSign, type LucideIcon } from "lucide-react";
+import { USD_VND_RATE } from "@/store/currencyStore";
 import type { DbPaymentMethod } from "@/types/db";
+
+// Phí xử lý khi trả bằng Stripe (khách chịu) — PHẢI khớp với
+// supabase/functions/create-checkout-session/index.ts.
+// (Đang MIỄN PHÍ tạm thời — đặt lại 0.05 / 30 khi muốn thu phí.)
+export const STRIPE_FEE_PERCENT = 0; // 5% -> tạm 0
+export const STRIPE_FEE_FIXED_USD_CENTS = 0; // + $0.30 -> tạm 0
+
+/** Phí Stripe (VND) cho danh sách món — tính theo cent USD y hệt Edge Function
+ * để số hiện ở checkout khớp từng xu với trang Stripe. */
+export function stripeProcessingFeeVnd(
+  lines: Array<{ unitPrice: number; quantity: number }>,
+): number {
+  const subtotalCents = lines.reduce(
+    (sum, l) => sum + Math.round((l.unitPrice / USD_VND_RATE) * 100) * l.quantity,
+    0,
+  );
+  if (subtotalCents <= 0) return 0;
+  const feeCents =
+    Math.round(subtotalCents * STRIPE_FEE_PERCENT) + STRIPE_FEE_FIXED_USD_CENTS;
+  return Math.round((feeCents / 100) * USD_VND_RATE);
+}
 
 export interface GatewayField {
   key: string;
@@ -52,10 +74,10 @@ export const GATEWAY_META: GatewayMeta[] = [
   },
   {
     id: "stripe",
-    vi: "Stripe (thẻ)",
-    en: "Stripe (card)",
-    hintVi: "Thanh toán bằng thẻ qua Stripe",
-    hintEn: "Pay by card via Stripe",
+    vi: "Card / Apple Pay",
+    en: "Card / Apple Pay",
+    hintVi: "Thanh toán bằng thẻ hoặc Apple Pay",
+    hintEn: "Pay by card or Apple Pay",
     method: "bank_transfer",
     icon: CreditCard,
     fields: [

@@ -14,7 +14,7 @@ import {
 import { DISCORD_URL } from "@/lib/constants";
 import { usePick } from "@/i18n";
 
-type CategoryId = "order" | "delivery" | "payment" | "refund" | "safety";
+type CategoryId = "order" | "delivery" | "payment" | "refund" | "safety" | "suggest";
 
 interface FaqItem {
   id: string;
@@ -42,6 +42,26 @@ interface FaqStrings {
   faqs: FaqItem[];
 }
 
+/** Render câu trả lời: URL trong text thành link bấm được (mở tab mới). */
+function renderAnswer(text: string) {
+  const parts = text.split(/(https?:\/\/[^\s]+)/g);
+  return parts.map((part, i) =>
+    /^https?:\/\//.test(part) ? (
+      <a
+        key={i}
+        href={part}
+        target="_blank"
+        rel="noreferrer"
+        className="font-medium text-yellow underline underline-offset-2 hover:text-yellow-hover"
+      >
+        {part}
+      </a>
+    ) : (
+      part
+    ),
+  );
+}
+
 const STR: { vi: FaqStrings; en: FaqStrings } = {
   vi: {
     badge: "Trung tâm trợ giúp",
@@ -66,6 +86,7 @@ const STR: { vi: FaqStrings; en: FaqStrings } = {
       { id: "payment", label: "Thanh toán" },
       { id: "refund", label: "Hoàn tiền" },
       { id: "safety", label: "An toàn" },
+      { id: "suggest", label: "Góp ý" },
     ],
     categoryLabel: {
       order: "Đặt hàng",
@@ -73,6 +94,7 @@ const STR: { vi: FaqStrings; en: FaqStrings } = {
       payment: "Thanh toán",
       refund: "Hoàn tiền",
       safety: "An toàn",
+      suggest: "Góp ý",
     },
     faqs: [
       {
@@ -87,7 +109,7 @@ const STR: { vi: FaqStrings; en: FaqStrings } = {
         category: "order",
         question: "Tôi có cần tạo tài khoản để mua hàng không?",
         answer:
-          "Bạn nên đăng ký tài khoản để dễ dàng theo dõi lịch sử đơn hàng và trạng thái giao hàng. Trong bản demo này, bạn cũng có thể dùng tài khoản demo có sẵn để trải nghiệm toàn bộ luồng mua sắm.",
+          "Bạn nên đăng ký tài khoản để dễ dàng theo dõi lịch sử đơn hàng và trạng thái giao hàng. Bạn cũng có thể mua nhanh với tư cách khách (guest) mà không cần tài khoản.",
       },
       {
         id: "order-3",
@@ -136,7 +158,7 @@ const STR: { vi: FaqStrings; en: FaqStrings } = {
         category: "payment",
         question: "Uniemarket chấp nhận những hình thức thanh toán nào?",
         answer:
-          "Đây là website DEMO nên KHÔNG có thanh toán thật — mọi bước thanh toán chỉ được mô phỏng để bạn trải nghiệm. Trong phiên bản thật, chúng tôi sẽ hỗ trợ nhiều phương thức phổ biến.",
+          "Thanh toán hiện dùng thẻ an toàn qua Stripe.",
       },
       {
         id: "payment-2",
@@ -171,7 +193,7 @@ const STR: { vi: FaqStrings; en: FaqStrings } = {
         category: "refund",
         question: "Quá trình hoàn tiền mất bao lâu?",
         answer:
-          "Trong bản demo, việc hoàn tiền chỉ mang tính mô phỏng. Ở phiên bản thật, thời gian hoàn thường từ vài phút đến vài ngày làm việc tùy phương thức thanh toán ban đầu.",
+          "Bạn có thể được hoàn tiền trong vòng 24 giờ nếu đơn hàng chưa được giao xong.",
       },
       {
         id: "safety-1",
@@ -193,6 +215,13 @@ const STR: { vi: FaqStrings; en: FaqStrings } = {
         question: "Giao dịch có ảnh hưởng đến tài khoản Roblox của tôi không?",
         answer:
           "Nhân viên giao vật phẩm thông qua cơ chế giao dịch hợp lệ ngay trong game, giống như khi bạn trao đổi với bạn bè. Chúng tôi luôn tuân thủ cách làm an toàn để bảo vệ tài khoản của bạn.",
+      },
+      {
+        id: "suggest-1",
+        category: "suggest",
+        question: "Tôi muốn góp ý hoặc đề xuất game mới thì làm thế nào?",
+        answer:
+          "Nếu bạn muốn góp ý hoặc có game mới muốn chúng tôi bán, hãy tham gia Discord UNIE tại https://discord.com/invite/unie và nhắn cho chúng tôi — mọi đề xuất đều được đội ngũ đọc và phản hồi.",
       },
     ],
   },
@@ -219,6 +248,7 @@ const STR: { vi: FaqStrings; en: FaqStrings } = {
       { id: "payment", label: "Payment" },
       { id: "refund", label: "Refunds" },
       { id: "safety", label: "Safety" },
+      { id: "suggest", label: "Suggest" },
     ],
     categoryLabel: {
       order: "Ordering",
@@ -226,6 +256,7 @@ const STR: { vi: FaqStrings; en: FaqStrings } = {
       payment: "Payment",
       refund: "Refunds",
       safety: "Safety",
+      suggest: "Suggest",
     },
     faqs: [
       {
@@ -240,7 +271,7 @@ const STR: { vi: FaqStrings; en: FaqStrings } = {
         category: "order",
         question: "Do I need an account to buy?",
         answer:
-          "We recommend signing up so you can easily track your order history and delivery status. In this demo, you can also use the built-in demo account to experience the whole shopping flow.",
+          "We recommend signing up so you can easily track your order history and delivery status. You can also check out quickly as a guest without an account.",
       },
       {
         id: "order-3",
@@ -289,7 +320,7 @@ const STR: { vi: FaqStrings; en: FaqStrings } = {
         category: "payment",
         question: "What payment methods does Uniemarket accept?",
         answer:
-          "This is a DEMO website, so there are NO real payments — every payment step is simulated for you to try. In a real version, we'd support a range of popular payment methods.",
+          "Checkout currently uses secure card payment through Stripe.",
       },
       {
         id: "payment-2",
@@ -324,7 +355,7 @@ const STR: { vi: FaqStrings; en: FaqStrings } = {
         category: "refund",
         question: "How long does a refund take?",
         answer:
-          "In this demo, refunds are simulated only. In a real version, refunds usually take from a few minutes to a few business days, depending on the original payment method.",
+          "Refunds are available within 24 hours if the delivery has not been completed.",
       },
       {
         id: "safety-1",
@@ -346,6 +377,13 @@ const STR: { vi: FaqStrings; en: FaqStrings } = {
         question: "Will the trade affect my Roblox account?",
         answer:
           "Staff deliver items through the game's legitimate trade mechanism, just like trading with a friend. We always follow safe practices to protect your account.",
+      },
+      {
+        id: "suggest-1",
+        category: "suggest",
+        question: "How do I share feedback or request a new game?",
+        answer:
+          "If you'd like to give feedback or there's a new game you want us to sell, join the UNIE Discord at https://discord.com/invite/unie and message us — the team reads and responds to every suggestion.",
       },
     ],
   },
@@ -433,7 +471,9 @@ export function Faq() {
                           {f.question}
                         </span>
                       </AccordionTrigger>
-                      <AccordionContent className="leading-relaxed">{f.answer}</AccordionContent>
+                      <AccordionContent className="leading-relaxed">
+                        {renderAnswer(f.answer)}
+                      </AccordionContent>
                     </AccordionItem>
                   ))}
                 </Accordion>
@@ -474,7 +514,7 @@ export function Faq() {
                         <AccordionItem key={f.id} value={f.id}>
                           <AccordionTrigger>{f.question}</AccordionTrigger>
                           <AccordionContent className="leading-relaxed">
-                            {f.answer}
+                            {renderAnswer(f.answer)}
                           </AccordionContent>
                         </AccordionItem>
                       ))}

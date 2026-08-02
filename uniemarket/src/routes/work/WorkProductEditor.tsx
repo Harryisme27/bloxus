@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import {
   listCategories,
+  listProducts,
   uploadProductImage,
   upsertProduct,
   getProductSecret,
@@ -21,13 +22,16 @@ import { cn } from "@/lib/utils";
 import { AdminTextarea } from "@/components/work-admin/Textarea";
 import { PriceInput } from "@/components/work-admin/PriceInput";
 import { Toggle } from "@/components/work-admin/Toggle";
-import {
-  ServiceOptionsBuilder,
-  buildServiceOptions,
-  draftFromServiceOptions,
-  type ServiceOptionsDraft,
-} from "@/components/work-admin/ServiceOptionsBuilder";
 import { parseTags, slugify } from "@/components/work-admin/helpers";
+import {
+  ORIGINAL_EMAIL_TAG,
+  itemTypeOptionsFor,
+  rarityOptionsFor,
+  servicePriceUnitFor,
+  tagFilterLabelFor,
+  traitFilterLabelFor,
+  traitsFor,
+} from "@/lib/gameRarities";
 import { usePick, useLangStore } from "@/i18n";
 
 const STR = {
@@ -93,7 +97,29 @@ const STR = {
     deliveryLabel: "Thời gian giao/hoàn thành",
     deliveryPlaceholder: "VD: Giao trong 15–30 phút",
     rarityLabel: "Độ hiếm (tuỳ chọn)",
-    rarityPlaceholder: "VD: Huyền thoại",
+    rarityNone: "— Không chọn —",
+    currency: "Currency",
+    originalEmailLabel: "Original Email",
+    originalEmailHint: "Tài khoản có kèm email gốc hay không.",
+    yes: "Yes",
+    no: "No",
+    deliveryMethodLabel: "Giao hàng",
+    deliveryAuto: "Automatic — giao tự động",
+    deliveryAutoHint: "Khách thanh toán xong là nhận thông tin tài khoản ngay, bạn không cần online.",
+    deliveryManual: "Manual — giao tay",
+    deliveryManualHint: "Bạn chủ động gửi thông tin cho khách sau khi thanh toán được xác nhận.",
+    accountInfoLabel: "Thông tin tài khoản gửi cho khách",
+    accountInfoGuide:
+      "Cung cấp đầy đủ thông tin để khách sở hữu trọn tài khoản:\n- Tên nhân vật\n- Tên đăng nhập\n- Mật khẩu\n- Câu hỏi bảo mật & câu trả lời\n- PIN/mã phụ nếu có\n- Thông tin liên quan khác",
+    itemTypeLabel: "Item Type (theo game)",
+    itemTypeNone: "— Không chọn —",
+    tagFilterHint: (label: string) =>
+      `Tên thêm ở đây sẽ thành lựa chọn trong bộ lọc "${label}" trên trang game.`,
+    traitLabel: "Traits",
+    traitNone: "— Không chọn —",
+    petAdd: "Thêm",
+    petPlaceholder: "VD: Frost Dragon",
+    petRemove: "Xoá",
     tagsLabel: "Tags (phân tách bằng dấu phẩy)",
     tagsPlaceholder: "VD: hot, giảm giá, mùa 5",
     display: "Hiển thị",
@@ -167,7 +193,30 @@ const STR = {
     deliveryLabel: "Delivery/completion time",
     deliveryPlaceholder: "e.g. Delivered in 15–30 minutes",
     rarityLabel: "Rarity (optional)",
-    rarityPlaceholder: "e.g. Legendary",
+    rarityNone: "— Select Rarity —",
+    currency: "Currency",
+    originalEmailLabel: "Original Email",
+    originalEmailHint: "Whether the account comes with its original email.",
+    yes: "Yes",
+    no: "No",
+    deliveryMethodLabel: "Delivery",
+    deliveryAuto: "Automatic",
+    deliveryAutoHint:
+      "When the buyer pays, the account details are delivered instantly — you don't have to be online.",
+    deliveryManual: "Manual",
+    deliveryManualHint: "You send the details yourself after the payment is confirmed.",
+    accountInfoLabel: "Account information shared with buyer",
+    accountInfoGuide:
+      "Provide all details needed for full ownership of the account:\n- Character name\n- Login name\n- Password\n- Security questions and answers\n- Any extra passwords/PIN/codes if applicable\n- Any other relevant info",
+    itemTypeLabel: "Item Type (per game)",
+    itemTypeNone: "— Select Item Type —",
+    tagFilterHint: (label: string) =>
+      `Names added here become options in the "${label}" filter on the game page.`,
+    traitLabel: "Traits",
+    traitNone: "— Select Trait —",
+    petAdd: "Add",
+    petPlaceholder: "e.g. Frost Dragon",
+    petRemove: "Remove",
     tagsLabel: "Tags (comma-separated)",
     tagsPlaceholder: "e.g. hot, sale, season 5",
     display: "Display",
@@ -238,9 +287,6 @@ export function WorkProductEditor({ product, defaultCategoryId, onClose }: WorkP
     sort_order: product?.sort_order ?? 0,
   }));
   const [images, setImages] = useState<string[]>(product?.images ?? []);
-  const [optionsDraft, setOptionsDraft] = useState<ServiceOptionsDraft>(() =>
-    draftFromServiceOptions(product?.service_options ?? null),
-  );
   const [slugTouched, setSlugTouched] = useState(Boolean(product));
   const [uploading, setUploading] = useState(false);
 
@@ -249,6 +295,34 @@ export function WorkProductEditor({ product, defaultCategoryId, onClose }: WorkP
     queryFn: () => listCategories({ activeOnly: false }),
   });
   const categories = categoriesQuery.data ?? [];
+
+  // Slug game đang chọn -> bộ cấu hình riêng theo game (rarity, item type,
+  // trait, bộ lọc tag tự do như "Pets & Eggs").
+  const selectedSlug = categories.find((c) => c.id === form.category_id)?.slug;
+  const gameTagLabel = tagFilterLabelFor(selectedSlug);
+  const gameTraits = traitsFor(selectedSlug);
+  const [petInput, setPetInput] = useState("");
+
+  // Gợi ý tên đã dùng trong danh mục (VD tên pet/egg Adopt Me).
+  const tagSuggestionsQuery = useQuery({
+    queryKey: ["work-tag-suggestions", selectedSlug],
+    queryFn: () => listProducts({ categorySlug: selectedSlug! }),
+    enabled: Boolean(selectedSlug && gameTagLabel),
+  });
+  const traitCodes = new Set(gameTraits.map((tr) => tr.code.toUpperCase()));
+
+  // Chỉ Item dùng form đầy đủ (khu vực, slug, tags, rarity, item type, trait,
+  // giá gốc…). Account/Service/Currency là form tối giản, mỗi loại thêm phần
+  // riêng của nó (Account: panel tài khoản + stock; Currency: đơn vị giá $/B).
+  const minimalForm = form.kind !== "item";
+  const petSuggestions = Array.from(
+    new Set(
+      (tagSuggestionsQuery.data ?? [])
+        .flatMap((p) => p.tags)
+        .map((tg) => tg.trim())
+        .filter((tg) => tg && !traitCodes.has(tg.toUpperCase()) && tg.toLowerCase() !== ORIGINAL_EMAIL_TAG),
+    ),
+  ).sort((a, b) => a.localeCompare(b));
 
   // Sản phẩm mới: mặc định chọn danh mục đầu tiên khi danh sách tải xong.
   useEffect(() => {
@@ -327,17 +401,14 @@ export function WorkProductEditor({ product, defaultCategoryId, onClose }: WorkP
       return;
     }
 
-    let serviceOptions: ServiceOptions | null = null;
-    if (form.kind === "service") {
-      const built = buildServiceOptions(optionsDraft, lang);
-      if (built.error) {
-        toast.error(built.error);
-        return;
-      }
-      serviceOptions = built.options;
-    }
+    // Service giờ bán đơn giản (tên + giá + mô tả + ảnh) — không còn tuỳ chọn
+    // tier/rank; luôn lưu service_options null.
+    const serviceOptions: ServiceOptions | null = null;
 
-    const hasStock = form.kind === "item" || form.kind === "account";
+    // Stock: item/account/currency. Nội dung giao bí mật: chỉ item/account.
+    const hasStock =
+      form.kind === "item" || form.kind === "account" || form.kind === "currency";
+    const hasSecret = form.kind === "item" || form.kind === "account";
     let stock: number | null = null;
     if (hasStock && form.stockText.trim() !== "") {
       const parsed = Number(form.stockText);
@@ -347,11 +418,11 @@ export function WorkProductEditor({ product, defaultCategoryId, onClose }: WorkP
       }
       stock = Math.floor(parsed);
     }
-    const instant = hasStock && form.instant_delivery;
+    const instant = hasSecret && form.instant_delivery;
 
     saveMutation.mutate({
       // Nội dung giao lưu riêng ở product_secrets (chỉ khi item/account).
-      secret: hasStock ? form.deliveryContent.trim() : null,
+      secret: hasSecret ? form.deliveryContent.trim() : null,
       input: {
         id: product?.id,
         category_id: form.category_id,
@@ -361,8 +432,10 @@ export function WorkProductEditor({ product, defaultCategoryId, onClose }: WorkP
         description: form.description.trim() || null,
         price: form.price,
         original_price: form.original_price,
-        rarity: form.rarity.trim() || null,
-        section: form.section.trim() || null,
+        // Form tối giản (account/service/currency) không có độ hiếm/khu vực —
+        // luôn lưu null cho sạch dữ liệu.
+        rarity: minimalForm ? null : form.rarity.trim() || null,
+        section: minimalForm ? null : form.section.trim() || null,
         stock,
         images,
         delivery_time_text: form.delivery_time_text.trim() || null,
@@ -396,6 +469,7 @@ export function WorkProductEditor({ product, defaultCategoryId, onClose }: WorkP
                   <Label htmlFor="prod-category">{t.categoryLabel}</Label>
                   <Select
                     id="prod-category"
+                    searchable
                     value={form.category_id}
                     onChange={(e) => set("category_id", e.target.value)}
                     disabled={categoriesQuery.isPending}
@@ -411,8 +485,9 @@ export function WorkProductEditor({ product, defaultCategoryId, onClose }: WorkP
                 </div>
                 <div>
                   <Label>{t.kindLabel}</Label>
-                  <div className="grid grid-cols-3 gap-2">
-                    {(["item", "service", "account"] as const).map((kind) => (
+                  {/* 2x2 cho đủ chỗ chữ (4 cột một hàng làm "Currency" tràn ô). */}
+                  <div className="grid grid-cols-2 gap-2">
+                    {(["item", "account", "service", "currency"] as const).map((kind) => (
                       <button
                         key={kind}
                         type="button"
@@ -424,15 +499,22 @@ export function WorkProductEditor({ product, defaultCategoryId, onClose }: WorkP
                             : "border-border-strong text-text-muted hover:bg-surface-2 hover:text-text",
                         )}
                       >
-                        {kind === "item" ? t.item : kind === "service" ? t.service : t.account}
+                        {kind === "item"
+                          ? t.item
+                          : kind === "account"
+                            ? t.account
+                            : kind === "service"
+                              ? t.service
+                              : t.currency}
                       </button>
                     ))}
                   </div>
                 </div>
               </div>
 
-              {/* Khu vực trong danh mục (bloxmart-style) — nhóm sản phẩm ở trang game. */}
-              <div>
+              {/* Khu vực trong danh mục (bloxmart-style) — nhóm sản phẩm ở trang game.
+                  Chỉ Item cần phân khu. */}
+              <div className={minimalForm ? "hidden" : undefined}>
                 <Label htmlFor="prod-section">{t.sectionLabel}</Label>
                 {(() => {
                   const sections =
@@ -478,7 +560,8 @@ export function WorkProductEditor({ product, defaultCategoryId, onClose }: WorkP
                 />
               </div>
 
-              <div>
+              {/* Slug tự sinh ngầm từ tên — ẩn khỏi form (giữ input để logic cũ chạy). */}
+              <div className="hidden">
                 <Label htmlFor="prod-slug">{t.slugLabel}</Label>
                 <Input
                   id="prod-slug"
@@ -504,17 +587,6 @@ export function WorkProductEditor({ product, defaultCategoryId, onClose }: WorkP
               </div>
             </CardContent>
           </Card>
-
-          {form.kind === "service" ? (
-            <Card>
-              <CardHeader>
-                <CardTitle>{t.serviceOptions}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ServiceOptionsBuilder value={optionsDraft} onChange={setOptionsDraft} />
-              </CardContent>
-            </Card>
-          ) : null}
 
           <Card>
             <CardHeader>
@@ -596,7 +668,15 @@ export function WorkProductEditor({ product, defaultCategoryId, onClose }: WorkP
             <CardContent className="space-y-4">
               <div>
                 <Label htmlFor="prod-price">
-                  {form.kind === "service" ? t.priceServiceLabel : t.priceItemLabel}
+                  {form.kind === "service"
+                    ? t.priceServiceLabel
+                    : form.kind === "currency"
+                      ? (() => {
+                          // Currency: giá theo đơn vị riêng của game (VD PS99: $/B).
+                          const unit = servicePriceUnitFor(selectedSlug);
+                          return unit ? `${t.priceServiceLabel} — ${unit}` : t.priceServiceLabel;
+                        })()
+                      : t.priceItemLabel}
                 </Label>
                 <PriceInput
                   id="prod-price"
@@ -605,7 +685,8 @@ export function WorkProductEditor({ product, defaultCategoryId, onClose }: WorkP
                   onChange={(price) => set("price", price)}
                 />
               </div>
-              <div>
+              {/* Form tối giản: chỉ một mức giá. */}
+              <div className={minimalForm ? "hidden" : undefined}>
                 <Label htmlFor="prod-original">{t.originalLabel}</Label>
                 <PriceInput
                   id="prod-original"
@@ -614,7 +695,7 @@ export function WorkProductEditor({ product, defaultCategoryId, onClose }: WorkP
                   onChange={(price) => set("original_price", price)}
                 />
               </div>
-              {form.kind === "item" || form.kind === "account" ? (
+              {form.kind === "item" || form.kind === "account" || form.kind === "currency" ? (
                 <>
                   <div>
                     <Label htmlFor="prod-stock">{t.stockLabel}</Label>
@@ -628,34 +709,112 @@ export function WorkProductEditor({ product, defaultCategoryId, onClose }: WorkP
                     />
                   </div>
 
-                  {/* Giao ngay + nội dung giao bí mật */}
-                  <div className="rounded-xl border border-border bg-surface-2 p-3">
-                    <div className="flex items-center justify-between gap-3">
-                      <div className="min-w-0">
-                        <p className="text-sm font-medium text-text">{t.instantLabel}</p>
-                        <p className="mt-0.5 text-xs text-text-subtle">{t.instantHint}</p>
+                  {form.kind === "currency" ? null : form.kind === "account" ? (
+                    /* Panel riêng cho Account: Original Email + Delivery + thông
+                       tin tài khoản gửi khách (mọi game). */
+                    <div className="space-y-4 rounded-xl border border-border bg-surface-2 p-3">
+                      <div>
+                        <Label htmlFor="prod-original-email">{t.originalEmailLabel}</Label>
+                        {(() => {
+                          const parsed = parseTags(form.tags);
+                          const has = parsed.some((tg) => tg.trim().toLowerCase() === ORIGINAL_EMAIL_TAG);
+                          const setOriginal = (v: string) => {
+                            const rest = parsed.filter(
+                              (tg) => tg.trim().toLowerCase() !== ORIGINAL_EMAIL_TAG,
+                            );
+                            set("tags", (v === "yes" ? [...rest, ORIGINAL_EMAIL_TAG] : rest).join(", "));
+                          };
+                          return (
+                            <Select
+                              id="prod-original-email"
+                              value={has ? "yes" : "no"}
+                              onChange={(e) => setOriginal(e.target.value)}
+                            >
+                              <option value="yes">{t.yes}</option>
+                              <option value="no">{t.no}</option>
+                            </Select>
+                          );
+                        })()}
+                        <p className="mt-1 text-xs text-text-subtle">{t.originalEmailHint}</p>
                       </div>
-                      <Toggle
-                        checked={form.instant_delivery}
-                        onCheckedChange={(v) => set("instant_delivery", v)}
-                        label={t.instantLabel}
-                      />
+
+                      <div>
+                        <Label>{t.deliveryMethodLabel}</Label>
+                        <div className="space-y-1.5">
+                          {(
+                            [
+                              { auto: true, label: t.deliveryAuto, hint: t.deliveryAutoHint },
+                              { auto: false, label: t.deliveryManual, hint: t.deliveryManualHint },
+                            ] as const
+                          ).map((opt) => (
+                            <label
+                              key={String(opt.auto)}
+                              className="flex cursor-pointer items-start gap-2.5 rounded-lg border border-border p-2.5 transition-colors hover:bg-surface"
+                            >
+                              <input
+                                type="radio"
+                                name="prod-delivery-method"
+                                checked={form.instant_delivery === opt.auto}
+                                onChange={() => set("instant_delivery", opt.auto)}
+                                className="mt-0.5 h-4 w-4 accent-yellow"
+                              />
+                              <span>
+                                <span className="block text-sm font-medium text-text">{opt.label}</span>
+                                <span className="block text-xs text-text-subtle">{opt.hint}</span>
+                              </span>
+                            </label>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Manual: admin tự giao tay nên không cần nhập sẵn thông tin. */}
+                      {form.instant_delivery ? (
+                        <div>
+                          <Label htmlFor="prod-content">{t.accountInfoLabel}</Label>
+                          <p className="mb-1.5 whitespace-pre-line text-xs text-text-subtle">
+                            {t.accountInfoGuide}
+                          </p>
+                          <AdminTextarea
+                            id="prod-content"
+                            value={form.deliveryContent}
+                            placeholder="account: user / pass..."
+                            onChange={(e) => set("deliveryContent", e.target.value)}
+                          />
+                          <p className="mt-1 text-xs text-text-subtle">{t.contentHint}</p>
+                        </div>
+                      ) : null}
                     </div>
-                    {form.instant_delivery ? (
-                      <div className="mt-3">
-                        <Label htmlFor="prod-content">{t.contentLabel}</Label>
-                        <AdminTextarea
-                          id="prod-content"
-                          value={form.deliveryContent}
-                          placeholder="account: user / pass..."
-                          onChange={(e) => set("deliveryContent", e.target.value)}
+                  ) : (
+                    /* Item: giữ toggle giao ngay + nội dung giao bí mật như cũ. */
+                    <div className="rounded-xl border border-border bg-surface-2 p-3">
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium text-text">{t.instantLabel}</p>
+                          <p className="mt-0.5 text-xs text-text-subtle">{t.instantHint}</p>
+                        </div>
+                        <Toggle
+                          checked={form.instant_delivery}
+                          onCheckedChange={(v) => set("instant_delivery", v)}
+                          label={t.instantLabel}
                         />
-                        <p className="mt-1 text-xs text-text-subtle">{t.contentHint}</p>
                       </div>
-                    ) : null}
-                  </div>
+                      {form.instant_delivery ? (
+                        <div className="mt-3">
+                          <Label htmlFor="prod-content">{t.contentLabel}</Label>
+                          <AdminTextarea
+                            id="prod-content"
+                            value={form.deliveryContent}
+                            placeholder="account: user / pass..."
+                            onChange={(e) => set("deliveryContent", e.target.value)}
+                          />
+                          <p className="mt-1 text-xs text-text-subtle">{t.contentHint}</p>
+                        </div>
+                      ) : null}
+                    </div>
+                  )}
                 </>
               ) : null}
+              {/* Thời gian giao/hoàn thành: mọi loại đều dùng. */}
               <div>
                 <Label htmlFor="prod-delivery">{t.deliveryLabel}</Label>
                 <Input
@@ -665,16 +824,167 @@ export function WorkProductEditor({ product, defaultCategoryId, onClose }: WorkP
                   onChange={(e) => set("delivery_time_text", e.target.value)}
                 />
               </div>
-              <div>
+              {(() => {
+                // Item type riêng theo game (VD MM2: Chroma/FX/Other) — lưu
+                // dưới dạng tag để không cần thêm cột DB. Chỉ Item dùng.
+                if (minimalForm) return null;
+                const slug = categories.find((c) => c.id === form.category_id)?.slug;
+                const itOptions = itemTypeOptionsFor(slug);
+                if (itOptions.length === 0) return null;
+                const parsed = parseTags(form.tags);
+                const current = parsed.find((tg) => itOptions.some((it) => it.toLowerCase() === tg.toLowerCase())) ?? "";
+                const setItemType = (value: string) => {
+                  const rest = parsed.filter((tg) => !itOptions.some((it) => it.toLowerCase() === tg.toLowerCase()));
+                  set("tags", [...(value ? [value] : []), ...rest].join(", "));
+                };
+                return (
+                  <div>
+                    <Label htmlFor="prod-itemtype">{t.itemTypeLabel}</Label>
+                    <Select id="prod-itemtype" value={current} onChange={(e) => setItemType(e.target.value)}>
+                      <option value="">{t.itemTypeNone}</option>
+                      {itOptions.map((it) => (
+                        <option key={it} value={it}>
+                          {it}
+                        </option>
+                      ))}
+                    </Select>
+                  </div>
+                );
+              })()}
+              {gameTraits.length > 0 && !minimalForm
+                ? (() => {
+                    // Trait pet (VD Adopt Me: N/FR/NFR…, PS99: Huge…) — lưu 1 tag đúng mã.
+                    const parsed = parseTags(form.tags);
+                    const currentTag = parsed.find((tg) => traitCodes.has(tg.trim().toUpperCase()));
+                    const current = currentTag
+                      ? (gameTraits.find((tr) => tr.code.toUpperCase() === currentTag.trim().toUpperCase())
+                          ?.code ?? "")
+                      : "";
+                    const setTrait = (value: string) => {
+                      const rest = parsed.filter((tg) => !traitCodes.has(tg.trim().toUpperCase()));
+                      set("tags", [...(value ? [value] : []), ...rest].join(", "));
+                    };
+                    return (
+                      <div>
+                        <Label htmlFor="prod-trait">
+                          {traitFilterLabelFor(selectedSlug) ?? t.traitLabel}
+                        </Label>
+                        <Select id="prod-trait" value={current} onChange={(e) => setTrait(e.target.value)}>
+                          <option value="">{t.traitNone}</option>
+                          {/* "Other" chỉ là lựa chọn lọc (không gán) -> bỏ khỏi editor. */}
+                          {gameTraits
+                            .filter((tr) => tr.code !== "Other")
+                            .map((tr) => (
+                              <option key={tr.code} value={tr.code}>
+                                {tr.code === tr.label ? tr.code : `${tr.code} (${tr.label})`}
+                              </option>
+                            ))}
+                        </Select>
+                      </div>
+                    );
+                  })()
+                : null}
+              {gameTagLabel && !minimalForm
+                ? (() => {
+                    // Tên pet/egg gắn trên sản phẩm (chip xoá được) + ô thêm tên
+                    // mới có gợi ý từ các tên đã dùng trong danh mục.
+                    const parsed = parseTags(form.tags);
+                    const names = parsed.filter(
+                      (tg) =>
+                        !traitCodes.has(tg.trim().toUpperCase()) &&
+                        tg.trim().toLowerCase() !== ORIGINAL_EMAIL_TAG,
+                    );
+                    const addName = (raw: string) => {
+                      const name = raw.trim();
+                      if (!name || traitCodes.has(name.toUpperCase())) return;
+                      if (parsed.some((tg) => tg.trim().toLowerCase() === name.toLowerCase())) return;
+                      set("tags", [...parsed, name].join(", "));
+                      setPetInput("");
+                    };
+                    const removeName = (name: string) => {
+                      set("tags", parsed.filter((tg) => tg.trim() !== name.trim()).join(", "));
+                    };
+                    return (
+                      <div>
+                        <Label htmlFor="prod-petname">{gameTagLabel}</Label>
+                        {names.length > 0 ? (
+                          <div className="mb-2 flex flex-wrap gap-1.5">
+                            {names.map((name) => (
+                              <span
+                                key={name}
+                                className="inline-flex items-center gap-1 rounded-full border border-border-strong bg-surface-2 px-2.5 py-1 text-xs text-text"
+                              >
+                                {name}
+                                <button
+                                  type="button"
+                                  onClick={() => removeName(name)}
+                                  aria-label={`${t.petRemove} ${name}`}
+                                  className="text-text-subtle transition-colors hover:text-danger"
+                                >
+                                  <X className="h-3 w-3" aria-hidden />
+                                </button>
+                              </span>
+                            ))}
+                          </div>
+                        ) : null}
+                        <div className="flex gap-2">
+                          <Input
+                            id="prod-petname"
+                            list="prod-petname-suggestions"
+                            value={petInput}
+                            placeholder={t.petPlaceholder}
+                            onChange={(e) => setPetInput(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") {
+                                e.preventDefault();
+                                addName(petInput);
+                              }
+                            }}
+                          />
+                          <Button type="button" variant="secondary" onClick={() => addName(petInput)}>
+                            {t.petAdd}
+                          </Button>
+                        </div>
+                        <datalist id="prod-petname-suggestions">
+                          {petSuggestions.map((name) => (
+                            <option key={name} value={name} />
+                          ))}
+                        </datalist>
+                        <p className="mt-1 text-xs text-text-subtle">{t.tagFilterHint(gameTagLabel)}</p>
+                      </div>
+                    );
+                  })()
+                : null}
+              {/* Chỉ Item có độ hiếm; game tắt độ hiếm (danh sách rỗng) cũng ẩn. */}
+              <div
+                className={
+                  minimalForm || rarityOptionsFor(selectedSlug).length === 0 ? "hidden" : undefined
+                }
+              >
                 <Label htmlFor="prod-rarity">{t.rarityLabel}</Label>
-                <Input
-                  id="prod-rarity"
-                  value={form.rarity}
-                  placeholder={t.rarityPlaceholder}
-                  onChange={(e) => set("rarity", e.target.value)}
-                />
+                {(() => {
+                  // Bộ độ hiếm theo game đang chọn (VD: MM2 có Godly/Unique…).
+                  const slug = categories.find((c) => c.id === form.category_id)?.slug;
+                  const options = rarityOptionsFor(slug);
+                  return (
+                    <Select id="prod-rarity" value={form.rarity} onChange={(e) => set("rarity", e.target.value)}>
+                      <option value="">{t.rarityNone}</option>
+                      {options.map((r) => (
+                        <option key={r} value={r}>
+                          {r}
+                        </option>
+                      ))}
+                      {/* Giá trị cũ nhập tay không nằm trong danh sách -> giữ để không mất. */}
+                      {form.rarity && !options.includes(form.rarity) ? (
+                        <option value={form.rarity}>{form.rarity}</option>
+                      ) : null}
+                    </Select>
+                  );
+                })()}
               </div>
-              <div>
+              {/* Form tối giản: không dùng tags (Original Email của account lưu
+                  tag ngầm qua panel riêng). */}
+              <div className={minimalForm ? "hidden" : undefined}>
                 <Label htmlFor="prod-tags">{t.tagsLabel}</Label>
                 <Input
                   id="prod-tags"

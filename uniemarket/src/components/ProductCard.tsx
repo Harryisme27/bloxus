@@ -7,7 +7,6 @@ import { RarityBadge } from "@/components/RarityBadge";
 import { PriceTag } from "@/components/PriceTag";
 import { Button } from "@/components/ui/button";
 import { useCartStore, buildCartLine } from "@/store/cartStore";
-import { useBuyNowStore } from "@/store/buyNowStore";
 import { usePick } from "@/i18n";
 import { cn } from "@/lib/utils";
 
@@ -58,7 +57,6 @@ export function isInStock(product: ProductRow): boolean {
 export function ProductCard({ product, className }: ProductCardProps) {
   const t = usePick(STR);
   const addItem = useCartStore((state) => state.addItem);
-  const setBuyNow = useBuyNowStore((state) => state.setBuyNow);
   const navigate = useNavigate();
 
   const inStock = isInStock(product);
@@ -94,9 +92,8 @@ export function ProductCard({ product, className }: ProductCardProps) {
       return;
     }
     if (!inStock) return;
-    // Mua ngay: đặt món vào buffer riêng rồi qua thẳng checkout (không đụng giỏ).
-    setBuyNow(buildCartLine(product, 1));
-    navigate("/checkout");
+    // Mua ngay: gửi món qua router state, qua thẳng checkout (không đụng giỏ).
+    navigate("/checkout", { state: { buyNow: buildCartLine(product, 1) } });
   }
 
   return (

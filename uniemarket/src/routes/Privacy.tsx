@@ -39,7 +39,7 @@ const STR: {
           },
           {
             type: "p",
-            text: "Lưu ý: đây là bản demo chạy hoàn toàn trên trình duyệt của bạn (localStorage). Không có dữ liệu nào được gửi tới máy chủ.",
+            text: "Chúng tôi chỉ thu thập những thông tin cần thiết để xử lý đơn hàng và hỗ trợ bạn.",
           },
         ],
       },
@@ -83,7 +83,7 @@ const STR: {
         body: [
           {
             type: "p",
-            text: "Bạn có quyền yêu cầu truy cập, chỉnh sửa hoặc xóa thông tin cá nhân của mình. Với bản demo, bạn có thể xóa toàn bộ dữ liệu bất cứ lúc nào bằng cách xóa dữ liệu localStorage của trình duyệt.",
+            text: "Bạn có quyền yêu cầu truy cập, chỉnh sửa hoặc xóa thông tin cá nhân của mình bất cứ lúc nào — liên hệ đội ngũ hỗ trợ để được xử lý.",
           },
         ],
       },
@@ -122,7 +122,7 @@ const STR: {
           },
           {
             type: "p",
-            text: "Note: this is a demo that runs entirely in your browser (localStorage). No data is sent to any server.",
+            text: "We only collect the information needed to process your orders and support you.",
           },
         ],
       },
@@ -166,7 +166,7 @@ const STR: {
         body: [
           {
             type: "p",
-            text: "You have the right to request access to, correction of, or deletion of your personal information. In this demo, you can delete all data at any time by clearing your browser's localStorage.",
+            text: "You have the right to request access to, correction of, or deletion of your personal information at any time — contact our support team and we'll take care of it.",
           },
         ],
       },

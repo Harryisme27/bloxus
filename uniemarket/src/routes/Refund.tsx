@@ -76,7 +76,7 @@ const STR: {
         body: [
           {
             type: "p",
-            text: "Yêu cầu hoàn tiền hợp lệ thường được xử lý trong vòng vài phút đến vài ngày làm việc, tùy phương thức thanh toán ban đầu. Trong bản demo, mọi thao tác hoàn tiền chỉ mang tính mô phỏng.",
+            text: "Yêu cầu hoàn tiền hợp lệ thường được xử lý trong vòng vài phút đến vài ngày làm việc, tùy phương thức thanh toán ban đầu.",
           },
         ],
       },
@@ -152,7 +152,7 @@ const STR: {
         body: [
           {
             type: "p",
-            text: "A valid refund request is usually processed within a few minutes to a few business days, depending on the original payment method. In this demo, all refund actions are simulated only.",
+            text: "A valid refund request is usually processed within a few minutes to a few business days, depending on the original payment method.",
           },
         ],
       },

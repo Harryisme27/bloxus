@@ -46,8 +46,8 @@ export default {
         warning: "var(--color-warning)",
       },
       fontFamily: {
-        heading: ['"Baloo 2"', '"Be Vietnam Pro"', "system-ui", "sans-serif"],
-        body: ["Be Vietnam Pro", "system-ui", "sans-serif"],
+        heading: ["Arial", "Helvetica", "sans-serif"],
+        body: ["Arial", "Helvetica", "sans-serif"],
         mono: ["JetBrains Mono", "ui-monospace", "monospace"],
       },
       boxShadow: {

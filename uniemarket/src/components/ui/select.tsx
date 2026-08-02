@@ -9,7 +9,18 @@ import { cn } from "@/lib/utils";
 interface OptionData {
   value: string;
   label: React.ReactNode;
+  /** Text thuần của label (đệ quy qua JSX) — dùng cho ô tìm kiếm. */
+  text: string;
   disabled?: boolean;
+}
+
+/** Trích text thuần từ một ReactNode (đệ quy). */
+function textOf(node: React.ReactNode): string {
+  if (node == null || typeof node === "boolean") return "";
+  if (typeof node === "string" || typeof node === "number") return String(node);
+  if (Array.isArray(node)) return node.map(textOf).join("");
+  if (React.isValidElement(node)) return textOf((node.props as { children?: React.ReactNode }).children);
+  return "";
 }
 
 /** Gom các <option> (đệ quy qua Fragment/mảng) để dựng danh sách tùy chọn. */
@@ -26,21 +37,43 @@ function collectOptions(children: React.ReactNode, out: OptionData[]) {
         children?: React.ReactNode;
         disabled?: boolean;
       };
-      out.push({ value: String(p.value ?? ""), label: p.children, disabled: !!p.disabled });
+      out.push({
+        value: String(p.value ?? ""),
+        label: p.children,
+        text: textOf(p.children),
+        disabled: !!p.disabled,
+      });
     }
   });
 }
 
-export interface SelectProps extends React.SelectHTMLAttributes<HTMLSelectElement> {}
+export interface SelectProps extends React.SelectHTMLAttributes<HTMLSelectElement> {
+  /** Hiện ô tìm kiếm trong dropdown — gõ để lọc lựa chọn (cho danh sách dài). */
+  searchable?: boolean;
+}
 
 export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
-  ({ className, children, value, defaultValue, onChange, disabled, id, ...props }, _ref) => {
-    const options: OptionData[] = [];
-    collectOptions(children, options);
+  ({ className, children, value, defaultValue, onChange, disabled, id, searchable, ...props }, _ref) => {
+    const allOptions: OptionData[] = [];
+    collectOptions(children, allOptions);
 
     const [open, setOpen] = React.useState(false);
     const [activeIdx, setActiveIdx] = React.useState(-1);
+    const [query, setQuery] = React.useState("");
     const containerRef = React.useRef<HTMLDivElement>(null);
+    const searchRef = React.useRef<HTMLInputElement>(null);
+
+    // Lọc theo từ khoá (chỉ khi searchable); label không phải string thì giữ lại.
+    const q = query.trim().toLowerCase();
+    const options =
+      searchable && q ? allOptions.filter((o) => o.text.toLowerCase().includes(q)) : allOptions;
+
+    // Mở dropdown searchable -> focus ô tìm; đóng -> xoá từ khoá.
+    React.useEffect(() => {
+      if (!searchable) return;
+      if (open) searchRef.current?.focus();
+      else setQuery("");
+    }, [open, searchable]);
 
     const currentValue =
       value !== undefined
@@ -48,8 +81,10 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
         : defaultValue !== undefined
           ? String(defaultValue)
           : undefined;
+    // Nhãn trên nút lấy từ danh sách ĐẦY ĐỦ (không bị ảnh hưởng bởi bộ lọc tìm).
+    const selectedFull = allOptions.find((o) => o.value === currentValue) ?? allOptions[0];
+    const selected = selectedFull;
     const selectedIdx = options.findIndex((o) => o.value === currentValue);
-    const selected = selectedIdx >= 0 ? options[selectedIdx] : options[0];
 
     const emit = React.useCallback(
       (v: string) => {
@@ -149,10 +184,38 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
         </button>
 
         {open ? (
-          <ul
-            role="listbox"
-            className="absolute z-50 mt-1.5 max-h-72 w-full min-w-max overflow-y-auto rounded-lg border border-border-strong bg-surface p-1 shadow-2xl"
-          >
+          <div className="absolute z-50 mt-1.5 w-full min-w-max rounded-lg border border-border-strong bg-surface shadow-2xl">
+            {searchable ? (
+              <div className="border-b border-border p-1.5">
+                <input
+                  ref={searchRef}
+                  type="text"
+                  value={query}
+                  placeholder="Tìm... / Search..."
+                  onChange={(e) => {
+                    setQuery(e.target.value);
+                    setActiveIdx(0);
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Escape") {
+                      e.preventDefault();
+                      setOpen(false);
+                    } else if (e.key === "ArrowDown") {
+                      e.preventDefault();
+                      moveActive(1);
+                    } else if (e.key === "ArrowUp") {
+                      e.preventDefault();
+                      moveActive(-1);
+                    } else if (e.key === "Enter") {
+                      e.preventDefault();
+                      choose(activeIdx >= 0 ? activeIdx : 0);
+                    }
+                  }}
+                  className="h-8 w-full rounded-md border border-border-strong bg-surface-2 px-2.5 text-sm text-text placeholder:text-text-subtle focus:outline-none focus:ring-1 focus:ring-yellow"
+                />
+              </div>
+            ) : null}
+            <ul role="listbox" className="max-h-72 overflow-y-auto p-1">
             {options.map((opt, idx) => {
               const isSelected = opt.value === currentValue;
               const isActive = idx === activeIdx;
@@ -180,7 +243,11 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
                 </li>
               );
             })}
-          </ul>
+            {options.length === 0 ? (
+              <li className="px-2.5 py-2 text-sm text-text-subtle">—</li>
+            ) : null}
+            </ul>
+          </div>
         ) : null}
       </div>
     );

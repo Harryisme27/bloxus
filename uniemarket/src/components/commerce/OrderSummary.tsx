@@ -12,6 +12,7 @@ const STR = {
     products: "sản phẩm",
     subtotal: "Tạm tính",
     discount: "Giảm giá",
+    fee: "Phí xử lý",
     total: "Tổng cộng",
   },
   en: {
@@ -19,6 +20,7 @@ const STR = {
     products: "products",
     subtotal: "Subtotal",
     discount: "Discount",
+    fee: "Processing fee",
     total: "Total",
   },
 };
@@ -28,6 +30,8 @@ export interface OrderSummaryProps {
   subtotal: number;
   /** Giảm giá (VND) — mặc định 0. */
   discount?: number;
+  /** Phí xử lý cộng thêm (VND) — vd phí cổng Stripe. Mặc định 0 (ẩn dòng). */
+  fee?: number;
   /** Tổng cộng (VND). */
   total: number;
   /** When provided, renders an itemized list above the totals. */
@@ -43,6 +47,7 @@ export interface OrderSummaryProps {
 export function OrderSummary({
   subtotal,
   discount = 0,
+  fee = 0,
   total,
   lines,
   title,
@@ -102,6 +107,12 @@ export function OrderSummary({
             <div className="flex items-center justify-between">
               <dt className="text-text-muted">{t.discount}</dt>
               <dd className="tabular-nums-mono text-success">− {formatPrice(discount)}</dd>
+            </div>
+          ) : null}
+          {fee > 0 ? (
+            <div className="flex items-center justify-between">
+              <dt className="text-text-muted">{t.fee}</dt>
+              <dd className="tabular-nums-mono text-text">{formatPrice(fee)}</dd>
             </div>
           ) : null}
         </dl>

@@ -38,7 +38,6 @@ export const vi = {
     save: "Lưu",
     cancel: "Huỷ",
     confirm: "Xác nhận",
-    resetDemo: "Reset demo",
     backToHome: "Về trang chủ",
   },
   sections: {

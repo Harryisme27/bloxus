@@ -34,7 +34,7 @@ const STR = {
     videoTitle: "Video hướng dẫn",
     videoDescription: "Xem toàn bộ quy trình mua hàng chỉ trong 60 giây.",
     videoComingSoon: "Video sắp ra mắt",
-    videoDemoNote: "Nội dung demo — trình phát chỉ mang tính minh hoạ.",
+    videoDemoNote: "Video hướng dẫn từng bước mua hàng.",
     faqTitle: "Còn thắc mắc?",
     faqBody: "Xem thêm các câu hỏi thường gặp về đặt hàng, giao hàng và hoàn tiền.",
     faqButton: "Đến trang FAQ",
@@ -52,7 +52,7 @@ const STR = {
       {
         title: "Thanh toán",
         description:
-          "Nhập username Roblox và hoàn tất thanh toán mô phỏng. Đây là bản demo nên bạn không mất bất kỳ khoản tiền thật nào.",
+          "Nhập username Roblox và hoàn tất thanh toán an toàn qua thẻ (Stripe) hoặc ví Uniemarket.",
       },
       {
         title: "Nhận trong game",
@@ -88,7 +88,7 @@ const STR = {
     videoTitle: "Video guide",
     videoDescription: "See the whole buying process in just 60 seconds.",
     videoComingSoon: "Video coming soon",
-    videoDemoNote: "Demo content — this player is for illustration only.",
+    videoDemoNote: "A step-by-step walkthrough of the buying flow.",
     faqTitle: "Still have questions?",
     faqBody: "Browse more frequently asked questions about ordering, delivery, and refunds.",
     faqButton: "Go to the FAQ",
@@ -106,7 +106,7 @@ const STR = {
       {
         title: "Checkout",
         description:
-          "Enter your Roblox username and complete the simulated payment. This is a demo, so you won't spend any real money.",
+          "Enter your Roblox username and complete a secure payment by card (Stripe) or with your Uniemarket wallet.",
       },
       {
         title: "Receive in-game",

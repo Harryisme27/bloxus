@@ -84,6 +84,7 @@ function initials(name: string): string {
 export function ProfileMenu() {
   const t = usePick(STR);
   const user = useAuthStore((s) => s.user);
+  const email = useAuthStore((s) => s.session?.user.email ?? "");
   const logout = useAuthStore((s) => s.logout);
   const navigate = useNavigate();
   const location = useLocation();
@@ -175,6 +176,7 @@ export function ProfileMenu() {
             <Avatar name={name} avatarUrl={user.avatar_url} size="lg" />
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-semibold text-text">{name}</p>
+              {email ? <p className="truncate text-xs text-text-subtle">{email}</p> : null}
               <div className="mt-1 flex flex-wrap items-center gap-1.5">
                 <span
                   className={cn(

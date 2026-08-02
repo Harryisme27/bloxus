@@ -18,7 +18,7 @@ export const supabase: SupabaseClient | null = isSupabaseConfigured
 
 /** Thông báo lỗi thân thiện khi gọi tính năng cần Supabase mà chưa cấu hình. */
 export const NOT_CONFIGURED_MESSAGE =
-  "Supabase is not connected. Running in demo mode — see SETUP.md to connect a database.";
+  "Supabase is not connected — see SETUP.md to connect a database.";
 
 /**
  * Lấy client Supabase, ném lỗi tiếng Việt thân thiện nếu chưa cấu hình.

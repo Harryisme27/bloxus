@@ -4,6 +4,7 @@ import { Outlet, useLocation } from "react-router-dom";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { ChatWidget } from "@/components/ChatWidget";
+import { RecentDeliveryToast } from "@/components/RecentDeliveryToast";
 import { useCurrencyStore } from "@/store/currencyStore";
 import { useLangStore } from "@/i18n";
 import { useAuthStore } from "@/store/authStore";
@@ -43,6 +44,7 @@ export function RootLayout() {
       </main>
       <Footer />
       <ChatWidget />
+      <RecentDeliveryToast />
     </div>
   );
 }

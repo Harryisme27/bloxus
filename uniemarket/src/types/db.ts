@@ -23,7 +23,7 @@ export interface RoleRequestRow {
   created_at: string;
   reviewed_at: string | null;
 }
-export type ProductKind = "item" | "service" | "account";
+export type ProductKind = "item" | "service" | "account" | "currency";
 export type DbOrderStatus =
   | "pending_payment"
   | "paid"

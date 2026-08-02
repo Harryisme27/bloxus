@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { useParams, useSearchParams, Link } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   AlertTriangle,
@@ -31,7 +31,8 @@ import { OrderActions } from "@/components/order/OrderActions";
 import { ReviewWidget } from "@/components/order/ReviewWidget";
 import { finalizeCancel, getOrder, listOrderEvents, markPaymentSent } from "@/lib/db/orders";
 import { getSettings, getPublicGateways } from "@/lib/db/settings";
-import { isSupabaseConfigured } from "@/lib/supabase";
+import { stripeProcessingFeeVnd } from "@/lib/paymentGateways";
+import { isSupabaseConfigured, requireSupabase } from "@/lib/supabase";
 import { formatPrice, relativeTime } from "@/lib/format";
 import { orderDisplayStatus } from "@/types/db";
 import type { OrderEventType } from "@/types/db";
@@ -94,6 +95,13 @@ const STR = {
     gwPayLink: "Link thanh toán",
     gwOpenLink: "Mở link thanh toán",
     gwNotConfigured: "Shop chưa cấu hình cổng này — vui lòng trao đổi qua khung chat.",
+    stripePayBtn: "Thanh toán bằng thẻ / Apple Pay",
+    stripePayHint:
+      "Bạn sẽ được chuyển tới trang thanh toán bảo mật (giá tính bằng USD, hiện không thu phí xử lý). Đơn tự xác nhận ngay khi trả xong.",
+    stripePayBusy: "Đang tạo phiên thanh toán…",
+    stripeCancelled: "Bạn đã hủy thanh toán — có thể thử lại bất cứ lúc nào.",
+    stripeFeeLabel: "Phí xử lý",
+    stripeTotalLabel: "Tổng thanh toán",
     orderDetailsTitle: "Chi tiết đơn",
     total: "Tổng cộng",
     timelineTitle: "Tiến trình đơn hàng",
@@ -157,6 +165,13 @@ const STR = {
     gwPayLink: "Payment link",
     gwOpenLink: "Open payment link",
     gwNotConfigured: "The shop hasn't configured this gateway — please discuss via chat.",
+    stripePayBtn: "Pay by card / Apple Pay",
+    stripePayHint:
+      "You'll be redirected to a secure checkout page (charged in USD, no processing fee right now). The order confirms automatically once paid.",
+    stripePayBusy: "Creating checkout session…",
+    stripeCancelled: "Payment cancelled — you can retry anytime.",
+    stripeFeeLabel: "Processing fee",
+    stripeTotalLabel: "Total charged",
     orderDetailsTitle: "Order details",
     total: "Total",
     timelineTitle: "Order timeline",
@@ -182,6 +197,7 @@ function OrderDetailContent() {
   const { id = "" } = useParams<{ id: string }>();
   const queryClient = useQueryClient();
   const [cancelOpen, setCancelOpen] = useState(false);
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const orderQuery = useQuery({
     queryKey: ["order", id],
@@ -220,6 +236,57 @@ function OrderDetailContent() {
     },
     onError: (err) => toast.error(err instanceof Error ? err.message : "Error"),
   });
+
+  // Thanh toán thẻ: gọi Edge Function tạo phiên Stripe Checkout rồi chuyển hướng.
+  const stripeMutation = useMutation({
+    mutationFn: async () => {
+      const sb = requireSupabase();
+      const { data, error } = await sb.functions.invoke("create-checkout-session", {
+        body: { order_id: id },
+      });
+      if (error) {
+        // FunctionsHttpError giấu body — móc message thật từ response của function.
+        const ctx = (error as { context?: Response }).context;
+        if (ctx && typeof ctx.json === "function") {
+          const body = (await ctx.json().catch(() => null)) as { error?: string } | null;
+          if (body?.error) throw new Error(body.error);
+        }
+        throw new Error(error.message);
+      }
+      const url = (data as { url?: string } | null)?.url;
+      if (!url) throw new Error((data as { error?: string } | null)?.error ?? "No checkout URL");
+      return url;
+    },
+    onSuccess: (url) => {
+      window.location.assign(url);
+    },
+    onError: (err) => toast.error(err instanceof Error ? err.message : "Error"),
+  });
+
+  // Quay về từ Stripe: ?stripe=success -> webhook có thể tới trễ vài giây, poll
+  // đơn tới khi hết pending_payment; ?stripe=cancel -> báo nhẹ rồi xoá param.
+  const stripeReturn = searchParams.get("stripe");
+  const orderStatus = orderQuery.data?.status;
+  useEffect(() => {
+    if (!stripeReturn) return;
+    if (stripeReturn === "cancel") {
+      toast.info(t.stripeCancelled);
+      setSearchParams({}, { replace: true });
+      return;
+    }
+    if (stripeReturn === "success") {
+      if (orderStatus && orderStatus !== "pending_payment") {
+        setSearchParams({}, { replace: true });
+        return;
+      }
+      const timer = setInterval(() => {
+        void queryClient.invalidateQueries({ queryKey: ["order", id] });
+        void queryClient.invalidateQueries({ queryKey: ["order-events", id] });
+      }, 2000);
+      return () => clearInterval(timer);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [stripeReturn, orderStatus, id]);
 
   const finalizeCancelMutation = useMutation({
     mutationFn: () => finalizeCancel(id),
@@ -267,6 +334,10 @@ function OrderDetailContent() {
 
   const settings = settingsQuery.data ?? {};
   const asText = (v: unknown) => (typeof v === "string" ? v : "");
+  // Phí Stripe (khách chịu) — khớp công thức của Edge Function.
+  const stripeFee = stripeProcessingFeeVnd(
+    order.items.map((it) => ({ unitPrice: it.unit_price, quantity: it.quantity })),
+  );
   const displayStatus = orderDisplayStatus(order);
   const isPending = displayStatus === "pending_payment";
   // Cổng thanh toán khách chọn (mặc định theo payment_method nếu thiếu).
@@ -428,11 +499,15 @@ function OrderDetailContent() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3 pt-4 text-sm">
-                <p className="text-text-muted">
-                  {t.payInstrPrefix}
-                  <b className="text-text">{t.payInstrBold}</b>
-                  {t.payInstrSuffix}
-                </p>
+                {/* Hướng dẫn "ghi mã đơn vào nội dung CK" chỉ dành cho CK tay —
+                    Stripe tự xác nhận nên không hiện. */}
+                {gwId !== "stripe" ? (
+                  <p className="text-text-muted">
+                    {t.payInstrPrefix}
+                    <b className="text-text">{t.payInstrBold}</b>
+                    {t.payInstrSuffix}
+                  </p>
+                ) : null}
                 {gwId === "momo" ? (
                   <>
                     <PayRow label={t.momoNumber} value={asText(settings.momo_number)} onCopy={copy} />
@@ -452,7 +527,19 @@ function OrderDetailContent() {
                       <p className="text-xs text-warning">{t.gwNotConfigured}</p>
                     ) : null}
                   </>
-                ) : gwId === "stripe" || gwId === "paypal" ? (
+                ) : gwId === "stripe" ? (
+                  <>
+                    <p className="text-xs text-text-muted">{t.stripePayHint}</p>
+                    <Button
+                      size="sm"
+                      className="w-full"
+                      disabled={stripeMutation.isPending}
+                      onClick={() => stripeMutation.mutate()}
+                    >
+                      {stripeMutation.isPending ? t.stripePayBusy : t.stripePayBtn}
+                    </Button>
+                  </>
+                ) : gwId === "paypal" ? (
                   <>
                     {asText(gwCfg.link) ? (
                       <a
@@ -477,27 +564,50 @@ function OrderDetailContent() {
                     ) : null}
                   </>
                 )}
-                <PayRow label={t.amount} value={formatPrice(order.total)} onCopy={copy} highlight />
-                <PayRow
-                  label={t.transferNote}
-                  value={order.order_code}
-                  onCopy={copy}
-                  highlight
-                />
-                {order.payment_sent_at ? (
-                  <p className="rounded-lg bg-green-soft px-3 py-2 text-xs font-medium text-green">
-                    {t.paymentSentDone}
-                  </p>
+                {gwId === "stripe" ? (
+                  <>
+                    <PayRow label={t.amount} value={formatPrice(order.total)} onCopy={copy} />
+                    {/* Dòng phí xử lý chỉ hiện khi có thu phí. */}
+                    {stripeFee > 0 ? (
+                      <>
+                        <PayRow label={t.stripeFeeLabel} value={formatPrice(stripeFee)} onCopy={copy} />
+                        <PayRow
+                          label={t.stripeTotalLabel}
+                          value={formatPrice(order.total + stripeFee)}
+                          onCopy={copy}
+                          highlight
+                        />
+                      </>
+                    ) : null}
+                  </>
                 ) : (
-                  <Button
-                    size="sm"
-                    className="w-full"
-                    disabled={paymentSentMutation.isPending}
-                    onClick={() => paymentSentMutation.mutate()}
-                  >
-                    {t.paymentSentBtn}
-                  </Button>
+                  <PayRow label={t.amount} value={formatPrice(order.total)} onCopy={copy} highlight />
                 )}
+                {/* Stripe tự xác nhận qua webhook — không cần ghi chú CK / "đã chuyển". */}
+                {gwId !== "stripe" ? (
+                  <>
+                    <PayRow
+                      label={t.transferNote}
+                      value={order.order_code}
+                      onCopy={copy}
+                      highlight
+                    />
+                    {order.payment_sent_at ? (
+                      <p className="rounded-lg bg-green-soft px-3 py-2 text-xs font-medium text-green">
+                        {t.paymentSentDone}
+                      </p>
+                    ) : (
+                      <Button
+                        size="sm"
+                        className="w-full"
+                        disabled={paymentSentMutation.isPending}
+                        onClick={() => paymentSentMutation.mutate()}
+                      >
+                        {t.paymentSentBtn}
+                      </Button>
+                    )}
+                  </>
+                ) : null}
               </CardContent>
             </Card>
           ) : null}

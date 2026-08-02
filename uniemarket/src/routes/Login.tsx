@@ -1,73 +1,261 @@
-import { useState } from "react";
-import type { FormEvent } from "react";
+import { useRef, useState } from "react";
+import type { FormEvent, PointerEvent as ReactPointerEvent } from "react";
 import { Link, Navigate, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
-import { UserRound, Lock, Eye, EyeOff, LogIn, Sparkles, AlertCircle } from "lucide-react";
+import { AlertCircle, ChevronsRight, Eye, EyeOff, KeyRound, Lock, LogIn, Mail } from "lucide-react";
 import { AuthCard } from "@/components/account/AuthCard";
+import { DiscordIcon, SocialLoginButtons } from "@/components/account/SocialLoginButtons";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useAuthStore } from "@/store/authStore";
 import { TurnstileWidget, turnstileEnabled } from "@/components/account/TurnstileWidget";
+import { useAuthStore } from "@/store/authStore";
 import { usePick } from "@/i18n";
 
 const STR = {
   vi: {
-    signedIn: "Đăng nhập thành công",
-    signedInDesc: "Chào mừng bạn quay lại Uniemarket!",
     title: "Đăng nhập",
     subtitle: "Truy cập bảng điều khiển, đơn hàng và minh chứng giao dịch của bạn.",
+    slideLabel: "Nhấn hoặc kéo để đăng nhập",
+    slideAria: "Nhấn hoặc kéo icon Discord để đăng nhập",
+    redirecting: "Đang chuyển hướng…",
     noAccount: "Chưa có tài khoản?",
     signUpNow: "Đăng ký ngay",
-    selfRegistered: "Tài khoản do bạn tự đăng ký",
-    selfRegisteredDesc:
-      'Uniemarket dùng tài khoản thật — đăng nhập bằng tên đăng nhập hoặc email cùng mật khẩu bạn đã đăng ký. Chưa có tài khoản? Bấm "Đăng ký ngay" bên dưới.',
-    email: "Tên đăng nhập / Email",
-    emailPlaceholder: "username hoặc ban@email.com",
+    email: "Email hoặc tên hiển thị",
+    emailPlaceholder: "name@example.com",
     password: "Mật khẩu",
+    passwordPlaceholder: "Mật khẩu của bạn",
     hidePassword: "Ẩn mật khẩu",
     showPassword: "Hiện mật khẩu",
-    remember: "Ghi nhớ đăng nhập",
-    forgotTitle: "Sắp ra mắt — liên hệ hỗ trợ nếu bạn quên mật khẩu",
     forgot: "Quên mật khẩu?",
     signingIn: "Đang đăng nhập…",
     signIn: "Đăng nhập",
-    or: "HOẶC",
-    googleDisabled: "Đăng nhập Google chưa được kích hoạt.",
-    discordDisabled: "Đăng nhập Discord chưa được kích hoạt.",
+    welcomeBack: "Đăng nhập thành công",
+    or: "hoặc",
   },
   en: {
-    signedIn: "Signed in successfully",
-    signedInDesc: "Welcome back to Uniemarket!",
     title: "Log in",
     subtitle: "Access your dashboard, orders, and transaction proofs.",
+    slideLabel: "Click or drag to login",
+    slideAria: "Click or drag the Discord icon to login",
+    redirecting: "Redirecting…",
     noAccount: "Don't have an account?",
     signUpNow: "Sign up now",
-    selfRegistered: "Accounts you register yourself",
-    selfRegisteredDesc:
-      'Uniemarket uses real accounts — sign in with your username or email and the password you registered. No account yet? Click "Sign up now" below.',
-    email: "Username / Email",
-    emailPlaceholder: "username or you@email.com",
+    email: "Email or display name",
+    emailPlaceholder: "name@example.com",
     password: "Password",
+    passwordPlaceholder: "Your password",
     hidePassword: "Hide password",
     showPassword: "Show password",
-    remember: "Remember me",
-    forgotTitle: "Coming soon — contact support if you forgot your password",
     forgot: "Forgot password?",
     signingIn: "Signing in…",
     signIn: "Log in",
-    or: "OR",
-    googleDisabled: "Google sign-in isn't enabled yet.",
-    discordDisabled: "Discord sign-in isn't enabled yet.",
+    welcomeBack: "Signed in successfully",
+    or: "or",
   },
 };
+
+/** Kích thước handle (px) + padding trong nút — dùng để tính quãng kéo tối đa. */
+const HANDLE = 44;
+const PAD = 10;
+
+/** Nút "Click or drag to login" kiểu yummytrack: handle Discord kéo được sang
+ * phải; kéo quá ~70% (hoặc bấm/Enter) thì chuyển sang trang OAuth Discord. */
+function SlideDiscordLogin() {
+  const t = usePick(STR);
+  const loginWithOAuth = useAuthStore((s) => s.loginWithOAuth);
+  const [busy, setBusy] = useState(false);
+  const [drag, setDrag] = useState(0);
+  const [dragging, setDragging] = useState(false);
+  const btnRef = useRef<HTMLButtonElement>(null);
+  const startX = useRef(0);
+  const moved = useRef(false);
+
+  async function trigger() {
+    if (busy) return;
+    setBusy(true);
+    const result = await loginWithOAuth("discord");
+    if (!result.success) {
+      toast.error(result.error);
+      setBusy(false);
+    }
+    // Thành công thì trình duyệt đang rời trang — giữ trạng thái chờ.
+  }
+
+  function maxDrag() {
+    const el = btnRef.current;
+    return el ? Math.max(0, el.clientWidth - HANDLE - PAD * 2) : 0;
+  }
+
+  function onPointerDown(e: ReactPointerEvent<HTMLButtonElement>) {
+    if (busy) return;
+    e.currentTarget.setPointerCapture(e.pointerId);
+    startX.current = e.clientX;
+    moved.current = false;
+    setDragging(true);
+  }
+
+  function onPointerMove(e: ReactPointerEvent<HTMLButtonElement>) {
+    if (!dragging || busy) return;
+    const dx = Math.min(Math.max(0, e.clientX - startX.current), maxDrag());
+    if (dx > 8) moved.current = true;
+    setDrag(dx);
+  }
+
+  function onPointerUp() {
+    if (!dragging) return;
+    setDragging(false);
+    // Kéo quá 70% quãng đường -> đăng nhập; bấm nhanh (không kéo) cũng vậy.
+    if (!busy && (drag >= maxDrag() * 0.7 || !moved.current)) void trigger();
+    setDrag(0);
+  }
+
+  return (
+    <button
+      ref={btnRef}
+      type="button"
+      disabled={busy}
+      aria-label={t.slideAria}
+      onPointerDown={onPointerDown}
+      onPointerMove={onPointerMove}
+      onPointerUp={onPointerUp}
+      onPointerCancel={() => {
+        setDragging(false);
+        setDrag(0);
+      }}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          void trigger();
+        }
+      }}
+      className="um-slide-btn flex h-16 w-full touch-none select-none items-center rounded-2xl border border-border-strong bg-surface-2 px-2.5 text-sm font-bold uppercase tracking-[0.14em] text-text transition-colors hover:border-yellow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-yellow focus-visible:ring-offset-2 focus-visible:ring-offset-bg disabled:pointer-events-none disabled:opacity-60"
+    >
+      <span className="um-slide-fill" aria-hidden />
+      <span
+        aria-hidden
+        style={{
+          transform: `translateX(${drag}px)`,
+          transition: dragging ? "none" : "transform 0.3s cubic-bezier(0.22, 1, 0.36, 1)",
+        }}
+        className="inline-flex h-11 w-11 shrink-0 cursor-grab items-center justify-center rounded-xl bg-[#5865F2] shadow-lg shadow-[#5865F2]/30 active:cursor-grabbing"
+      >
+        <DiscordIcon className="um-icon-bob h-6 w-6" fill="#fff" />
+      </span>
+      <span className="flex-1 text-center" aria-hidden>
+        {busy ? t.redirecting : t.slideLabel}
+      </span>
+      <ChevronsRight className="um-slide-chevrons mr-1.5 h-4 w-4 shrink-0 text-text-subtle" aria-hidden />
+    </button>
+  );
+}
+
+/** Form đăng nhập tay (email/tên hiển thị + mật khẩu), giữ gọn một cột. */
+function ManualLoginForm({ onSuccess }: { onSuccess: () => void }) {
+  const t = usePick(STR);
+  const login = useAuthStore((s) => s.login);
+  const [identifier, setIdentifier] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+
+  async function handleSubmit(e: FormEvent) {
+    e.preventDefault();
+    setError(null);
+    setSubmitting(true);
+    const result = await login(identifier, password, captchaToken ?? undefined);
+    if (result.success) {
+      toast.success(t.welcomeBack);
+      onSuccess();
+    } else {
+      setError(result.error);
+      setSubmitting(false);
+    }
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4" noValidate>
+      <div>
+        <Label htmlFor="login-identifier">{t.email}</Label>
+        <div className="relative">
+          <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-text-subtle">
+            <Mail className="um-icon-bob h-4 w-4" aria-hidden />
+          </span>
+          <Input
+            id="login-identifier"
+            type="text"
+            autoComplete="username"
+            placeholder={t.emailPlaceholder}
+            className="pl-9"
+            value={identifier}
+            onChange={(e) => setIdentifier(e.target.value)}
+            required
+          />
+        </div>
+      </div>
+
+      <div>
+        <div className="flex items-center justify-between">
+          <Label htmlFor="login-password">{t.password}</Label>
+          <Link to="/forgot-password" className="text-xs text-yellow hover:text-yellow-hover">
+            {t.forgot}
+          </Link>
+        </div>
+        <div className="relative">
+          <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-text-subtle">
+            <Lock className="um-icon-sway h-4 w-4" aria-hidden />
+          </span>
+          <Input
+            id="login-password"
+            type={showPassword ? "text" : "password"}
+            autoComplete="current-password"
+            placeholder={t.passwordPlaceholder}
+            className="px-9"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+          />
+          <button
+            type="button"
+            onClick={() => setShowPassword((v) => !v)}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-text-subtle transition-colors hover:text-text"
+            aria-label={showPassword ? t.hidePassword : t.showPassword}
+          >
+            {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+          </button>
+        </div>
+      </div>
+
+      {error ? (
+        <div className="flex items-start gap-2 rounded-lg border border-danger bg-danger-soft px-3 py-2 text-sm text-danger">
+          <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
+          <span>{error}</span>
+        </div>
+      ) : null}
+
+      <TurnstileWidget onToken={setCaptchaToken} />
+
+      <Button
+        type="submit"
+        variant="primary"
+        size="lg"
+        className="w-full"
+        disabled={submitting || (turnstileEnabled && !captchaToken)}
+      >
+        <LogIn className="um-icon-bob h-4 w-4" aria-hidden />
+        {submitting ? t.signingIn : t.signIn}
+      </Button>
+    </form>
+  );
+}
 
 export function Login() {
   const t = usePick(STR);
   const user = useAuthStore((state) => state.user);
-  const login = useAuthStore((state) => state.login);
-  const navigate = useNavigate();
   const location = useLocation();
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
   // Where to send the user after a successful sign-in (set by RequireAuth as
@@ -77,164 +265,39 @@ export function Login() {
     searchParams.get("next") ??
     "/dashboard";
 
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [remember, setRemember] = useState(true);
-  const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [submitting, setSubmitting] = useState(false);
-  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
-
   // Already signed in → skip the form.
   if (user) return <Navigate to={from} replace />;
-
-  async function handleSubmit(e: FormEvent) {
-    e.preventDefault();
-    setError(null);
-    setSubmitting(true);
-
-    const result = await login(email, password, captchaToken ?? undefined);
-    if (result.success) {
-      toast.success(t.signedIn, { description: t.signedInDesc });
-      navigate(from, { replace: true });
-    } else {
-      setError(result.error);
-      setSubmitting(false);
-    }
-  }
 
   return (
     <AuthCard
       title={t.title}
       subtitle={t.subtitle}
       footer={
-        <>
-          {t.noAccount}{" "}
-          <Link to="/register" className="font-semibold text-yellow hover:text-yellow-hover">
+        <span className="flex items-center justify-between gap-3 rounded-2xl border border-border bg-surface px-4 py-2.5">
+          <span className="flex items-center gap-2 text-text-muted">
+            <KeyRound className="um-icon-sway h-3.5 w-3.5 text-text-subtle" aria-hidden />
+            {t.noAccount}
+          </span>
+          <Link
+            to="/register"
+            className="rounded-xl bg-yellow px-3.5 py-1.5 text-xs font-bold uppercase tracking-wide text-text-on-yellow transition-colors hover:bg-yellow-hover"
+          >
             {t.signUpNow}
           </Link>
-        </>
+        </span>
       }
     >
-      <div className="mb-5 rounded-xl border border-yellow bg-yellow-soft p-4">
-        <div className="flex items-center gap-2 text-sm font-semibold text-yellow">
-          <Sparkles className="h-4 w-4" aria-hidden />
-          {t.selfRegistered}
-        </div>
-        <p className="mt-2 text-sm text-text-muted">{t.selfRegisteredDesc}</p>
-      </div>
+      <ManualLoginForm onSuccess={() => navigate(from, { replace: true })} />
 
-      <form onSubmit={handleSubmit} className="space-y-4" noValidate>
-        <div>
-          <Label htmlFor="login-email">{t.email}</Label>
-          <div className="relative">
-            <UserRound
-              className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-subtle"
-              aria-hidden
-            />
-            <Input
-              id="login-email"
-              type="text"
-              autoComplete="username"
-              placeholder={t.emailPlaceholder}
-              className="pl-9"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-            />
-          </div>
-        </div>
-
-        <div>
-          <Label htmlFor="login-password">{t.password}</Label>
-          <div className="relative">
-            <Lock
-              className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-subtle"
-              aria-hidden
-            />
-            <Input
-              id="login-password"
-              type={showPassword ? "text" : "password"}
-              autoComplete="current-password"
-              placeholder="••••••••"
-              className="px-9"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-            />
-            <button
-              type="button"
-              onClick={() => setShowPassword((v) => !v)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-text-subtle transition-colors hover:text-text"
-              aria-label={showPassword ? t.hidePassword : t.showPassword}
-            >
-              {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-            </button>
-          </div>
-        </div>
-
-        <div className="flex items-center justify-between">
-          <label className="flex cursor-pointer items-center gap-2 text-sm text-text-muted">
-            <input
-              type="checkbox"
-              checked={remember}
-              onChange={(e) => setRemember(e.target.checked)}
-              className="h-4 w-4 rounded border-border-strong bg-surface-2 accent-yellow"
-            />
-            {t.remember}
-          </label>
-          <Link
-            to="/forgot-password"
-            className="text-sm text-text-muted transition-colors hover:text-yellow"
-          >
-            {t.forgot}
-          </Link>
-        </div>
-
-        {error ? (
-          <div className="flex items-start gap-2 rounded-lg border border-danger bg-danger-soft px-3 py-2 text-sm text-danger">
-            <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
-            <span>{error}</span>
-          </div>
-        ) : null}
-
-        <TurnstileWidget onToken={setCaptchaToken} />
-
-        <Button
-          type="submit"
-          variant="primary"
-          size="lg"
-          className="w-full"
-          disabled={submitting || (turnstileEnabled && !captchaToken)}
-        >
-          <LogIn className="h-4 w-4" aria-hidden />
-          {submitting ? t.signingIn : t.signIn}
-        </Button>
-      </form>
-
-      {/* Social login (visual only) */}
-      <div className="my-5 flex items-center gap-3 text-xs text-text-subtle">
-        <span className="h-px flex-1 bg-border" />
+      <div className="my-5 flex items-center gap-3 text-xs uppercase tracking-widest text-text-subtle" aria-hidden>
+        <span className="um-auth-hr flex-1" />
         {t.or}
-        <span className="h-px flex-1 bg-border" />
+        <span className="um-auth-hr flex-1" />
       </div>
-      <div className="grid grid-cols-2 gap-3">
-        <Button
-          type="button"
-          variant="secondary"
-          size="md"
-          onClick={() => toast(t.googleDisabled)}
-        >
-          Google
-        </Button>
-        <Button
-          type="button"
-          variant="secondary"
-          size="md"
-          onClick={() => toast(t.discordDisabled)}
-        >
-          Discord
-        </Button>
+
+      <div className="space-y-2.5">
+        <SlideDiscordLogin />
+        <SocialLoginButtons only={["google"]} noDivider />
       </div>
     </AuthCard>
   );

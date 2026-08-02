@@ -41,7 +41,6 @@ export const en: Strings = {
     save: "Save",
     cancel: "Cancel",
     confirm: "Confirm",
-    resetDemo: "Reset demo",
     backToHome: "Back to home",
   },
   sections: {

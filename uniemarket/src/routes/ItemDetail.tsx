@@ -41,7 +41,6 @@ import { SetupNotice } from "@/components/SetupNotice";
 import { isSupabaseConfigured } from "@/lib/supabase";
 import { getProductById, listCategories, listProducts } from "@/lib/db/catalog";
 import { useCartStore, computeUnitPrice, buildCartLine } from "@/store/cartStore";
-import { useBuyNowStore } from "@/store/buyNowStore";
 import { formatPrice } from "@/lib/format";
 import { usePick } from "@/i18n";
 import { cn } from "@/lib/utils";
@@ -438,7 +437,6 @@ function ItemDetailContent({
   navigate: ReturnType<typeof useNavigate>;
 }) {
   const t = usePick(STR);
-  const setBuyNow = useBuyNowStore((s) => s.setBuyNow);
   const isService = product.kind === "service";
   const opts = product.service_options;
   const inStock = isInStock(product);
@@ -498,8 +496,9 @@ function ItemDetailContent({
   const handleBuyNow = () => {
     if (!canBuy) return;
     // Mua ngay: chỉ món này qua thẳng checkout (không đụng giỏ hàng).
-    setBuyNow(buildCartLine(product, isService ? 1 : qty, { selectedOptions, optionSummary }));
-    navigate("/checkout");
+    navigate("/checkout", {
+      state: { buyNow: buildCartLine(product, isService ? 1 : qty, { selectedOptions, optionSummary }) },
+    });
   };
 
   return (

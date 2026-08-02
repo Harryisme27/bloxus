@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { ArrowRight, ShieldCheck, Zap, BadgeCheck } from "lucide-react";
 import { PageContainer } from "@/components/PageContainer";
+import { HeroPlayground } from "@/components/storefront/HeroPlayground";
 import { buttonVariants } from "@/components/ui/button";
 import { usePick } from "@/i18n";
 import { cn } from "@/lib/utils";
@@ -60,7 +61,10 @@ export function HeroSection() {
         style={{ backgroundColor: "rgba(245, 176, 30, 0.08)" }}
       />
 
-      <PageContainer className="relative py-20 sm:py-28 lg:py-32">
+      {/* Sân chơi coin lát chanh: tóm - kéo - ném được (vùng trống của hero). */}
+      <HeroPlayground />
+
+      <PageContainer className="pointer-events-none relative z-10 py-20 sm:py-28 lg:py-32">
         <div className="mx-auto flex max-w-3xl flex-col items-center text-center">
           <img
             src="/logo-unie.png"
@@ -77,7 +81,7 @@ export function HeroSection() {
             {t.subtitle}
           </p>
 
-          <div className="um-enter um-enter-4 mt-8 flex flex-col gap-3 sm:flex-row">
+          <div className="um-enter um-enter-4 pointer-events-auto mt-8 flex flex-col gap-3 sm:flex-row">
             <Link to="/games" className={cn(buttonVariants({ variant: "primary", size: "lg" }), "group")}>
               {t.shopNow}
               <ArrowRight

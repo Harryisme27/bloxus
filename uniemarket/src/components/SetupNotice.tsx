@@ -5,7 +5,7 @@ const STR = {
   vi: {
     title: "Chưa kết nối cơ sở dữ liệu",
     introPre: "Web đang chạy ở",
-    demoMode: "chế độ demo",
+    demoMode: "chế độ ngoại tuyến",
     introPost:
       "(dữ liệu mẫu, không lưu thật). Để bật tài khoản, đơn hàng và khu làm việc, bạn cần kết nối Supabase — miễn phí và chỉ mất khoảng 10 phút:",
     step1: "Tạo project miễn phí tại",
@@ -19,7 +19,7 @@ const STR = {
   en: {
     title: "Database not connected",
     introPre: "The site is running in",
-    demoMode: "demo mode",
+    demoMode: "offline mode",
     introPost:
       "(sample data, nothing is really saved). To enable accounts, real orders, and the work area, you need to connect Supabase — it's free and takes about 10 minutes:",
     step1: "Create a free project at",

@@ -93,6 +93,11 @@ export async function listWorkOrders(opts?: {
 }): Promise<OrderRow[]> {
   const sb = requireSupabase();
   let query = sb.from("orders").select("*").order("created_at", { ascending: false });
+  // Đơn Stripe chưa trả tiền = chưa "tồn tại" với khu làm việc (webhook xác
+  // nhận xong mới hiện). Giữ lại mọi đơn khác (kể cả pending CK tay).
+  query = query.or(
+    "status.neq.pending_payment,payment_gateway.neq.stripe,payment_gateway.is.null",
+  );
   if (opts?.status) query = query.eq("status", opts.status);
   if (opts?.assignedTo) query = query.eq("assigned_ctv", opts.assignedTo);
   const { data, error } = await query;

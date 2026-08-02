@@ -1,20 +1,9 @@
 import { Link } from "react-router-dom";
-import { MessageCircle, RotateCcw } from "lucide-react";
-import { toast } from "sonner";
+import { MessageCircle } from "lucide-react";
 import { PageContainer } from "@/components/PageContainer";
 import { Button } from "@/components/ui/button";
 import { BRAND_NAME, DISCORD_URL, SUPPORT_EMAIL } from "@/lib/constants";
 import { usePick } from "@/i18n";
-
-// Every zustand persist() store in this app writes to one of these
-// localStorage keys — see store/*.ts. Resetting the demo just clears them
-// and reloads, dropping the app back to its first-run state.
-const DEMO_STORAGE_KEYS = [
-  "uniemarket-cart",
-  "uniemarket-auth",
-  "uniemarket-orders",
-  "uniemarket-demo",
-];
 
 const STR = {
   vi: {
@@ -38,10 +27,6 @@ const STR = {
     terms: "Điều khoản dịch vụ",
     privacy: "Chính sách bảo mật",
     refund: "Chính sách hoàn tiền",
-    copyright: "Bản demo — không thanh toán thật.",
-    demoChip: "DEMO — không thanh toán thật",
-    resetDemo: "Reset demo",
-    resetToast: "Đã reset demo. Đang tải lại trang...",
   },
   en: {
     logoAria: "Uniemarket - Home",
@@ -64,18 +49,8 @@ const STR = {
     terms: "Terms of Service",
     privacy: "Privacy Policy",
     refund: "Refund Policy",
-    copyright: "A demo — no real payments.",
-    demoChip: "DEMO — no real payments",
-    resetDemo: "Reset demo",
-    resetToast: "Demo reset. Reloading the page...",
   },
 };
-
-function handleResetDemo(message: string) {
-  DEMO_STORAGE_KEYS.forEach((key) => localStorage.removeItem(key));
-  toast.success(message);
-  setTimeout(() => window.location.reload(), 600);
-}
 
 export function Footer() {
   const t = usePick(STR);
@@ -131,7 +106,7 @@ export function Footer() {
         <PageContainer className="flex flex-col gap-4 py-6 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-text-subtle">
             <span>
-              &copy; {new Date().getFullYear()} {BRAND_NAME}. {t.copyright}
+              &copy; {new Date().getFullYear()} {BRAND_NAME}.
             </span>
             {legalLinks.map((link) => (
               <Link key={link.to} to={link.to} className="hover:text-text-muted">
@@ -141,15 +116,6 @@ export function Footer() {
             <span>{SUPPORT_EMAIL}</span>
           </div>
 
-          <div className="flex items-center gap-3">
-            <span className="rounded-full border border-border-strong bg-surface-2 px-2.5 py-1 text-[11px] font-semibold text-text-subtle">
-              {t.demoChip}
-            </span>
-            <Button variant="ghost" size="sm" onClick={() => handleResetDemo(t.resetToast)}>
-              <RotateCcw className="h-3.5 w-3.5" aria-hidden="true" />
-              {t.resetDemo}
-            </Button>
-          </div>
         </PageContainer>
       </div>
     </footer>

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
-import { Link, Navigate, useNavigate } from "react-router-dom";
+import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { AtSign, Check, Gamepad2, Landmark, Lock, MessageSquare, ShieldCheck, Wallet } from "lucide-react";
 import { toast } from "sonner";
@@ -11,15 +11,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { RequireAuth } from "@/components/account/RequireAuth";
 import { OrderSummary } from "@/components/commerce/OrderSummary";
 import { PaymentMethodSelector } from "@/components/commerce/PaymentMethodSelector";
-import { useCartStore } from "@/store/cartStore";
-import { useBuyNowStore } from "@/store/buyNowStore";
+import { useCartStore, type CartLine } from "@/store/cartStore";
 import { useAuthStore } from "@/store/authStore";
 import { TurnstileWidget, turnstileEnabled } from "@/components/account/TurnstileWidget";
 import { placeOrder } from "@/lib/db/orders";
 import { payOrderWithCredit } from "@/lib/db/credit";
 import { getPublicGateways } from "@/lib/db/settings";
-import { enabledGateways } from "@/lib/paymentGateways";
-import { isSupabaseConfigured } from "@/lib/supabase";
+import { enabledGateways, stripeProcessingFeeVnd } from "@/lib/paymentGateways";
+import { isSupabaseConfigured, requireSupabase } from "@/lib/supabase";
 import { formatPrice } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { usePick } from "@/i18n";
@@ -52,6 +51,10 @@ const STR = {
     manualPayment: "Thanh toán thủ công",
     manualPaymentDesc:
       "Sau khi tạo đơn, bạn sẽ thấy thông tin chuyển khoản kèm mã đơn. Shop xác nhận nhận được tiền rồi mới bắt đầu xử lý — mọi trao đổi diễn ra ngay trong trang đơn hàng.",
+    stripePayment: "Thanh toán bằng thẻ / Apple Pay",
+    stripePaymentDesc:
+      "Bấm \"Đặt hàng\" là chuyển thẳng tới trang thanh toán bảo mật (hỗ trợ thẻ quốc tế và Apple Pay). Giá được quy đổi sang USD, hiện KHÔNG thu phí xử lý. Thanh toán xong, đơn tự xác nhận trong vài giây.",
+    stripeRedirecting: "Đã tạo đơn — đang chuyển tới trang thanh toán…",
     badgeCodeTitle: "Có mã đơn riêng",
     badgeCodeDesc: "Ghi mã khi chuyển khoản",
     badgeChatTitle: "Chat trực tiếp",
@@ -97,6 +100,10 @@ const STR = {
     manualPayment: "Manual payment",
     manualPaymentDesc:
       "After creating the order, you'll see the transfer details along with your order code. The shop starts processing only after confirming payment — all communication happens on the order page.",
+    stripePayment: "Card / Apple Pay",
+    stripePaymentDesc:
+      "Clicking \"Place order\" takes you straight to a secure checkout page (international cards and Apple Pay supported). Prices are converted to USD with NO processing fee right now. Once paid, your order confirms automatically within seconds.",
+    stripeRedirecting: "Order created — redirecting to payment…",
     badgeCodeTitle: "Your own order code",
     badgeCodeDesc: "Include the code when transferring",
     badgeChatTitle: "Direct chat",
@@ -117,6 +124,14 @@ const STR = {
   },
 };
 
+/** Món "Mua ngay" gửi kèm khi navigate("/checkout", { state: { buyNow } }).
+ * Nằm trong history state nên sống qua remount (StrictMode) và cả F5;
+ * rời checkout bằng điều hướng bình thường là tự mất — không cần dọn dẹp. */
+function useBuyNowLine(): CartLine | null {
+  const state = useLocation().state as { buyNow?: CartLine } | null;
+  return state?.buyNow ?? null;
+}
+
 export function Checkout() {
   const session = useAuthStore((state) => state.session);
   const loading = useAuthStore((state) => state.loading);
@@ -136,7 +151,7 @@ export function Checkout() {
 function GuestCheckout() {
   const t = usePick(STR);
   const cartItems = useCartStore((state) => state.items);
-  const buyNowLine = useBuyNowStore((state) => state.line);
+  const buyNowLine = useBuyNowLine();
   const login = useAuthStore((state) => state.login);
 
   const items = buyNowLine !== null ? [buyNowLine] : cartItems;
@@ -260,8 +275,7 @@ function CheckoutContent() {
   const navigate = useNavigate();
   const cartItems = useCartStore((state) => state.items);
   const clearCart = useCartStore((state) => state.clear);
-  const buyNowLine = useBuyNowStore((state) => state.line);
-  const clearBuyNow = useBuyNowStore((state) => state.clear);
+  const buyNowLine = useBuyNowLine();
   const session = useAuthStore((state) => state.session);
   const balance = useAuthStore((state) => state.user?.credit_balance ?? 0);
   const refreshProfile = useAuthStore((state) => state.refreshProfile);
@@ -294,13 +308,10 @@ function CheckoutContent() {
     if (!gatewayId && gateways.length > 0) setGatewayId(gateways[0].id);
   }, [gateways, gatewayId]);
 
-  // Rời checkout mà chưa đặt xong -> xoá buffer mua ngay (tránh lẫn với giỏ).
-  useEffect(() => {
-    return () => {
-      if (!placedRef.current) clearBuyNow();
-    };
-  }, [clearBuyNow]);
   const selectedGateway = gateways.find((g) => g.id === gatewayId) ?? gateways[0];
+  // Chọn Stripe -> hiện phí xử lý ngay trong tóm tắt (khớp số trên trang Stripe).
+  const stripeFee =
+    !useCredit && selectedGateway?.id === "stripe" ? stripeProcessingFeeVnd(items) : 0;
 
   const orderItems = useMemo(
     () =>
@@ -332,11 +343,32 @@ function CheckoutContent() {
       }
       return orders;
     },
-    onSuccess: (orders) => {
+    onSuccess: async (orders) => {
       placedRef.current = true;
-      // Mua ngay chỉ xoá buffer mua ngay; ngược lại xoá giỏ.
-      if (isBuyNow) clearBuyNow();
-      else clearCart();
+      // Mua ngay không đụng giỏ; đặt từ giỏ thì xoá giỏ.
+      if (!isBuyNow) clearCart();
+
+      // Chọn Stripe (1 đơn): tạo phiên checkout rồi sang thẳng trang Stripe.
+      // Lỗi thì rơi về trang đơn — ở đó vẫn còn nút "Thanh toán bằng thẻ".
+      if (!useCredit && selectedGateway?.id === "stripe" && orders.length === 1) {
+        toast.success(t.stripeRedirecting);
+        try {
+          const sb = requireSupabase();
+          const { data, error } = await sb.functions.invoke("create-checkout-session", {
+            body: { order_id: orders[0].id },
+          });
+          const url = (data as { url?: string } | null)?.url;
+          if (!error && url) {
+            window.location.assign(url);
+            return;
+          }
+        } catch {
+          // rơi xuống điều hướng mặc định bên dưới
+        }
+        navigate(`/orders/${orders[0].id}`);
+        return;
+      }
+
       // Mỗi món = 1 đơn riêng. 1 đơn → mở thẳng; nhiều đơn → về danh sách.
       if (orders.length === 1) {
         toast.success(t.orderCreated, { description: `${t.orderCodePrefix}${orders[0].order_code}` });
@@ -488,10 +520,17 @@ function CheckoutContent() {
               {!useCredit ? (
                 <>
                   <PaymentMethodSelector gateways={gateways} value={gatewayId} onChange={setGatewayId} />
-                  <div className="rounded-xl border border-dashed border-border-strong bg-surface-2 p-4 text-sm text-text-muted">
-                    <p className="font-semibold text-text">{t.manualPayment}</p>
-                    <p className="mt-1">{t.manualPaymentDesc}</p>
-                  </div>
+                  {selectedGateway?.id === "stripe" ? (
+                    <div className="rounded-xl border border-dashed border-border-strong bg-surface-2 p-4 text-sm text-text-muted">
+                      <p className="font-semibold text-text">{t.stripePayment}</p>
+                      <p className="mt-1">{t.stripePaymentDesc}</p>
+                    </div>
+                  ) : (
+                    <div className="rounded-xl border border-dashed border-border-strong bg-surface-2 p-4 text-sm text-text-muted">
+                      <p className="font-semibold text-text">{t.manualPayment}</p>
+                      <p className="mt-1">{t.manualPaymentDesc}</p>
+                    </div>
+                  )}
                 </>
               ) : (
                 <div className="rounded-xl border border-yellow bg-yellow-soft p-4 text-sm text-text-muted">
@@ -527,7 +566,7 @@ function CheckoutContent() {
 
         {/* Right: summary sidebar */}
         <div className="lg:sticky lg:top-24 lg:self-start">
-          <OrderSummary subtotal={total} total={total} lines={items}>
+          <OrderSummary subtotal={total} fee={stripeFee} total={total + stripeFee} lines={items}>
             <Button
               size="lg"
               className="w-full"

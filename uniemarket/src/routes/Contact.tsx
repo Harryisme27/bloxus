@@ -18,7 +18,7 @@ import { usePick } from "@/i18n";
 
 const STR = {
   vi: {
-    toastSent: "Đã gửi! Chúng tôi sẽ phản hồi bạn sớm (demo — không gửi thật).",
+    toastSent: "Đã gửi! Chúng tôi sẽ phản hồi bạn sớm.",
     badge: "Liên hệ với chúng tôi",
     heading: "Chúng tôi luôn lắng nghe bạn",
     introPre: "Có thắc mắc về đơn hàng, vật phẩm hay bất kỳ điều gì? Gửi tin nhắn cho đội ngũ",
@@ -27,7 +27,7 @@ const STR = {
     thanksPre: "Cảm ơn",
     nameFallback: "bạn",
     thanksPost: ". Đội ngũ Uniemarket sẽ phản hồi qua email trong thời gian sớm nhất.",
-    demoNote: "DEMO — không có email nào thực sự được gửi đi.",
+    demoNote: "Cần hỗ trợ gấp? Nhắn trực tiếp trên Discord để được phản hồi nhanh nhất.",
     sendAnother: "Gửi tin nhắn khác",
     formTitle: "Gửi tin nhắn",
     formSubtitle: "Điền thông tin bên dưới, chúng tôi sẽ liên hệ lại với bạn.",
@@ -38,7 +38,7 @@ const STR = {
     messageLabel: "Nội dung",
     messagePlaceholder: "Mình cần hỗ trợ về...",
     submit: "Gửi tin nhắn",
-    formDemoNote: "Đây là biểu mẫu demo — thông tin không được gửi đi đâu cả.",
+    formDemoNote: "Thông tin của bạn chỉ dùng để phản hồi yêu cầu hỗ trợ.",
     discordTitle: "Discord",
     discordDesc: "Cách nhanh nhất để được hỗ trợ trực tiếp từ cộng đồng và nhân viên.",
     discordAction: "Tham gia server",
@@ -50,7 +50,7 @@ const STR = {
     avgReply: "Phản hồi trung bình dưới 5 phút",
   },
   en: {
-    toastSent: "Sent! We'll get back to you soon (demo — nothing is actually sent).",
+    toastSent: "Sent! We'll get back to you soon.",
     badge: "Get in touch",
     heading: "We're always here to listen",
     introPre: "Questions about an order, an item, or anything else? Message the",
@@ -59,7 +59,7 @@ const STR = {
     thanksPre: "Thank you,",
     nameFallback: "there",
     thanksPost: ". The Uniemarket team will get back to you by email as soon as possible.",
-    demoNote: "DEMO — no email is actually sent.",
+    demoNote: "Need help fast? Message us on Discord for the quickest reply.",
     sendAnother: "Send another message",
     formTitle: "Send a message",
     formSubtitle: "Fill in the details below and we'll get back to you.",
@@ -70,7 +70,7 @@ const STR = {
     messageLabel: "Message",
     messagePlaceholder: "I need help with...",
     submit: "Send message",
-    formDemoNote: "This is a demo form — your details aren't sent anywhere.",
+    formDemoNote: "Your details are only used to respond to your request.",
     discordTitle: "Discord",
     discordDesc: "The fastest way to get direct help from the community and our staff.",
     discordAction: "Join the server",

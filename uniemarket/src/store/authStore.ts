@@ -33,6 +33,9 @@ interface AuthState {
   /** Gọi đúng 1 lần khi app khởi động (main.tsx). */
   init: () => void;
   login: (identifier: string, password: string, captchaToken?: string) => Promise<AuthResult>;
+  /** Đăng nhập/đăng ký qua Google hoặc Discord — chuyển hướng sang trang OAuth,
+   * quay về là có phiên (profile tự tạo bởi trigger handle_new_user). */
+  loginWithOAuth: (provider: "google" | "discord") => Promise<AuthResult>;
   register: (payload: RegisterPayload) => Promise<AuthResult>;
   logout: () => Promise<void>;
   /** Tải lại profile từ DB (sau khi cập nhật hồ sơ / được duyệt Seller). */
@@ -145,6 +148,22 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
     }
     const profile = await fetchProfile(data.user.id);
     set({ session: data.session, user: profile, loading: false });
+    return { success: true };
+  },
+
+  loginWithOAuth: async (provider) => {
+    if (!isSupabaseConfigured || !supabase) {
+      return { success: false, error: NOT_CONFIGURED_MESSAGE };
+    }
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider,
+      options: { redirectTo: window.location.origin },
+    });
+    if (error) {
+      return { success: false, error: translateAuthError(error.message) };
+    }
+    // Trình duyệt sẽ rời trang sang Google/Discord; quay về thì
+    // detectSessionInUrl + onAuthStateChange (init) tự nạp phiên & profile.
     return { success: true };
   },
 

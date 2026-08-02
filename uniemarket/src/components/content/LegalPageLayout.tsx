@@ -1,4 +1,4 @@
-import { ShieldAlert, FileText } from "lucide-react";
+import { FileText } from "lucide-react";
 import { PageContainer } from "@/components/PageContainer";
 import { cn } from "@/lib/utils";
 import { usePick } from "@/i18n";
@@ -7,17 +7,11 @@ const STR = {
   vi: {
     legal: "Pháp lý",
     lastUpdated: "Cập nhật lần cuối:",
-    demoTitle: "Đây là nội dung demo.",
-    demoBody:
-      " Uniemarket là website trình diễn, không bán hàng và không thu tiền thật. Các điều khoản dưới đây chỉ mang tính minh hoạ, không có giá trị pháp lý.",
     toc: "Mục lục",
   },
   en: {
     legal: "Legal",
     lastUpdated: "Last updated:",
-    demoTitle: "This is demo content.",
-    demoBody:
-      " Uniemarket is a showcase website — it does not sell anything and never collects real money. The terms below are for illustration only and carry no legal force.",
     toc: "Contents",
   },
 };
@@ -61,14 +55,6 @@ export function LegalPageLayout({
         </div>
         <h1 className="mt-2 font-heading text-3xl font-bold text-text sm:text-4xl">{title}</h1>
         <p className="mt-2 text-sm text-text-subtle">{t.lastUpdated} {lastUpdated}</p>
-
-        {/* Demo notice */}
-        <div className="mt-6 flex items-start gap-3 rounded-xl border border-yellow-soft bg-yellow-soft p-4">
-          <ShieldAlert className="mt-0.5 h-5 w-5 shrink-0 text-gold-deep" aria-hidden="true" />
-          <p className="text-sm text-text-muted">
-            <span className="font-semibold text-text">{t.demoTitle}</span>{t.demoBody}
-          </p>
-        </div>
 
         {intro ? <p className="mt-6 text-sm leading-relaxed text-text-muted">{intro}</p> : null}
 
