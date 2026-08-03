@@ -1,7 +1,8 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
-import { ShoppingBag, Receipt, Package } from "lucide-react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
+import { ShoppingBag, Receipt, Package, XCircle } from "lucide-react";
 import { PageContainer } from "@/components/PageContainer";
 import { SectionHeading } from "@/components/SectionHeading";
 import { buttonVariants } from "@/components/ui/button";
@@ -12,7 +13,8 @@ import {
   WorkOrderStatusBadge,
   WORK_STATUS_ORDER,
 } from "@/components/work/orderStatusMeta";
-import { listMyOrders } from "@/lib/db/orders";
+import { cancelOrder, listMyOrders } from "@/lib/db/orders";
+import { useConfirm } from "@/components/ui/confirm";
 import { isSupabaseConfigured } from "@/lib/supabase";
 import { formatPrice, relativeTime } from "@/lib/format";
 import { orderDisplayStatus } from "@/types/db";
@@ -31,6 +33,11 @@ const STR = {
     startShopping: "Bắt đầu mua sắm",
     noneInStatusTitle: "Không có đơn nào ở trạng thái này",
     noneInStatusDesc: "Thử chọn một bộ lọc khác để xem các đơn hàng của bạn.",
+    cancelQuick: "Hủy",
+    cancelTitle: "Hủy đơn hàng?",
+    cancelMessage: (code: string) => `Đơn ${code} đang chờ thanh toán sẽ bị hủy. Kho sẽ được hoàn lại.`,
+    cancelConfirm: "Hủy đơn",
+    cancelled: (code: string) => `Đã hủy đơn ${code}.`,
   },
   en: {
     eyebrow: "Account",
@@ -43,6 +50,12 @@ const STR = {
     startShopping: "Start shopping",
     noneInStatusTitle: "No orders in this status",
     noneInStatusDesc: "Try choosing a different filter to see your orders.",
+    cancelQuick: "Cancel",
+    cancelTitle: "Cancel this order?",
+    cancelMessage: (code: string) =>
+      `Order ${code} is awaiting payment and will be cancelled. Stock will be restored.`,
+    cancelConfirm: "Cancel order",
+    cancelled: (code: string) => `Order ${code} cancelled.`,
   },
 };
 
@@ -59,7 +72,29 @@ export function OrderHistory() {
 function OrderHistoryContent() {
   const t = usePick(STR);
   const s = useT();
+  const confirm = useConfirm();
+  const queryClient = useQueryClient();
   const [filter, setFilter] = useState<Filter>("all");
+
+  // Hủy nhanh đơn chờ thanh toán ngay trên danh sách.
+  const cancelMutation = useMutation({
+    mutationFn: (orderId: string) => cancelOrder(orderId),
+    onSuccess: (order) => {
+      toast.success(t.cancelled(order.order_code));
+      void queryClient.invalidateQueries({ queryKey: ["my-orders"] });
+    },
+    onError: (err) => toast.error(err instanceof Error ? err.message : "Error"),
+  });
+
+  async function quickCancel(orderId: string, orderCode: string) {
+    const r = await confirm({
+      title: t.cancelTitle,
+      message: t.cancelMessage(orderCode),
+      confirmText: t.cancelConfirm,
+      tone: "danger",
+    });
+    if (r.ok) cancelMutation.mutate(orderId);
+  }
 
   const ordersQuery = useQuery({
     queryKey: ["my-orders"],
@@ -177,6 +212,23 @@ function OrderHistoryContent() {
                   {formatPrice(o.total)}
                 </span>
                 <WorkOrderStatusBadge status={orderDisplayStatus(o)} />
+                {/* Hủy nhanh: chỉ đơn đang chờ thanh toán. */}
+                {orderDisplayStatus(o) === "pending_payment" ? (
+                  <button
+                    type="button"
+                    disabled={cancelMutation.isPending}
+                    onClick={(e) => {
+                      // Đừng để click lan sang Link mở trang chi tiết.
+                      e.preventDefault();
+                      e.stopPropagation();
+                      void quickCancel(o.id, o.order_code);
+                    }}
+                    className="inline-flex items-center gap-1 rounded-lg border border-border-strong px-2.5 py-1 text-xs font-semibold text-danger transition-colors hover:border-danger hover:bg-danger-soft disabled:opacity-50"
+                  >
+                    <XCircle className="h-3.5 w-3.5" aria-hidden />
+                    {t.cancelQuick}
+                  </button>
+                ) : null}
               </div>
             </Link>
           ))}
