@@ -15,7 +15,7 @@ const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") ?? "", {
 
 // Giá lưu VND -> charge bằng USD (khớp tỉ giá hiển thị của shop:
 // src/store/currencyStore.ts USD_VND_RATE).
-const USD_VND_RATE = 25_000;
+const USD_VND_RATE = 26_000;
 // Phí xử lý cộng vào cho khách khi trả thẻ (bù phí Stripe).
 // Chỉnh 2 số này là đổi công thức: fee = subtotal * PERCENT + FIXED.
 // (Đang MIỄN PHÍ tạm thời — đặt lại 0.05 / 30 khi muốn thu phí; nhớ chỉnh

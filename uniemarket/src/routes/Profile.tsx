@@ -2,24 +2,13 @@ import { useState } from "react";
 import type { FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import {
-  AtSign,
-  Bell,
-  Globe,
-  LogOut,
-  Mail,
-  Phone,
-  Save,
-  ShieldCheck,
-  User2,
-} from "lucide-react";
+import { AtSign, LogOut, Mail, Phone, Save, ShieldCheck, User2 } from "lucide-react";
 import { PageContainer } from "@/components/PageContainer";
 import { SectionHeading } from "@/components/SectionHeading";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { RequireAuth } from "@/components/account/RequireAuth";
 import { useAuthStore } from "@/store/authStore";
@@ -138,10 +127,6 @@ function ProfileContent() {
   const [displayName, setDisplayName] = useState(user.display_name ?? user.username);
   const [phone, setPhone] = useState(user.phone ?? "");
   const [discord, setDiscord] = useState(user.discord ?? "");
-  const [language, setLanguage] = useState("vi");
-  const [emailNotif, setEmailNotif] = useState(true);
-  const [orderNotif, setOrderNotif] = useState(true);
-  const [promoNotif, setPromoNotif] = useState(false);
   const [saving, setSaving] = useState(false);
 
   async function handleSave(e: FormEvent) {
@@ -276,54 +261,6 @@ function ProfileContent() {
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Bell className="h-4 w-4 text-yellow" aria-hidden />
-                {t.preferences}
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <Label htmlFor="pf-lang" className="flex items-center gap-2">
-                  <Globe className="h-4 w-4 text-text-subtle" aria-hidden />
-                  {t.language}
-                </Label>
-                <Select
-                  id="pf-lang"
-                  value={language}
-                  onChange={(e) => setLanguage(e.target.value)}
-                  className="max-w-xs"
-                >
-                  <option value="vi">Tiếng Việt</option>
-                  <option value="en">English</option>
-                </Select>
-              </div>
-
-              <fieldset className="space-y-2 border-t border-border pt-4">
-                <legend className="mb-1 text-sm font-medium text-text-muted">{t.notifications}</legend>
-                <ToggleRow
-                  label={t.orderNotifLabel}
-                  description={t.orderNotifDesc}
-                  checked={orderNotif}
-                  onChange={setOrderNotif}
-                />
-                <ToggleRow
-                  label={t.systemNotifLabel}
-                  description={t.systemNotifDesc}
-                  checked={emailNotif}
-                  onChange={setEmailNotif}
-                />
-                <ToggleRow
-                  label={t.promoNotifLabel}
-                  description={t.promoNotifDesc}
-                  checked={promoNotif}
-                  onChange={setPromoNotif}
-                />
-              </fieldset>
-            </CardContent>
-          </Card>
-
           <div className="flex flex-wrap items-center justify-between gap-3">
             <p className="flex items-center gap-1.5 text-xs text-text-subtle">
               <ShieldCheck className="h-3.5 w-3.5 text-green" aria-hidden />
@@ -340,29 +277,3 @@ function ProfileContent() {
   );
 }
 
-function ToggleRow({
-  label,
-  description,
-  checked,
-  onChange,
-}: {
-  label: string;
-  description: string;
-  checked: boolean;
-  onChange: (value: boolean) => void;
-}) {
-  return (
-    <label className="flex cursor-pointer items-start justify-between gap-3 rounded-lg border border-border bg-surface-2 px-3 py-2.5 transition-colors hover:border-border-strong">
-      <span>
-        <span className="block text-sm font-medium text-text">{label}</span>
-        <span className="block text-xs text-text-subtle">{description}</span>
-      </span>
-      <input
-        type="checkbox"
-        checked={checked}
-        onChange={(e) => onChange(e.target.checked)}
-        className="mt-0.5 h-4 w-4 shrink-0 rounded border-border-strong bg-surface-2 accent-yellow"
-      />
-    </label>
-  );
-}

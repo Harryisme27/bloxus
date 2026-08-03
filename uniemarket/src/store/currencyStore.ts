@@ -7,7 +7,7 @@ export type Currency = "usd" | "vnd";
 
 /** Tỉ giá quy đổi hiển thị: 1 USD = bao nhiêu VND. Chỉ ảnh hưởng hiển thị.
  * Muốn đổi tỉ giá thì sửa đúng 1 chỗ này. */
-export const USD_VND_RATE = 25000;
+export const USD_VND_RATE = 26000;
 
 interface CurrencyState {
   currency: Currency;
