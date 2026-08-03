@@ -19,11 +19,8 @@ const STR = {
     faq: "Câu hỏi thường gặp",
     login: "Đăng nhập",
     register: "Đăng ký",
-    orderHistory: "Lịch sử đơn hàng",
-    supportMessages: "Tin nhắn hỗ trợ",
     about: "Giới thiệu",
     contact: "Liên hệ",
-    admin: "Khu vực quản trị",
     terms: "Điều khoản dịch vụ",
     privacy: "Chính sách bảo mật",
     refund: "Chính sách hoàn tiền",
@@ -41,11 +38,8 @@ const STR = {
     faq: "FAQ",
     login: "Log in",
     register: "Sign up",
-    orderHistory: "Order history",
-    supportMessages: "Support messages",
     about: "About",
     contact: "Contact",
-    admin: "Admin area",
     terms: "Terms of Service",
     privacy: "Privacy Policy",
     refund: "Refund Policy",
@@ -63,13 +57,10 @@ export function Footer() {
   const accountLinks = [
     { to: "/login", label: t.login },
     { to: "/register", label: t.register },
-    { to: "/orders", label: t.orderHistory },
-    { to: "/messages", label: t.supportMessages },
   ];
   const companyLinks = [
     { to: "/about", label: t.about },
     { to: "/contact", label: t.contact },
-    { to: "/admin", label: t.admin },
   ];
   const legalLinks = [
     { to: "/terms", label: t.terms },
