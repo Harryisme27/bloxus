@@ -7,9 +7,8 @@ import type { DbPaymentMethod } from "@/types/db";
 
 // Phí xử lý khi trả bằng Stripe (khách chịu) — PHẢI khớp với
 // supabase/functions/create-checkout-session/index.ts.
-// (Đang MIỄN PHÍ tạm thời — đặt lại 0.05 / 30 khi muốn thu phí.)
-export const STRIPE_FEE_PERCENT = 0; // 5% -> tạm 0
-export const STRIPE_FEE_FIXED_USD_CENTS = 0; // + $0.30 -> tạm 0
+export const STRIPE_FEE_PERCENT = 0.05; // 5%
+export const STRIPE_FEE_FIXED_USD_CENTS = 30; // + $0.30
 
 /** Phí Stripe (VND) cho danh sách món — tính theo cent USD y hệt Edge Function
  * để số hiện ở checkout khớp từng xu với trang Stripe. */

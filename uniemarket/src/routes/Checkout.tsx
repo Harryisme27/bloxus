@@ -53,7 +53,7 @@ const STR = {
       "Sau khi tạo đơn, bạn sẽ thấy thông tin chuyển khoản kèm mã đơn. Shop xác nhận nhận được tiền rồi mới bắt đầu xử lý — mọi trao đổi diễn ra ngay trong trang đơn hàng.",
     stripePayment: "Thanh toán bằng thẻ / Apple Pay",
     stripePaymentDesc:
-      "Bấm \"Đặt hàng\" là chuyển thẳng tới trang thanh toán bảo mật (hỗ trợ thẻ quốc tế và Apple Pay). Giá được quy đổi sang USD, hiện KHÔNG thu phí xử lý. Thanh toán xong, đơn tự xác nhận trong vài giây.",
+      "Bấm \"Đặt hàng\" là chuyển thẳng tới trang thanh toán bảo mật (hỗ trợ thẻ quốc tế và Apple Pay). Giá được quy đổi sang USD và cộng phí xử lý thẻ 5% + $0.30 (phí cổng thanh toán quốc tế — số cuối cùng hiển thị rõ trước khi bạn trả). Thanh toán xong, đơn tự xác nhận trong vài giây.",
     stripeRedirecting: "Đã tạo đơn — đang chuyển tới trang thanh toán…",
     badgeCodeTitle: "Có mã đơn riêng",
     badgeCodeDesc: "Ghi mã khi chuyển khoản",
@@ -102,7 +102,7 @@ const STR = {
       "After creating the order, you'll see the transfer details along with your order code. The shop starts processing only after confirming payment — all communication happens on the order page.",
     stripePayment: "Card / Apple Pay",
     stripePaymentDesc:
-      "Clicking \"Place order\" takes you straight to a secure checkout page (international cards and Apple Pay supported). Prices are converted to USD with NO processing fee right now. Once paid, your order confirms automatically within seconds.",
+      "Clicking \"Place order\" takes you straight to a secure checkout page (international cards and Apple Pay supported). Prices are converted to USD plus a 5% + $0.30 processing fee that covers international card processing — the final total is shown clearly before you pay. Once paid, your order confirms automatically within seconds.",
     stripeRedirecting: "Order created — redirecting to payment…",
     badgeCodeTitle: "Your own order code",
     badgeCodeDesc: "Include the code when transferring",
