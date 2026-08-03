@@ -245,7 +245,7 @@ export function Register() {
         </Button>
       </form>
 
-      <SocialLoginButtons />
+      <SocialLoginButtons only={["discord"]} />
     </AuthCard>
   );
 }
