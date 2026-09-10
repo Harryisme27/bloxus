@@ -4,7 +4,7 @@
 //
 // Secrets cần đặt (supabase secrets set ...):
 //   STRIPE_SECRET_KEY  = sk_live_... (hoặc sk_test_... khi thử)
-//   SITE_URL           = https://tenmien.com (URL web, cho success/cancel)
+//   SITE_URL           = https://bloxus.store (URL web, cho success/cancel)
 // SUPABASE_URL / SUPABASE_ANON_KEY / SUPABASE_SERVICE_ROLE_KEY được inject sẵn.
 import Stripe from "npm:stripe@17";
 import { createClient } from "npm:@supabase/supabase-js@2";
