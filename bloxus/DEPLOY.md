@@ -9,6 +9,23 @@ Web này là **SPA tĩnh** (Vite build → thư mục `dist/`), backend nằm �
 
 ---
 
+## 0. Bạn đang ở tình huống nào?
+
+**Đã deploy `unie.store` rồi, giờ chỉ đổi tên + đổi miền** → bỏ qua mục 1 và 2
+(project Pages đã có sẵn). Làm theo đúng thứ tự này:
+
+1. **Mục 9, dòng 1** — đổi **Root directory** của Pages từ `uniemarket` sang `bloxus`.
+   *Làm việc này TRƯỚC KHI `git push`*, vì thư mục dự án đã đổi tên; không đổi thì build lỗi.
+2. **Mục 5.1** — đưa `bloxus.store` vào Cloudflare, đổi nameserver ở GoDaddy, chờ Active.
+3. **Mục 5.2 → 5.3** — gắn `bloxus.store` vào Pages, bật HTTPS.
+4. **Mục 9, dòng 2–5** — Supabase Site URL, Turnstile, Stripe, chạy file SQL đổi tên.
+5. `git push` — Pages tự build lại. Kiểm tra theo mục 8.
+6. **Mục 5.4** — chỉ khi `bloxus.store` đã chạy ngon mới gỡ `unie.store`.
+
+**Deploy lần đầu, chưa có gì** → làm tuần tự từ mục 1.
+
+---
+
 ## 1. Chuẩn bị repo GitHub
 
 Cloudflare Pages build trực tiếp từ GitHub (mỗi lần `git push` là tự deploy).
@@ -103,30 +120,38 @@ Cloudflare tự tạo bản ghi DNS, không phải gõ tay. HTTPS cấp **tự �
 SSL/TLS → **Overview**: chọn **Full (strict)**.
 SSL/TLS → **Edge Certificates**: bật **Always Use HTTPS**.
 
-### 5.4. Chuyển tiếp miền cũ `unie.store` sang miền mới
+### 5.4. Gỡ miền cũ `unie.store`
 
-`unie.store` đang chạy và đã có khách (vài nghìn lượt truy cập). **Đừng xoá nó.**
-Người cũ còn lưu bookmark, còn link trong Discord, còn kết quả Google. Cách đúng là
-cho `unie.store` **chuyển hướng 301** sang `bloxus.store` — khách vào link cũ vẫn tới
-được web, và Google dần chuyển uy tín SEO sang miền mới.
+**Thứ tự cực kỳ quan trọng: chỉ gỡ `unie.store` SAU KHI `bloxus.store` đã chạy được.**
 
-Cloudflare Dashboard → chọn miền **`unie.store`** → **Rules** → **Redirect Rules** →
-**Create rule**:
+Sau khi đổi nameserver ở GoDaddy, `bloxus.store` mất **vài phút đến vài giờ** mới hoạt
+động. Nếu gỡ `unie.store` ngay từ đầu thì web **không có miền nào chạy** trong suốt
+khoảng thời gian đó.
 
-| Ô | Điền |
-|---|---|
-| Rule name | `unie.store -> bloxus.store` |
-| If — Custom filter expression | Field `Hostname`, Operator `contains`, Value `unie.store` |
-| Then — Type | **Dynamic** |
-| Expression | `concat("https://bloxus.store", http.request.uri.path)` |
-| Status code | **301** |
-| Preserve query string | **Bật** |
+**Bước 1 — Để `unie.store` chạy bình thường**, làm hết mục 5.1 → 5.3 cho `bloxus.store`.
 
-Giữ `unie.store` ở lại trong **Custom domains** của Pages thì cũng được, nhưng redirect
-rule chạy trước nên khách sẽ luôn bị đẩy sang miền mới.
+**Bước 2 — Kiểm tra `bloxus.store` thật sự chạy:**
 
-> Giữ redirect này **ít nhất 6–12 tháng**, và nhớ gia hạn miền `unie.store` trong thời
-> gian đó. Xoá sớm là mất luôn lượng khách cũ.
+- Mở `https://bloxus.store` → web hiện lên, khoá HTTPS xanh.
+- Đăng nhập thử một tài khoản → vào được.
+- Vào `/orders`, bấm F5 → không bị 404.
+
+**Bước 3 — Khi cả 3 mục trên đều đạt, mới gỡ miền cũ:**
+
+Pages → project → **Custom domains** → dòng `unie.store` → **…** → **Remove domain**.
+Làm tương tự cho `www.unie.store` nếu có.
+
+**Bước 4 — Xử lý nốt zone `unie.store` trong Cloudflare.** Chọn một trong hai:
+
+- **Giữ lại và chuyển hướng** (nên làm, tốn 0 đồng ngoài phí gia hạn miền): Rules →
+  Redirect Rules → Create rule → If `Hostname contains unie.store` → Then **Dynamic**,
+  `concat("https://bloxus.store", http.request.uri.path)`, status **301**, bật Preserve
+  query string. Khách cũ vẫn tới được web mới.
+- **Xoá hẳn**: Cloudflare → miền `unie.store` → cuối trang Overview → **Remove site from
+  Cloudflare**, rồi để miền hết hạn. Khách cũ sẽ gặp trang lỗi.
+
+> Nếu chọn xoá hẳn, nhớ báo khách trong Discord và ghim tin nhắn địa chỉ mới trước
+> khi gỡ, để họ không tưởng shop đã đóng cửa.
 
 ### 5.5. Cho `www` chuyển hướng về miền gốc (tuỳ chọn, nên làm)
 
@@ -207,20 +232,6 @@ tới Supabase → khi đó **cả traffic API** cũng qua WAF/DDoS của Cloudf
 
 ---
 
-## Tóm tắt các lớp chống DDoS đang bật
-
-| Lớp | Ở đâu | Tác dụng |
-|---|---|---|
-| Ẩn IP gốc + DDoS L3/4/7 | Cloudflare Pages (mặc định) | Không có server để đánh trực tiếp |
-| Security High + Bot Fight | Security → Settings/Bots | Chặn bot & request đáng ngờ |
-| WAF Managed + Rate limit | Security → WAF | Chặn tấn công + giới hạn tốc độ theo IP |
-| Under Attack Mode | Security → Settings | Nút khẩn cấp: đố JS toàn bộ khách |
-| Cloudflare Access | Zero Trust → Access | Người lạ không vào nổi `/work` |
-| CAPTCHA Auth + RLS | Supabase | Chặn brute-force/spam tài khoản, khóa quyền dữ liệu |
-
-
----
-
 ## 9. ✅ Việc phải làm khi lên miền `bloxus.store`
 
 Ngoài Cloudflare, có 4 dịch vụ bên ngoài vẫn đang trỏ về `localhost` hoặc tên cũ.
@@ -229,8 +240,8 @@ Thiếu bước nào thì phần đó hỏng, nên làm đủ cả 5 dòng dư�
 | # | Ở đâu | Đổi cái gì | Không làm thì sao |
 |---|---|---|---|
 | 1 | Cloudflare Pages → Settings → Build | **Root directory**: `uniemarket` → `bloxus` | Build lỗi ngay, không deploy được |
-| 2 | Supabase → Authentication → URL Configuration | **Site URL** = `https://bloxus.store`; **Redirect URLs** giữ cả `https://bloxus.store/**`, `https://unie.store/**` và `http://localhost:5173/**` | Đăng nhập Google/Discord quay về sai chỗ, link đặt lại mật khẩu bị chặn |
-| 3 | Cloudflare → Turnstile → widget của bạn | Thêm `bloxus.store` vào **Domains** (giữ nguyên `unie.store` và `localhost`) | Captcha ở trang đăng nhập/đăng ký không hiện, không đăng nhập được |
+| 2 | Supabase → Authentication → URL Configuration | **Site URL** = `https://bloxus.store`; **Redirect URLs** để `https://bloxus.store/**` và `http://localhost:5173/**` (giữ `https://unie.store/**` cho tới khi gỡ xong miền cũ) | Đăng nhập Google/Discord quay về sai chỗ, link đặt lại mật khẩu bị chặn |
+| 3 | Cloudflare → Turnstile → widget của bạn | Thêm `bloxus.store` vào **Domains** (bỏ `unie.store` sau khi gỡ xong, giữ `localhost`) | Captcha ở trang đăng nhập/đăng ký không hiện, không đăng nhập được |
 | 4 | Máy bạn, chạy `supabase secrets set` | `SITE_URL=https://bloxus.store` | Trả tiền Stripe xong không quay về được web |
 | 5 | Supabase → SQL Editor | Chạy `supabase/39-rebrand-bloxus.sql` | Web hiện Bloxus nhưng thông báo và minh chứng vẫn ghi tên cũ |
 
@@ -246,3 +257,19 @@ supabase functions deploy create-checkout-session
 `https://xikeydfwdavqttagrtsj.supabase.co/auth/v1/callback`, không dính tới miền web.
 
 **Stripe webhook cũng không cần đổi.** Nó gọi vào Supabase Functions, không gọi vào miền web.
+
+---
+
+## Tóm tắt các lớp chống DDoS đang bật
+
+| Lớp | Ở đâu | Tác dụng |
+|---|---|---|
+| Ẩn IP gốc + DDoS L3/4/7 | Cloudflare Pages (mặc định) | Không có server để đánh trực tiếp |
+| Security High + Bot Fight | Security → Settings/Bots | Chặn bot & request đáng ngờ |
+| WAF Managed + Rate limit | Security → WAF | Chặn tấn công + giới hạn tốc độ theo IP |
+| Under Attack Mode | Security → Settings | Nút khẩn cấp: đố JS toàn bộ khách |
+| Cloudflare Access | Zero Trust → Access | Người lạ không vào nổi `/work` |
+| CAPTCHA Auth + RLS | Supabase | Chặn brute-force/spam tài khoản, khóa quyền dữ liệu |
+
+
+---
