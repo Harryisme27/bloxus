@@ -103,7 +103,32 @@ Cloudflare tự tạo bản ghi DNS, không phải gõ tay. HTTPS cấp **tự �
 SSL/TLS → **Overview**: chọn **Full (strict)**.
 SSL/TLS → **Edge Certificates**: bật **Always Use HTTPS**.
 
-### 5.4. Cho `www` chuyển hướng về miền gốc (tuỳ chọn, nên làm)
+### 5.4. Chuyển tiếp miền cũ `unie.store` sang miền mới
+
+`unie.store` đang chạy và đã có khách (vài nghìn lượt truy cập). **Đừng xoá nó.**
+Người cũ còn lưu bookmark, còn link trong Discord, còn kết quả Google. Cách đúng là
+cho `unie.store` **chuyển hướng 301** sang `bloxus.store` — khách vào link cũ vẫn tới
+được web, và Google dần chuyển uy tín SEO sang miền mới.
+
+Cloudflare Dashboard → chọn miền **`unie.store`** → **Rules** → **Redirect Rules** →
+**Create rule**:
+
+| Ô | Điền |
+|---|---|
+| Rule name | `unie.store -> bloxus.store` |
+| If — Custom filter expression | Field `Hostname`, Operator `contains`, Value `unie.store` |
+| Then — Type | **Dynamic** |
+| Expression | `concat("https://bloxus.store", http.request.uri.path)` |
+| Status code | **301** |
+| Preserve query string | **Bật** |
+
+Giữ `unie.store` ở lại trong **Custom domains** của Pages thì cũng được, nhưng redirect
+rule chạy trước nên khách sẽ luôn bị đẩy sang miền mới.
+
+> Giữ redirect này **ít nhất 6–12 tháng**, và nhớ gia hạn miền `unie.store` trong thời
+> gian đó. Xoá sớm là mất luôn lượng khách cũ.
+
+### 5.5. Cho `www` chuyển hướng về miền gốc (tuỳ chọn, nên làm)
 
 Rules → **Redirect Rules** → **Create rule**:
 
@@ -204,8 +229,8 @@ Thiếu bước nào thì phần đó hỏng, nên làm đủ cả 5 dòng dư�
 | # | Ở đâu | Đổi cái gì | Không làm thì sao |
 |---|---|---|---|
 | 1 | Cloudflare Pages → Settings → Build | **Root directory**: `uniemarket` → `bloxus` | Build lỗi ngay, không deploy được |
-| 2 | Supabase → Authentication → URL Configuration | **Site URL** = `https://bloxus.store`; **Redirect URLs** thêm `https://bloxus.store/**` | Đăng nhập Google/Discord quay về sai chỗ, link đặt lại mật khẩu bị chặn |
-| 3 | Cloudflare → Turnstile → widget của bạn | Thêm `bloxus.store` vào **Domains** | Captcha ở trang đăng nhập/đăng ký không hiện, không đăng nhập được |
+| 2 | Supabase → Authentication → URL Configuration | **Site URL** = `https://bloxus.store`; **Redirect URLs** giữ cả `https://bloxus.store/**`, `https://unie.store/**` và `http://localhost:5173/**` | Đăng nhập Google/Discord quay về sai chỗ, link đặt lại mật khẩu bị chặn |
+| 3 | Cloudflare → Turnstile → widget của bạn | Thêm `bloxus.store` vào **Domains** (giữ nguyên `unie.store` và `localhost`) | Captcha ở trang đăng nhập/đăng ký không hiện, không đăng nhập được |
 | 4 | Máy bạn, chạy `supabase secrets set` | `SITE_URL=https://bloxus.store` | Trả tiền Stripe xong không quay về được web |
 | 5 | Supabase → SQL Editor | Chạy `supabase/39-rebrand-bloxus.sql` | Web hiện Bloxus nhưng thông báo và minh chứng vẫn ghi tên cũ |
 
