@@ -64,15 +64,54 @@ Không cần làm gì thêm — chúng tự động áp khi deploy.
 
 ---
 
-## 5. Gắn miền riêng
+## 5. Gắn miền riêng `bloxus.store`
 
-Pages → project → **Custom domains** → **Set up a custom domain** → nhập `tenmien.com` (và `www.tenmien.com`).
+**Tình trạng hiện tại:** miền `bloxus.store` đang dùng nameserver của **GoDaddy**
+(`ns47.domaincontrol.com`, `ns48.domaincontrol.com`). Phải chuyển nameserver sang
+Cloudflare trước, vì 2 lý do:
 
-- Nếu miền đã dùng nameserver Cloudflare → nó **tự tạo bản ghi DNS** cho bạn, xong luôn.
-- Nếu chưa: thêm site vào Cloudflare trước (Dashboard → **Add a site** → đổi nameserver ở nơi mua miền
-  sang 2 nameserver Cloudflare cung cấp), rồi quay lại gắn domain.
+- GoDaddy **không** cho trỏ CNAME ở tên miền gốc (apex `bloxus.store`), nên không gắn
+  thẳng vào Pages được — chỉ `www.` mới trỏ được.
+- Toàn bộ lớp bảo vệ ở mục 6 (WAF, rate limit, Bot Fight, Under Attack Mode) **chỉ hoạt
+  động khi miền nằm trong Cloudflare**.
 
-HTTPS cấp **tự động** (vài phút). Bật **Always Use HTTPS** ở SSL/TLS → Edge Certificates.
+### 5.1. Đưa `bloxus.store` vào Cloudflare (một lần, ~10 phút + chờ)
+
+1. Cloudflare Dashboard → **Add a site** → nhập `bloxus.store` → chọn gói **Free**.
+2. Cloudflare quét DNS hiện có → bấm **Continue**. Nếu miền mới mua chưa có bản ghi gì
+   thì danh sách rỗng cũng không sao.
+3. Cloudflare hiện **2 nameserver** dạng `xxx.ns.cloudflare.com`. Chép lại cả hai.
+4. Sang GoDaddy → **My Products** → `bloxus.store` → **DNS** → mục **Nameservers** →
+   **Change** → chọn **I'll use my own nameservers** → xoá 2 dòng `domaincontrol.com`,
+   dán 2 nameserver Cloudflare vào → **Save**.
+5. Quay lại Cloudflare bấm **Check nameservers now**. Thường active sau **5 phút–2 giờ**
+   (GoDaddy khá nhanh), chậm nhất là 24 giờ. Cloudflare gửi email khi xong.
+
+> ⚠️ Trong lúc chờ, đừng đổi nameserver lần nữa — mỗi lần đổi là đếm lại từ đầu.
+
+### 5.2. Gắn miền vào Pages
+
+Khi miền đã **Active** trong Cloudflare:
+
+Pages → project → **Custom domains** → **Set up a custom domain** → nhập `bloxus.store`
+→ **Activate domain**. Làm thêm lần nữa cho `www.bloxus.store`.
+
+Cloudflare tự tạo bản ghi DNS, không phải gõ tay. HTTPS cấp **tự động** sau vài phút.
+
+### 5.3. Bắt buộc dùng HTTPS
+
+SSL/TLS → **Overview**: chọn **Full (strict)**.
+SSL/TLS → **Edge Certificates**: bật **Always Use HTTPS**.
+
+### 5.4. Cho `www` chuyển hướng về miền gốc (tuỳ chọn, nên làm)
+
+Rules → **Redirect Rules** → **Create rule**:
+
+- If: `Hostname equals www.bloxus.store`
+- Then: **Dynamic redirect** → `concat("https://bloxus.store", http.request.uri.path)`
+  → Status **301**, bật **Preserve query string**.
+
+Như vậy web chỉ có **một** địa chỉ chính thức, tốt cho SEO.
 
 ---
 
@@ -106,7 +145,7 @@ Bật thêm các lớp sau ở **Dashboard → chọn miền của bạn**:
 ### 6.5. Khóa khu admin bằng Cloudflare Access (rất khuyến nghị)
 Bảo vệ `/work` (khu làm việc admin/CTV) để **người lạ còn không tải nổi trang đó**:
 - **Zero Trust** (Cloudflare One) → **Access** → **Applications** → **Add an application** → **Self-hosted**
-  - Application domain: `tenmien.com/work`
+  - Application domain: `bloxus.store/work`
   - Policy: **Allow** → include **Emails** = danh sách email nhân viên của bạn
 - → Vào `/work` phải xác thực email (OTP) trước, DDoS/bot không chạm tới được khu quản trị.
 
@@ -127,15 +166,15 @@ báo tôi nếu muốn tôi code phần này vào web.)
 - Supabase tự **rate limit** endpoint Auth + có hạ tầng chống DDoS riêng.
 
 ### 7.3. (Nâng cao, tùy chọn) Đưa cả API sau Cloudflare
-Mua add-on **Supabase Custom Domain** (~$10/tháng) → trỏ `api.tenmien.com` (CNAME, bật proxy 🟠 Cloudflare)
+Mua add-on **Supabase Custom Domain** (~$10/tháng) → trỏ `api.bloxus.store` (CNAME, bật proxy 🟠 Cloudflare)
 tới Supabase → khi đó **cả traffic API** cũng qua WAF/DDoS của Cloudflare. Đây là mức bảo vệ tối đa.
-(Đổi `VITE_SUPABASE_URL` sang `https://api.tenmien.com` + cập nhật CSP trong `_headers`.)
+(Đổi `VITE_SUPABASE_URL` sang `https://api.bloxus.store` + cập nhật CSP trong `_headers`.)
 
 ---
 
 ## 8. Kiểm tra sau khi deploy
 
-- [ ] Mở `https://tenmien.com` → web load, đăng nhập được.
+- [ ] Mở `https://bloxus.store` → web load, đăng nhập được.
 - [ ] F5 tại `/work/orders/<id>` → không 404 (nhờ `_redirects`).
 - [ ] DevTools → Console: không có lỗi CSP đỏ. (Nếu có, xem host bị chặn rồi thêm vào `connect-src`/`img-src` trong `_headers`.)
 - [ ] DevTools → Network → click 1 request → Response Headers có `content-security-policy`, `x-frame-options`.
@@ -153,3 +192,32 @@ tới Supabase → khi đó **cả traffic API** cũng qua WAF/DDoS của Cloudf
 | Under Attack Mode | Security → Settings | Nút khẩn cấp: đố JS toàn bộ khách |
 | Cloudflare Access | Zero Trust → Access | Người lạ không vào nổi `/work` |
 | CAPTCHA Auth + RLS | Supabase | Chặn brute-force/spam tài khoản, khóa quyền dữ liệu |
+
+
+---
+
+## 9. ✅ Việc phải làm khi lên miền `bloxus.store`
+
+Ngoài Cloudflare, có 4 dịch vụ bên ngoài vẫn đang trỏ về `localhost` hoặc tên cũ.
+Thiếu bước nào thì phần đó hỏng, nên làm đủ cả 5 dòng dưới.
+
+| # | Ở đâu | Đổi cái gì | Không làm thì sao |
+|---|---|---|---|
+| 1 | Cloudflare Pages → Settings → Build | **Root directory**: `uniemarket` → `bloxus` | Build lỗi ngay, không deploy được |
+| 2 | Supabase → Authentication → URL Configuration | **Site URL** = `https://bloxus.store`; **Redirect URLs** thêm `https://bloxus.store/**` | Đăng nhập Google/Discord quay về sai chỗ, link đặt lại mật khẩu bị chặn |
+| 3 | Cloudflare → Turnstile → widget của bạn | Thêm `bloxus.store` vào **Domains** | Captcha ở trang đăng nhập/đăng ký không hiện, không đăng nhập được |
+| 4 | Máy bạn, chạy `supabase secrets set` | `SITE_URL=https://bloxus.store` | Trả tiền Stripe xong không quay về được web |
+| 5 | Supabase → SQL Editor | Chạy `supabase/39-rebrand-bloxus.sql` | Web hiện Bloxus nhưng thông báo và minh chứng vẫn ghi tên cũ |
+
+Lệnh cho dòng 4:
+
+```bash
+cd bloxus
+supabase secrets set SITE_URL=https://bloxus.store
+supabase functions deploy create-checkout-session
+```
+
+**Google và Discord OAuth không cần đổi gì.** Redirect URI của chúng trỏ tới
+`https://xikeydfwdavqttagrtsj.supabase.co/auth/v1/callback`, không dính tới miền web.
+
+**Stripe webhook cũng không cần đổi.** Nó gọi vào Supabase Functions, không gọi vào miền web.

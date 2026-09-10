@@ -56,7 +56,7 @@ supabase functions deploy stripe-webhook --no-verify-jwt   # deploy lại cho ă
 3. Trả xong quay về trang đơn → vài giây sau trạng thái tự chuyển "Đã thanh toán"
    (webhook gọi `system_confirm_payment`).
 4. Chạy ổn thì đổi sang key thật: `supabase secrets set STRIPE_SECRET_KEY=sk_live_...`,
-   tạo webhook endpoint ở chế độ Live (whsec mới) và đặt lại `SITE_URL=https://tenmien.com`.
+   tạo webhook endpoint ở chế độ Live (whsec mới) và đặt lại `SITE_URL=https://bloxus.store`.
 
 ## Chống chargeback (khuyến nghị)
 Stripe Dashboard → **Settings → Radar** → bật rule yêu cầu **3D Secure** khi có thể —

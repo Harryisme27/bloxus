@@ -8,10 +8,10 @@ trong hồ sơ). Còn lại là cấu hình 3 dashboard bên ngoài, làm 1 lầ
 
 Supabase Dashboard → **Authentication** → **URL Configuration**:
 
-- **Site URL**: `http://localhost:5173` (khi lên miền thật thì đổi thành `https://tenmien.com`)
+- **Site URL**: `http://localhost:5173` (khi lên miền thật thì đổi thành `https://bloxus.store`)
 - **Redirect URLs** thêm cả hai:
   - `http://localhost:5173/**`
-  - `https://tenmien.com/**` (khi có miền)
+  - `https://bloxus.store/**` (khi có miền)
 
 > Thiếu bước này thì OAuth quay về sai chỗ và link reset mật khẩu bị chặn.
 
