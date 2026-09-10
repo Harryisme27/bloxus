@@ -4,7 +4,7 @@ import { Link, Navigate, useLocation, useNavigate, useSearchParams } from "react
 import { toast } from "sonner";
 import { AlertCircle, ChevronsRight, Eye, EyeOff, KeyRound, Lock, LogIn, Mail } from "lucide-react";
 import { AuthCard } from "@/components/account/AuthCard";
-import { DiscordIcon, SocialLoginButtons } from "@/components/account/SocialLoginButtons";
+import { DiscordIcon } from "@/components/account/SocialLoginButtons";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -297,7 +297,6 @@ export function Login() {
 
       <div className="space-y-2.5">
         <SlideDiscordLogin />
-        <SocialLoginButtons only={["google"]} noDivider />
       </div>
     </AuthCard>
   );

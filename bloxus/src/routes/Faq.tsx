@@ -221,7 +221,7 @@ const STR: { vi: FaqStrings; en: FaqStrings } = {
         category: "suggest",
         question: "Tôi muốn góp ý hoặc đề xuất game mới thì làm thế nào?",
         answer:
-          "Nếu bạn muốn góp ý hoặc có game mới muốn chúng tôi bán, hãy tham gia Discord BLOXUS tại https://discord.com/invite/bloxus và nhắn cho chúng tôi — mọi đề xuất đều được đội ngũ đọc và phản hồi.",
+          "Nếu bạn muốn góp ý hoặc có game mới muốn chúng tôi bán, hãy tham gia Discord BLOXUS tại https://discord.com/invite/unie và nhắn cho chúng tôi — mọi đề xuất đều được đội ngũ đọc và phản hồi.",
       },
     ],
   },
@@ -383,7 +383,7 @@ const STR: { vi: FaqStrings; en: FaqStrings } = {
         category: "suggest",
         question: "How do I share feedback or request a new game?",
         answer:
-          "If you'd like to give feedback or there's a new game you want us to sell, join the BLOXUS Discord at https://discord.com/invite/bloxus and message us — the team reads and responds to every suggestion.",
+          "If you'd like to give feedback or there's a new game you want us to sell, join the BLOXUS Discord at https://discord.com/invite/unie and message us — the team reads and responds to every suggestion.",
       },
     ],
   },

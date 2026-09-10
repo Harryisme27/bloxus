@@ -97,7 +97,7 @@ const STR = {
     gwNotConfigured: "Shop chưa cấu hình cổng này — vui lòng trao đổi qua khung chat.",
     stripePayBtn: "Thanh toán bằng thẻ / Apple Pay",
     stripePayHint:
-      "Bạn sẽ được chuyển tới trang thanh toán bảo mật (giá tính bằng USD, hiện không thu phí xử lý). Đơn tự xác nhận ngay khi trả xong.",
+      "Bạn sẽ được chuyển tới trang thanh toán bảo mật (giá tính bằng USD, cộng phí xử lý thẻ 5% + $0.30 — hiển thị rõ trước khi trả). Đơn tự xác nhận ngay khi trả xong.",
     stripePayBusy: "Đang tạo phiên thanh toán…",
     stripeCancelled: "Bạn đã hủy thanh toán — có thể thử lại bất cứ lúc nào.",
     stripeFeeLabel: "Phí xử lý",
@@ -167,7 +167,7 @@ const STR = {
     gwNotConfigured: "The shop hasn't configured this gateway — please discuss via chat.",
     stripePayBtn: "Pay by card / Apple Pay",
     stripePayHint:
-      "You'll be redirected to a secure checkout page (charged in USD, no processing fee right now). The order confirms automatically once paid.",
+      "You'll be redirected to a secure checkout page (charged in USD, plus a 5% + $0.30 card processing fee shown clearly before you pay). The order confirms automatically once paid.",
     stripePayBusy: "Creating checkout session…",
     stripeCancelled: "Payment cancelled — you can retry anytime.",
     stripeFeeLabel: "Processing fee",

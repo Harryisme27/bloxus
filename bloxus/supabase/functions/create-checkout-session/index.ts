@@ -18,10 +18,9 @@ const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") ?? "", {
 const USD_VND_RATE = 26_000;
 // Phí xử lý cộng vào cho khách khi trả thẻ (bù phí Stripe).
 // Chỉnh 2 số này là đổi công thức: fee = subtotal * PERCENT + FIXED.
-// (Đang MIỄN PHÍ tạm thời — đặt lại 0.05 / 30 khi muốn thu phí; nhớ chỉnh
-// STRIPE_FEE_* trong src/lib/paymentGateways.ts cho khớp.)
-const PROCESSING_FEE_PERCENT = 0; // 5% -> tạm 0
-const PROCESSING_FEE_FIXED_CENTS = 0; // + $0.30 -> tạm 0
+// (Nhớ chỉnh STRIPE_FEE_* trong src/lib/paymentGateways.ts cho khớp.)
+const PROCESSING_FEE_PERCENT = 0.05; // 5%
+const PROCESSING_FEE_FIXED_CENTS = 30; // + $0.30
 
 /** VND -> cent USD, làm tròn. */
 function vndToUsdCents(vnd: number): number {
