@@ -164,19 +164,19 @@ export function GamesMenu() {
       {open ? (
         <div
           id="games-menu-panel"
-          className="absolute inset-x-0 top-full z-50 mx-auto mt-2 w-[min(1040px,calc(100%-32px))] overflow-hidden rounded-2xl border border-border-strong bg-surface shadow-2xl shadow-black/60"
+          className="absolute inset-x-0 top-full z-50 mx-auto mt-3 w-[min(1040px,calc(100%-32px))] overflow-hidden rounded-[28px] border border-white/[0.08] bg-surface/95 shadow-[0_28px_80px_-24px_rgba(0,0,0,0.8)] backdrop-blur-xl"
         >
           <div className="grid md:grid-cols-[1.1fr_1fr]">
             {/* Cột trái: game nổi bật */}
-            <section className="border-b border-border p-6 md:border-b-0 md:border-r">
-              <div className="mb-4 flex items-center justify-between">
+            <section className="border-b border-border/70 p-7 md:border-b-0 md:border-r md:p-8">
+              <div className="mb-5 flex items-center justify-between">
                 <h2 className="text-xs font-bold uppercase tracking-[0.18em] text-text-subtle">{t.popular}</h2>
                 {games.length ? <span className="text-xs text-text-subtle">{t.count(games.length)}</span> : null}
               </div>
               {gamesQuery.isLoading ? (
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-2 gap-3.5">
                   {[0, 1, 2, 3].map((i) => (
-                    <div key={i} className="h-[72px] animate-pulse rounded-xl bg-surface-2" />
+                    <div key={i} className="h-[76px] animate-pulse rounded-2xl bg-surface-2/80" />
                   ))}
                 </div>
               ) : gamesQuery.isError ? (
@@ -189,10 +189,10 @@ export function GamesMenu() {
                     <Link
                       key={g.id}
                       to={`/games/${g.slug}`}
-                      className="flex items-center gap-3 rounded-xl border border-border bg-surface-2 p-3 transition-colors hover:border-yellow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-yellow"
+                      className="group flex min-h-[80px] items-center gap-3.5 rounded-2xl border border-white/[0.06] bg-surface-2/70 p-3.5 transition-all duration-200 ease-out hover:-्लेilho_translate-y-0.5 hover:border-yellow/45 hover:bg-surface-2 hover:shadow-[0_14px_32px_-20px_rgba(124,195,90,0.75)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-yellow"
                     >
-                      <GameIcon game={g} className="h-12 w-12" />
-                      <span className="truncate font-heading text-sm font-bold text-text">{g.name}</span>
+                      <GameIcon game={g} className="h-12 w-12 rounded-2xl ring-1 ring-white/10 transition-transform duration-200 group-hover:scale-[1.04]" />
+                      <span className="truncate font-heading text-sm font-bold text-text/95 transition-colors group-hover:text-text">{g.name}</span>
                     </Link>
                   ))}
                 </div>
@@ -200,10 +200,10 @@ export function GamesMenu() {
             </section>
 
             {/* Cột phải: tất cả game + tìm */}
-            <section className="flex flex-col p-6">
-              <h2 className="mb-4 text-xs font-bold uppercase tracking-[0.18em] text-text-subtle">{t.all}</h2>
-              <label className="relative mb-3 block">
-                <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-text-subtle" aria-hidden />
+            <section className="flex flex-col p-7 md:p-8">
+              <h2 className="mb-5 text-xs font-bold uppercase tracking-[0.18em] text-text-subtle">{t.all}</h2>
+              <label className="group relative mb-4 block">
+                <Search className="pointer-events-none absolute left-4 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-text-subtle transition-colors group-focus-within:text-yellow" aria-hidden />
                 <input
                   ref={searchRef}
                   type="search"
@@ -211,10 +211,10 @@ export function GamesMenu() {
                   onChange={(e) => setQ(e.target.value)}
                   placeholder={t.searchPh}
                   aria-label={t.searchAria}
-                  className="h-12 w-full rounded-xl border border-border bg-surface-2 pl-11 pr-4 text-sm text-text placeholder:text-text-subtle focus:border-yellow focus:outline-none"
+                  className="h-14 w-full rounded-2xl border border-border-strong/80 bg-bg/35 pl-12 pr-4 text-sm text-text shadow-inner shadow-black/10 outline-none transition-all duration-200 placeholder:text-text-subtle focus:border-yellow/70 focus:bg-bg/50 focus:ring-4 focus:ring-yellow/10"
                 />
               </label>
-              <div data-all className="-mx-2 max-h-[320px] overflow-y-auto">
+              <div data-all className="-mx-1 max-h-[320px] overflow-y-auto pr-1">
                 {gamesQuery.isLoading ? null : filtered.length === 0 ? (
                   <p className="px-2 py-3 text-sm text-text-muted">{q.trim() ? t.noMatch(q.trim()) : t.empty}</p>
                 ) : (
@@ -222,9 +222,9 @@ export function GamesMenu() {
                     <Link
                       key={g.id}
                       to={`/games/${g.slug}`}
-                      className="flex items-center gap-3 rounded-xl px-2 py-2 transition-colors hover:bg-surface-2 focus-visible:bg-surface-2 focus-visible:outline-none"
+                      className="group flex items-center gap-3.5 rounded-2xl px-3 py-2.5 transition-all duration-200 hover:bg-surface-2/80 focus-visible:bg-surface-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-yellow/70"
                     >
-                      <GameIcon game={g} className="h-10 w-10" />
+                      <GameIcon game={g} className="h-10 w-10 rounded-xl ring-1 ring-white/[0.08] transition-transform duration-200 group-hover:scale-105" />
                       <span className="truncate font-heading text-sm font-bold text-text">{g.name}</span>
                     </Link>
                   ))
@@ -232,10 +232,10 @@ export function GamesMenu() {
               </div>
               <Link
                 to="/games"
-                className="mt-auto inline-flex items-center gap-1.5 self-start pt-4 text-sm font-semibold text-yellow hover:text-yellow-hover"
+                className="group mt-auto inline-flex items-center gap-2 self-start pt-5 text-sm font-semibold text-yellow transition-colors hover:text-yellow-hover"
               >
                 {t.viewAll}
-                <ArrowRight className="h-4 w-4" aria-hidden />
+                <ArrowRight className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-1" aria-hidden />
               </Link>
             </section>
           </div>
