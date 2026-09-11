@@ -35,21 +35,22 @@ import { useHeartbeat } from "@/components/realtime/useHeartbeat";
 import { useCartStore } from "@/store/cartStore";
 import { useAuthStore } from "@/store/authStore";
 import { DISCORD_URL } from "@/lib/constants";
-import { useT, usePick, type Catalog } from "@/i18n";
+import { useT, usePick } from "@/i18n";
 import { cn } from "@/lib/utils";
 
-const STR: Catalog<{
-  homeAria: string;
-  closeMenu: string;
-  openMenu: string;
-  notifications: string;
-  currencyLabel: string;
-  faqShort: string;
-  discord: string;
-  live: string;
-  signIn: string;
-  signUpNow: string;
-}> = {
+const STR = {
+  vi: {
+    homeAria: "Bloxus - Trang chủ",
+    closeMenu: "Đóng menu",
+    openMenu: "Mở menu",
+    notifications: "Thông báo",
+    currencyLabel: "Tiền tệ",
+    faqShort: "Hỏi đáp",
+    discord: "Discord",
+    live: "Live",
+    signIn: "Đăng nhập",
+    signUpNow: "Đăng ký ngay",
+  },
   en: {
     homeAria: "Bloxus - Home",
     closeMenu: "Close menu",
@@ -61,114 +62,6 @@ const STR: Catalog<{
     live: "Live",
     signIn: "Sign in",
     signUpNow: "Sign up now",
-  },
-  ru: {
-    homeAria: "Bloxus - Главная",
-    closeMenu: "Закрыть меню",
-    openMenu: "Открыть меню",
-    notifications: "Уведомления",
-    currencyLabel: "Валюта",
-    faqShort: "FAQ",
-    discord: "Discord",
-    live: "Live",
-    signIn: "Войти",
-    signUpNow: "Регистрация",
-  },
-  pt: {
-    homeAria: "Bloxus - Início",
-    closeMenu: "Fechar menu",
-    openMenu: "Abrir menu",
-    notifications: "Notificações",
-    currencyLabel: "Moeda",
-    faqShort: "FAQ",
-    discord: "Discord",
-    live: "Ao vivo",
-    signIn: "Entrar",
-    signUpNow: "Cadastre-se",
-  },
-  tr: {
-    homeAria: "Bloxus - Ana sayfa",
-    closeMenu: "Menüyü kapat",
-    openMenu: "Menüyü aç",
-    notifications: "Bildirimler",
-    currencyLabel: "Para birimi",
-    faqShort: "SSS",
-    discord: "Discord",
-    live: "Canlı",
-    signIn: "Giriş yap",
-    signUpNow: "Hemen kaydol",
-  },
-  fr: {
-    homeAria: "Bloxus - Accueil",
-    closeMenu: "Fermer le menu",
-    openMenu: "Ouvrir le menu",
-    notifications: "Notifications",
-    currencyLabel: "Devise",
-    faqShort: "FAQ",
-    discord: "Discord",
-    live: "Live",
-    signIn: "Connexion",
-    signUpNow: "S'inscrire",
-  },
-  es: {
-    homeAria: "Bloxus - Inicio",
-    closeMenu: "Cerrar menú",
-    openMenu: "Abrir menú",
-    notifications: "Notificaciones",
-    currencyLabel: "Moneda",
-    faqShort: "FAQ",
-    discord: "Discord",
-    live: "En vivo",
-    signIn: "Iniciar sesión",
-    signUpNow: "Regístrate",
-  },
-  de: {
-    homeAria: "Bloxus - Startseite",
-    closeMenu: "Menü schließen",
-    openMenu: "Menü öffnen",
-    notifications: "Benachrichtigungen",
-    currencyLabel: "Währung",
-    faqShort: "FAQ",
-    discord: "Discord",
-    live: "Live",
-    signIn: "Anmelden",
-    signUpNow: "Jetzt registrieren",
-  },
-  it: {
-    homeAria: "Bloxus - Home",
-    closeMenu: "Chiudi menu",
-    openMenu: "Apri menu",
-    notifications: "Notifiche",
-    currencyLabel: "Valuta",
-    faqShort: "FAQ",
-    discord: "Discord",
-    live: "Live",
-    signIn: "Accedi",
-    signUpNow: "Registrati ora",
-  },
-  fil: {
-    homeAria: "Bloxus - Home",
-    closeMenu: "Isara ang menu",
-    openMenu: "Buksan ang menu",
-    notifications: "Mga notification",
-    currencyLabel: "Currency",
-    faqShort: "FAQ",
-    discord: "Discord",
-    live: "Live",
-    signIn: "Mag-sign in",
-    signUpNow: "Mag-sign up na",
-  },
-  id: {
-    homeAria: "Bloxus - Beranda",
-    closeMenu: "Tutup menu",
-    openMenu: "Buka menu",
-    notifications: "Notifikasi",
-    currencyLabel: "Mata uang",
-    faqShort: "FAQ",
-    discord: "Discord",
-    live: "Live",
-    signIn: "Masuk",
-    signUpNow: "Daftar sekarang",
   },
 };
 
