@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { FormEvent, PointerEvent as ReactPointerEvent } from "react";
 import { Link, Navigate, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
@@ -13,26 +13,6 @@ import { useAuthStore } from "@/store/authStore";
 import { usePick } from "@/i18n";
 
 const STR = {
-  vi: {
-    title: "Đăng nhập",
-    subtitle: "Truy cập bảng điều khiển, đơn hàng và minh chứng giao dịch của bạn.",
-    slideLabel: "Nhấn hoặc kéo để đăng nhập",
-    slideAria: "Nhấn hoặc kéo icon Discord để đăng nhập",
-    redirecting: "Đang chuyển hướng…",
-    noAccount: "Chưa có tài khoản?",
-    signUpNow: "Đăng ký ngay",
-    email: "Email hoặc tên hiển thị",
-    emailPlaceholder: "name@example.com",
-    password: "Mật khẩu",
-    passwordPlaceholder: "Mật khẩu của bạn",
-    hidePassword: "Ẩn mật khẩu",
-    showPassword: "Hiện mật khẩu",
-    forgot: "Quên mật khẩu?",
-    signingIn: "Đang đăng nhập…",
-    signIn: "Đăng nhập",
-    welcomeBack: "Đăng nhập thành công",
-    or: "hoặc",
-  },
   en: {
     title: "Log in",
     subtitle: "Access your dashboard, orders, and transaction proofs.",
@@ -52,6 +32,276 @@ const STR = {
     signIn: "Log in",
     welcomeBack: "Signed in successfully",
     or: "or",
+    oauthErrors: {
+      discord_denied: "You cancelled the Discord sign-in.",
+      discord_failed: "Discord didn't respond. Please try again.",
+      bad_state: "Your sign-in session expired. Please try again.",
+      no_email: "This Discord account has no email address.",
+      email_unverified: "Your Discord email isn't verified yet. Verify it in Discord, then try again.",
+      account_disabled: "This account has been disabled.",
+      server_error: "Discord sign-in is having trouble. Please try again later or sign in with email.",
+    } as Record<string, string>,
+  },
+  ru: {
+    title: "Вход",
+    subtitle: "Доступ к вашей панели, заказам и подтверждениям транзакций.",
+    slideLabel: "Нажмите или потяните, чтобы войти",
+    slideAria: "Нажмите или потяните значок Discord, чтобы войти",
+    redirecting: "Перенаправление…",
+    noAccount: "Нет аккаунта?",
+    signUpNow: "Зарегистрироваться",
+    email: "Email или отображаемое имя",
+    emailPlaceholder: "name@example.com",
+    password: "Пароль",
+    passwordPlaceholder: "Ваш пароль",
+    hidePassword: "Скрыть пароль",
+    showPassword: "Показать пароль",
+    forgot: "Забыли пароль?",
+    signingIn: "Выполняется вход…",
+    signIn: "Войти",
+    welcomeBack: "Вы успешно вошли",
+    or: "или",
+    oauthErrors: {
+      discord_denied: "Вы отменили вход через Discord.",
+      discord_failed: "Discord не отвечает. Пожалуйста, попробуйте ещё раз.",
+      bad_state: "Сессия входа истекла. Пожалуйста, попробуйте ещё раз.",
+      no_email: "У этого аккаунта Discord нет адреса email.",
+      email_unverified: "Ваш email в Discord ещё не подтверждён. Подтвердите его в Discord и попробуйте снова.",
+      account_disabled: "Этот аккаунт заблокирован.",
+      server_error: "Вход через Discord временно не работает. Попробуйте позже или войдите по email.",
+    } as Record<string, string>,
+  },
+  pt: {
+    title: "Entrar",
+    subtitle: "Acesse seu painel, pedidos e comprovantes de transação.",
+    slideLabel: "Clique ou arraste para entrar",
+    slideAria: "Clique ou arraste o ícone do Discord para entrar",
+    redirecting: "Redirecionando…",
+    noAccount: "Não tem uma conta?",
+    signUpNow: "Cadastre-se",
+    email: "E-mail ou nome de exibição",
+    emailPlaceholder: "name@example.com",
+    password: "Senha",
+    passwordPlaceholder: "Sua senha",
+    hidePassword: "Ocultar senha",
+    showPassword: "Mostrar senha",
+    forgot: "Esqueceu a senha?",
+    signingIn: "Entrando…",
+    signIn: "Entrar",
+    welcomeBack: "Login feito com sucesso",
+    or: "ou",
+    oauthErrors: {
+      discord_denied: "Você cancelou o login com o Discord.",
+      discord_failed: "O Discord não respondeu. Tente novamente.",
+      bad_state: "Sua sessão de login expirou. Tente novamente.",
+      no_email: "Esta conta do Discord não tem e-mail.",
+      email_unverified: "Seu e-mail do Discord ainda não foi verificado. Verifique-o no Discord e tente novamente.",
+      account_disabled: "Esta conta foi desativada.",
+      server_error: "O login com Discord está com problemas. Tente mais tarde ou entre com e-mail.",
+    } as Record<string, string>,
+  },
+  tr: {
+    title: "Giriş yap",
+    subtitle: "Paneline, siparişlerine ve işlem kanıtlarına eriş.",
+    slideLabel: "Giriş için tıkla veya sürükle",
+    slideAria: "Giriş yapmak için Discord simgesine tıkla veya sürükle",
+    redirecting: "Yönlendiriliyor…",
+    noAccount: "Hesabın yok mu?",
+    signUpNow: "Hemen kaydol",
+    email: "E-posta veya görünen ad",
+    emailPlaceholder: "name@example.com",
+    password: "Şifre",
+    passwordPlaceholder: "Şifren",
+    hidePassword: "Şifreyi gizle",
+    showPassword: "Şifreyi göster",
+    forgot: "Şifreni mi unuttun?",
+    signingIn: "Giriş yapılıyor…",
+    signIn: "Giriş yap",
+    welcomeBack: "Giriş başarılı",
+    or: "veya",
+    oauthErrors: {
+      discord_denied: "Discord ile girişi iptal ettin.",
+      discord_failed: "Discord yanıt vermedi. Lütfen tekrar dene.",
+      bad_state: "Giriş oturumunun süresi doldu. Lütfen tekrar dene.",
+      no_email: "Bu Discord hesabının e-posta adresi yok.",
+      email_unverified: "Discord e-postan henüz doğrulanmamış. Discord'da doğrulayıp tekrar dene.",
+      account_disabled: "Bu hesap devre dışı bırakıldı.",
+      server_error: "Discord ile giriş şu anda sorun yaşıyor. Lütfen daha sonra tekrar dene veya e-posta ile giriş yap.",
+    } as Record<string, string>,
+  },
+  fr: {
+    title: "Connexion",
+    subtitle: "Accédez à votre tableau de bord, à vos commandes et à vos preuves de transaction.",
+    slideLabel: "Cliquez ou glissez pour vous connecter",
+    slideAria: "Cliquez ou glissez l'icône Discord pour vous connecter",
+    redirecting: "Redirection…",
+    noAccount: "Pas encore de compte ?",
+    signUpNow: "Inscrivez-vous",
+    email: "E-mail ou nom d'affichage",
+    emailPlaceholder: "name@example.com",
+    password: "Mot de passe",
+    passwordPlaceholder: "Votre mot de passe",
+    hidePassword: "Masquer le mot de passe",
+    showPassword: "Afficher le mot de passe",
+    forgot: "Mot de passe oublié ?",
+    signingIn: "Connexion…",
+    signIn: "Se connecter",
+    welcomeBack: "Connexion réussie",
+    or: "ou",
+    oauthErrors: {
+      discord_denied: "Vous avez annulé la connexion avec Discord.",
+      discord_failed: "Discord ne répond pas. Veuillez réessayer.",
+      bad_state: "Votre session de connexion a expiré. Veuillez réessayer.",
+      no_email: "Ce compte Discord n'a pas d'adresse e-mail.",
+      email_unverified: "Votre e-mail Discord n'est pas encore vérifié. Vérifiez-le dans Discord, puis réessayez.",
+      account_disabled: "Ce compte a été désactivé.",
+      server_error: "La connexion avec Discord rencontre un problème. Réessayez plus tard ou connectez-vous par e-mail.",
+    } as Record<string, string>,
+  },
+  es: {
+    title: "Iniciar sesión",
+    subtitle: "Accede a tu panel, tus pedidos y tus comprobantes de transacción.",
+    slideLabel: "Haz clic o arrastra para entrar",
+    slideAria: "Haz clic o arrastra el icono de Discord para iniciar sesión",
+    redirecting: "Redirigiendo…",
+    noAccount: "¿No tienes cuenta?",
+    signUpNow: "Regístrate ahora",
+    email: "Correo o nombre visible",
+    emailPlaceholder: "name@example.com",
+    password: "Contraseña",
+    passwordPlaceholder: "Tu contraseña",
+    hidePassword: "Ocultar contraseña",
+    showPassword: "Mostrar contraseña",
+    forgot: "¿Olvidaste tu contraseña?",
+    signingIn: "Iniciando sesión…",
+    signIn: "Iniciar sesión",
+    welcomeBack: "Sesión iniciada correctamente",
+    or: "o",
+    oauthErrors: {
+      discord_denied: "Cancelaste el inicio de sesión con Discord.",
+      discord_failed: "Discord no respondió. Inténtalo de nuevo.",
+      bad_state: "Tu sesión de inicio expiró. Inténtalo de nuevo.",
+      no_email: "Esta cuenta de Discord no tiene correo electrónico.",
+      email_unverified: "Tu correo de Discord aún no está verificado. Verifícalo en Discord y vuelve a intentarlo.",
+      account_disabled: "Esta cuenta ha sido desactivada.",
+      server_error: "El inicio de sesión con Discord tiene problemas. Inténtalo más tarde o entra con tu correo.",
+    } as Record<string, string>,
+  },
+  de: {
+    title: "Anmelden",
+    subtitle: "Greif auf dein Dashboard, deine Bestellungen und Transaktionsnachweise zu.",
+    slideLabel: "Klicken oder ziehen zum Anmelden",
+    slideAria: "Klicke oder ziehe das Discord-Symbol, um dich anzumelden",
+    redirecting: "Weiterleitung…",
+    noAccount: "Noch kein Konto?",
+    signUpNow: "Jetzt registrieren",
+    email: "E-Mail oder Anzeigename",
+    emailPlaceholder: "name@example.com",
+    password: "Passwort",
+    passwordPlaceholder: "Dein Passwort",
+    hidePassword: "Passwort verbergen",
+    showPassword: "Passwort anzeigen",
+    forgot: "Passwort vergessen?",
+    signingIn: "Anmeldung läuft…",
+    signIn: "Anmelden",
+    welcomeBack: "Erfolgreich angemeldet",
+    or: "oder",
+    oauthErrors: {
+      discord_denied: "Du hast die Anmeldung mit Discord abgebrochen.",
+      discord_failed: "Discord hat nicht geantwortet. Bitte versuch es erneut.",
+      bad_state: "Deine Anmeldesitzung ist abgelaufen. Bitte versuch es erneut.",
+      no_email: "Dieses Discord-Konto hat keine E-Mail-Adresse.",
+      email_unverified: "Deine Discord-E-Mail ist noch nicht bestätigt. Bestätige sie in Discord und versuch es dann erneut.",
+      account_disabled: "Dieses Konto wurde deaktiviert.",
+      server_error: "Bei der Discord-Anmeldung gibt es gerade Probleme. Versuch es später erneut oder melde dich per E-Mail an.",
+    } as Record<string, string>,
+  },
+  it: {
+    title: "Accedi",
+    subtitle: "Accedi alla tua dashboard, ai tuoi ordini e alle prove delle transazioni.",
+    slideLabel: "Clicca o trascina per accedere",
+    slideAria: "Clicca o trascina l'icona di Discord per accedere",
+    redirecting: "Reindirizzamento…",
+    noAccount: "Non hai un account?",
+    signUpNow: "Registrati ora",
+    email: "Email o nome visualizzato",
+    emailPlaceholder: "name@example.com",
+    password: "Password",
+    passwordPlaceholder: "La tua password",
+    hidePassword: "Nascondi password",
+    showPassword: "Mostra password",
+    forgot: "Password dimenticata?",
+    signingIn: "Accesso in corso…",
+    signIn: "Accedi",
+    welcomeBack: "Accesso effettuato",
+    or: "oppure",
+    oauthErrors: {
+      discord_denied: "Hai annullato l'accesso con Discord.",
+      discord_failed: "Discord non ha risposto. Riprova.",
+      bad_state: "La sessione di accesso è scaduta. Riprova.",
+      no_email: "Questo account Discord non ha un indirizzo email.",
+      email_unverified: "La tua email di Discord non è ancora verificata. Verificala su Discord e riprova.",
+      account_disabled: "Questo account è stato disattivato.",
+      server_error: "L'accesso con Discord ha qualche problema. Riprova più tardi o accedi con l'email.",
+    } as Record<string, string>,
+  },
+  fil: {
+    title: "Mag-log in",
+    subtitle: "I-access ang iyong dashboard, mga order, at mga patunay ng transaksyon.",
+    slideLabel: "I-click o i-drag para mag-login",
+    slideAria: "I-click o i-drag ang Discord icon para mag-login",
+    redirecting: "Nire-redirect…",
+    noAccount: "Wala ka pang account?",
+    signUpNow: "Mag-sign up na",
+    email: "Email o display name",
+    emailPlaceholder: "name@example.com",
+    password: "Password",
+    passwordPlaceholder: "Ang iyong password",
+    hidePassword: "Itago ang password",
+    showPassword: "Ipakita ang password",
+    forgot: "Nakalimutan ang password?",
+    signingIn: "Nagla-log in…",
+    signIn: "Mag-log in",
+    welcomeBack: "Matagumpay kang naka-log in",
+    or: "o",
+    oauthErrors: {
+      discord_denied: "Kinansela mo ang pag-sign in gamit ang Discord.",
+      discord_failed: "Hindi sumagot ang Discord. Pakisubukang muli.",
+      bad_state: "Nag-expire na ang iyong sign-in session. Pakisubukang muli.",
+      no_email: "Walang email address ang Discord account na ito.",
+      email_unverified: "Hindi pa verified ang email mo sa Discord. I-verify ito sa Discord, tapos subukang muli.",
+      account_disabled: "Na-disable na ang account na ito.",
+      server_error: "May problema ang Discord sign-in ngayon. Subukang muli mamaya o mag-sign in gamit ang email.",
+    } as Record<string, string>,
+  },
+  id: {
+    title: "Masuk",
+    subtitle: "Akses dasbor, pesanan, dan bukti transaksimu.",
+    slideLabel: "Klik atau geser untuk masuk",
+    slideAria: "Klik atau geser ikon Discord untuk masuk",
+    redirecting: "Mengalihkan…",
+    noAccount: "Belum punya akun?",
+    signUpNow: "Daftar sekarang",
+    email: "Email atau nama tampilan",
+    emailPlaceholder: "name@example.com",
+    password: "Kata sandi",
+    passwordPlaceholder: "Kata sandimu",
+    hidePassword: "Sembunyikan kata sandi",
+    showPassword: "Tampilkan kata sandi",
+    forgot: "Lupa kata sandi?",
+    signingIn: "Sedang masuk…",
+    signIn: "Masuk",
+    welcomeBack: "Berhasil masuk",
+    or: "atau",
+    oauthErrors: {
+      discord_denied: "Kamu membatalkan masuk dengan Discord.",
+      discord_failed: "Discord tidak merespons. Coba lagi ya.",
+      bad_state: "Sesi masukmu sudah kedaluwarsa. Coba lagi ya.",
+      no_email: "Akun Discord ini tidak punya alamat email.",
+      email_unverified: "Email Discord-mu belum diverifikasi. Verifikasi dulu di Discord, lalu coba lagi.",
+      account_disabled: "Akun ini telah dinonaktifkan.",
+      server_error: "Masuk dengan Discord sedang bermasalah. Coba lagi nanti atau masuk dengan email.",
+    } as Record<string, string>,
   },
 };
 
@@ -61,7 +311,7 @@ const PAD = 10;
 
 /** Nút "Click or drag to login" kiểu yummytrack: handle Discord kéo được sang
  * phải; kéo quá ~70% (hoặc bấm/Enter) thì chuyển sang trang OAuth Discord. */
-function SlideDiscordLogin() {
+function SlideDiscordLogin({ next }: { next: string }) {
   const t = usePick(STR);
   const loginWithOAuth = useAuthStore((s) => s.loginWithOAuth);
   const [busy, setBusy] = useState(false);
@@ -74,7 +324,7 @@ function SlideDiscordLogin() {
   async function trigger() {
     if (busy) return;
     setBusy(true);
-    const result = await loginWithOAuth("discord");
+    const result = await loginWithOAuth("discord", next);
     if (!result.success) {
       toast.error(result.error);
       setBusy(false);
@@ -256,7 +506,7 @@ export function Login() {
   const user = useAuthStore((state) => state.user);
   const location = useLocation();
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   // Where to send the user after a successful sign-in (set by RequireAuth as
   // state.from, or by RequireRole as the ?next= query param).
@@ -264,6 +514,21 @@ export function Login() {
     (location.state as { from?: string } | null)?.from ??
     searchParams.get("next") ??
     "/dashboard";
+
+  // Máy chủ đăng nhập Discord báo lỗi qua ?error=<mã> -> hiện thông báo rồi xoá khỏi URL.
+  useEffect(() => {
+    const code = searchParams.get("error");
+    if (!code) return;
+    toast.error(t.oauthErrors[code] ?? t.oauthErrors.server_error);
+    setSearchParams(
+      (prev) => {
+        const params = new URLSearchParams(prev);
+        params.delete("error");
+        return params;
+      },
+      { replace: true },
+    );
+  }, [searchParams, setSearchParams, t]);
 
   // Already signed in → skip the form.
   if (user) return <Navigate to={from} replace />;
@@ -296,7 +561,7 @@ export function Login() {
       </div>
 
       <div className="space-y-2.5">
-        <SlideDiscordLogin />
+        <SlideDiscordLogin next={from} />
       </div>
     </AuthCard>
   );

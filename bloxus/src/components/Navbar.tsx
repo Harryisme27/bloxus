@@ -1,10 +1,10 @@
 // Thanh menu kiểu bloxmart: logo + chữ BLOXUS | nhóm menu dạng viên thuốc (Select
-// games ▾, Proofs LIVE, Tutorial, FAQ, Discord) | ngôn ngữ, giỏ, Sign in, Sign up now.
+// games ▾, Proofs LIVE, FAQ, Discord) | ngôn ngữ, giỏ, Sign in, Sign up now.
 // Đã đăng nhập thì thay Sign in/Sign up bằng chat, chuông, menu hồ sơ.
 // Theo độ rộng (đo thực tế cả tiếng Anh + tiếng Việt, cả khi đã đăng nhập):
 //   lg  (>=1024): Select games, Proofs, Sign up now + menu ba gạch
 //   xl  (>=1280): + Discord, Sign in
-//   >=1440     : + Tutorial, Hỏi đáp, tên cạnh avatar; ẩn menu ba gạch
+//   >=1440     : + Hỏi đáp, tên cạnh avatar; ẩn menu ba gạch
 // Nút Work area + đổi tiền tệ của staff nằm trong menu hồ sơ cho gọn.
 import { isStaffRole } from "@/lib/roles";
 import { useEffect, useState, type ReactNode } from "react";
@@ -18,7 +18,6 @@ import {
   Bell,
   LogOut,
   ShieldCheck,
-  BookOpen,
   HelpCircle,
   Gamepad2,
 } from "lucide-react";
@@ -36,35 +35,140 @@ import { useHeartbeat } from "@/components/realtime/useHeartbeat";
 import { useCartStore } from "@/store/cartStore";
 import { useAuthStore } from "@/store/authStore";
 import { DISCORD_URL } from "@/lib/constants";
-import { useT, usePick } from "@/i18n";
+import { useT, usePick, type Catalog } from "@/i18n";
 import { cn } from "@/lib/utils";
 
-const STR = {
-  vi: {
-    homeAria: "Bloxus - Trang chủ",
-    closeMenu: "Đóng menu",
-    openMenu: "Mở menu",
-    notifications: "Thông báo",
-    currencyLabel: "Tiền tệ",
-    tutorial: "Hướng dẫn",
-    faqShort: "Hỏi đáp",
-    discord: "Discord",
-    live: "Live",
-    signIn: "Đăng nhập",
-    signUpNow: "Đăng ký ngay",
-  },
+const STR: Catalog<{
+  homeAria: string;
+  closeMenu: string;
+  openMenu: string;
+  notifications: string;
+  currencyLabel: string;
+  faqShort: string;
+  discord: string;
+  live: string;
+  signIn: string;
+  signUpNow: string;
+}> = {
   en: {
     homeAria: "Bloxus - Home",
     closeMenu: "Close menu",
     openMenu: "Open menu",
     notifications: "Notifications",
     currencyLabel: "Currency",
-    tutorial: "Tutorial",
     faqShort: "FAQ",
     discord: "Discord",
     live: "Live",
     signIn: "Sign in",
     signUpNow: "Sign up now",
+  },
+  ru: {
+    homeAria: "Bloxus - Главная",
+    closeMenu: "Закрыть меню",
+    openMenu: "Открыть меню",
+    notifications: "Уведомления",
+    currencyLabel: "Валюта",
+    faqShort: "FAQ",
+    discord: "Discord",
+    live: "Live",
+    signIn: "Войти",
+    signUpNow: "Регистрация",
+  },
+  pt: {
+    homeAria: "Bloxus - Início",
+    closeMenu: "Fechar menu",
+    openMenu: "Abrir menu",
+    notifications: "Notificações",
+    currencyLabel: "Moeda",
+    faqShort: "FAQ",
+    discord: "Discord",
+    live: "Ao vivo",
+    signIn: "Entrar",
+    signUpNow: "Cadastre-se",
+  },
+  tr: {
+    homeAria: "Bloxus - Ana sayfa",
+    closeMenu: "Menüyü kapat",
+    openMenu: "Menüyü aç",
+    notifications: "Bildirimler",
+    currencyLabel: "Para birimi",
+    faqShort: "SSS",
+    discord: "Discord",
+    live: "Canlı",
+    signIn: "Giriş yap",
+    signUpNow: "Hemen kaydol",
+  },
+  fr: {
+    homeAria: "Bloxus - Accueil",
+    closeMenu: "Fermer le menu",
+    openMenu: "Ouvrir le menu",
+    notifications: "Notifications",
+    currencyLabel: "Devise",
+    faqShort: "FAQ",
+    discord: "Discord",
+    live: "Live",
+    signIn: "Connexion",
+    signUpNow: "S'inscrire",
+  },
+  es: {
+    homeAria: "Bloxus - Inicio",
+    closeMenu: "Cerrar menú",
+    openMenu: "Abrir menú",
+    notifications: "Notificaciones",
+    currencyLabel: "Moneda",
+    faqShort: "FAQ",
+    discord: "Discord",
+    live: "En vivo",
+    signIn: "Iniciar sesión",
+    signUpNow: "Regístrate",
+  },
+  de: {
+    homeAria: "Bloxus - Startseite",
+    closeMenu: "Menü schließen",
+    openMenu: "Menü öffnen",
+    notifications: "Benachrichtigungen",
+    currencyLabel: "Währung",
+    faqShort: "FAQ",
+    discord: "Discord",
+    live: "Live",
+    signIn: "Anmelden",
+    signUpNow: "Jetzt registrieren",
+  },
+  it: {
+    homeAria: "Bloxus - Home",
+    closeMenu: "Chiudi menu",
+    openMenu: "Apri menu",
+    notifications: "Notifiche",
+    currencyLabel: "Valuta",
+    faqShort: "FAQ",
+    discord: "Discord",
+    live: "Live",
+    signIn: "Accedi",
+    signUpNow: "Registrati ora",
+  },
+  fil: {
+    homeAria: "Bloxus - Home",
+    closeMenu: "Isara ang menu",
+    openMenu: "Buksan ang menu",
+    notifications: "Mga notification",
+    currencyLabel: "Currency",
+    faqShort: "FAQ",
+    discord: "Discord",
+    live: "Live",
+    signIn: "Mag-sign in",
+    signUpNow: "Mag-sign up na",
+  },
+  id: {
+    homeAria: "Bloxus - Beranda",
+    closeMenu: "Tutup menu",
+    openMenu: "Buka menu",
+    notifications: "Notifikasi",
+    currencyLabel: "Mata uang",
+    faqShort: "FAQ",
+    discord: "Discord",
+    live: "Live",
+    signIn: "Masuk",
+    signUpNow: "Daftar sekarang",
   },
 };
 
@@ -103,7 +207,6 @@ export function Navbar() {
   const mobileLinks: { to: string; label: string; icon: ReactNode; live?: boolean }[] = [
     { to: "/games", label: s.nav.games, icon: <Gamepad2 className="h-4 w-4 text-yellow" aria-hidden /> },
     { to: "/proofs", label: s.nav.proofs, icon: <ShieldCheck className="h-4 w-4 text-green" aria-hidden />, live: true },
-    { to: "/tutorial", label: t.tutorial, icon: <BookOpen className="h-4 w-4 text-lemon" aria-hidden /> },
     { to: "/faq", label: s.nav.faq, icon: <HelpCircle className="h-4 w-4 text-text-muted" aria-hidden /> },
   ];
 
@@ -137,10 +240,6 @@ export function Navbar() {
               <ShieldCheck className="h-4 w-4 text-green" aria-hidden />
               {s.nav.proofs}
               <LiveBadge label={t.live} />
-            </NavLink>
-            <NavLink to="/tutorial" className={({ isActive }) => cn(pillLink({ isActive }), "hidden min-[1440px]:inline-flex")}>
-              <BookOpen className="h-4 w-4 text-lemon" aria-hidden />
-              {t.tutorial}
             </NavLink>
             <NavLink to="/faq" className={({ isActive }) => cn(pillLink({ isActive }), "hidden min-[1440px]:inline-flex")}>
               <HelpCircle className="h-4 w-4 text-text-muted" aria-hidden />

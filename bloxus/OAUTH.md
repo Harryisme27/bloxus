@@ -64,3 +64,41 @@ Cần biết:
 - Discord: tương tự.
 - Quên mật khẩu: `/forgot-password` → nhập email → check hộp thư (cả Spam) →
   bấm link → đặt mật khẩu mới → đăng nhập lại.
+
+## 5. Discord hiện `bloxus.store` thay vì `supabase.co` (miễn phí)
+
+Nút Discord trên bản thật đi qua máy chủ của chính web (Cloudflare Pages
+Functions: `functions/api/auth/discord/*` + `server/discord-auth.ts`), nên màn
+hình cấp quyền của Discord ghi "redirected to https://bloxus.store" — giống
+trackstat, không cần mua Custom Domain của Supabase. Làm 1 lần:
+
+1. Supabase → **SQL Editor**: chạy `supabase/40-discord-profile.sql` (nếu chưa
+   chạy) rồi `supabase/41-discord-login.sql`.
+2. Discord Developer Portal → app **Bloxus** → **OAuth2** → **Redirects** →
+   **Add Redirect**: `https://bloxus.store/api/auth/discord/callback` → **Save**.
+   Giữ nguyên redirect `supabase.co` cũ.
+3. Cloudflare → **Workers & Pages** → project → **Settings** →
+   **Variables and Secrets** (môi trường **Production**) → **Add**:
+
+   | Tên | Giá trị | Kiểu |
+   |---|---|---|
+   | `DISCORD_CLIENT_ID` | Client ID (Discord → OAuth2) | Text |
+   | `DISCORD_CLIENT_SECRET` | Client Secret (Discord → OAuth2 → Reset Secret nếu chưa thấy) | **Secret** |
+   | `SUPABASE_SERVICE_ROLE_KEY` | Supabase → Project Settings → API Keys → khoá `service_role` / `secret` | **Secret** |
+   | `SITE_URL` | `https://bloxus.store` | Text |
+
+4. **Deployments** → bản mới nhất → **Retry deployment** (biến mới chỉ có hiệu
+   lực sau khi deploy lại).
+5. Thử: đăng xuất → `/login` → kéo nút Discord → màn hình Discord phải ghi
+   `bloxus.store` → cấp quyền → quay về web đã đăng nhập, avatar Discord hiện ở menu.
+
+Chưa làm bước 3 thì nút Discord tự dùng luồng Supabase cũ: vẫn đăng nhập được,
+chỉ là còn hiện `supabase.co`.
+
+> ⚠️ `SUPABASE_SERVICE_ROLE_KEY` có toàn quyền database. Chỉ dán vào ô **Secret**
+> của Cloudflare. KHÔNG đặt tên bắt đầu bằng `VITE_` (mọi biến `VITE_` bị nhúng
+> thẳng vào web ai cũng xem được).
+
+Máy chủ chỉ nhận email Discord **đã xác minh**, để không ai gắn email của người
+khác vào Discord rồi chiếm tài khoản. Nếu nhiều người đăng nhập Discord cùng lúc
+bị báo lỗi: Supabase → Authentication → **Rate Limits** → tăng "Token verifications".

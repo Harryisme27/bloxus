@@ -35,7 +35,8 @@ interface AuthState {
   login: (identifier: string, password: string, captchaToken?: string) => Promise<AuthResult>;
   /** Đăng nhập/đăng ký qua Google hoặc Discord — chuyển hướng sang trang OAuth,
    * quay về là có phiên (profile tự tạo bởi trigger handle_new_user). */
-  loginWithOAuth: (provider: "google" | "discord") => Promise<AuthResult>;
+  /** `next` = trang quay về sau khi đăng nhập (mặc định /dashboard). */
+  loginWithOAuth: (provider: "google" | "discord", next?: string) => Promise<AuthResult>;
   register: (payload: RegisterPayload) => Promise<AuthResult>;
   logout: () => Promise<void>;
   /** Tải lại profile từ DB (sau khi cập nhật hồ sơ / được duyệt Seller). */
@@ -151,9 +152,16 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
     return { success: true };
   },
 
-  loginWithOAuth: async (provider) => {
+  loginWithOAuth: async (provider, next) => {
     if (!isSupabaseConfigured || !supabase) {
       return { success: false, error: NOT_CONFIGURED_MESSAGE };
+    }
+    // Discord trên bản thật: đi qua máy chủ của chính bloxus.store
+    // (functions/api/auth/discord) để màn hình Discord hiện bloxus.store thay vì
+    // supabase.co. `npm run dev` không chạy Pages Functions -> dùng Supabase như cũ.
+    if (provider === "discord" && import.meta.env.PROD) {
+      window.location.assign(`/api/auth/discord/login?next=${encodeURIComponent(next ?? "/dashboard")}`);
+      return { success: true };
     }
     const { error } = await supabase.auth.signInWithOAuth({
       provider,
