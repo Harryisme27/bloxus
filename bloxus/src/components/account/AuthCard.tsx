@@ -81,7 +81,7 @@ export function AuthCard({ title, subtitle, children, footer }: AuthCardProps) {
               className="mb-4 inline-flex items-center gap-2 rounded-xl border border-border bg-surface px-3 py-2 transition-colors hover:border-yellow"
               aria-label={BRAND_NAME}
             >
-              <img src="/logo-bloxus.png" alt={BRAND_NAME} className="h-8 w-auto" />
+              <img src="/logo-bloxus.png?v=2" alt={BRAND_NAME} className="h-8 w-auto" />
             </Link>
             <h1 className="font-heading text-3xl font-bold text-text">
               <TypingTitle text={title} />

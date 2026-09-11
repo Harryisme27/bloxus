@@ -72,7 +72,7 @@ export function Footer() {
       <PageContainer className="grid grid-cols-2 gap-8 py-12 sm:grid-cols-3 lg:grid-cols-5">
         <div className="col-span-2 flex flex-col gap-3 sm:col-span-3 lg:col-span-2">
           <Link to="/" className="w-fit" aria-label={t.logoAria}>
-            <img src="/logo-bloxus.png" alt="Bloxus" className="h-8 w-auto" />
+            <img src="/logo-bloxus.png?v=2" alt="Bloxus" className="h-8 w-auto" />
           </Link>
           <p className="max-w-xs text-sm text-text-muted">{t.tagline}</p>
           <a

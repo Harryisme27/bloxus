@@ -33,7 +33,7 @@ export function NotFound() {
         />
         <div className="relative">
           <img
-            src="/logo-bloxus.png"
+            src="/logo-bloxus.png?v=2"
             alt=""
             aria-hidden="true"
             className="h-32 w-auto drop-shadow-[0_12px_40px_rgba(245,176,30,0.25)]"

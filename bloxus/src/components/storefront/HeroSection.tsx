@@ -67,7 +67,7 @@ export function HeroSection() {
       <PageContainer className="pointer-events-none relative z-10 py-20 sm:py-28 lg:py-32">
         <div className="mx-auto flex max-w-3xl flex-col items-center text-center">
           <img
-            src="/logo-bloxus.png"
+            src="/logo-bloxus.png?v=2"
             alt="BLOXUS"
             className="um-enter um-enter-1 um-float mb-6 h-28 w-auto drop-shadow-[0_12px_40px_rgba(245,176,30,0.35)] md:h-36"
           />

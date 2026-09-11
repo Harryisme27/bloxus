@@ -78,7 +78,7 @@ export function Navbar() {
       <PageContainer className="flex h-16 items-center justify-between gap-4">
         <div className="flex items-center gap-6">
           <Link to="/" className="flex items-center" aria-label={t.homeAria}>
-            <img src="/logo-bloxus.png" alt="Bloxus" className="h-10 w-auto" />
+            <img src="/logo-bloxus.png?v=2" alt="Bloxus" className="h-10 w-auto" />
           </Link>
 
           <nav className="hidden items-center gap-1 lg:flex">
