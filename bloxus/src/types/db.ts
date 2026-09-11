@@ -79,6 +79,10 @@ export interface ProfileRow {
   avatar_url: string | null;
   phone: string | null;
   discord: string | null;
+  /** ID Discord (snowflake) — tự điền khi đăng nhập bằng Discord (xem 40-discord-profile.sql). */
+  discord_id: string | null;
+  /** Username Discord hiện tại, cập nhật mỗi lần đăng nhập bằng Discord. */
+  discord_username: string | null;
   role: UserRole;
   last_seen_at: string | null;
   ctv_all_categories: boolean;

@@ -260,11 +260,17 @@ function Avatar({
   size?: "md" | "lg";
 }) {
   const dim = size === "lg" ? "h-10 w-10 text-sm" : "h-7 w-7 text-xs";
-  if (avatarUrl) {
+  // Link avatar Discord chết khi người dùng đổi ảnh trên Discord (tới lần đăng
+  // nhập sau mới cập nhật) -> lỗi tải thì quay về chữ cái đầu.
+  const [broken, setBroken] = useState(false);
+  useEffect(() => setBroken(false), [avatarUrl]);
+  if (avatarUrl && !broken) {
     return (
       <img
         src={avatarUrl}
         alt={name}
+        referrerPolicy="no-referrer"
+        onError={() => setBroken(true)}
         className={cn("shrink-0 rounded-full object-cover", dim)}
       />
     );

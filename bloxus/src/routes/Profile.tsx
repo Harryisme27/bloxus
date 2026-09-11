@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { RequireAuth } from "@/components/account/RequireAuth";
+import { DiscordIcon } from "@/components/account/SocialLoginButtons";
 import { useAuthStore } from "@/store/authStore";
 import { updateMyProfile } from "@/lib/db/profiles";
 import { relativeTime } from "@/lib/format";
@@ -42,6 +43,7 @@ const STR = {
     phone: "Số điện thoại",
     phonePlaceholder: "VD: 09xx xxx xxx",
     discordPlaceholder: "VD: username#0000",
+    discordLinked: "Đã liên kết Discord",
     preferences: "Tùy chọn",
     language: "Ngôn ngữ",
     notifications: "Thông báo",
@@ -79,6 +81,7 @@ const STR = {
     phone: "Phone number",
     phonePlaceholder: "e.g. 09xx xxx xxx",
     discordPlaceholder: "e.g. username#0000",
+    discordLinked: "Discord linked",
     preferences: "Preferences",
     language: "Language",
     notifications: "Notifications",
@@ -123,6 +126,9 @@ function ProfileContent() {
   const navigate = useNavigate();
 
   const email = session?.user.email ?? "";
+  // Ảnh Discord lấy lúc đăng nhập; link chết (người dùng đổi ảnh) thì về chữ cái đầu.
+  const [avatarBroken, setAvatarBroken] = useState(false);
+  useEffect(() => setAvatarBroken(false), [user.avatar_url]);
 
   const [displayName, setDisplayName] = useState(user.display_name ?? user.username);
   const [phone, setPhone] = useState(user.phone ?? "");
@@ -174,9 +180,19 @@ function ProfileContent() {
         <div className="space-y-6">
           <Card>
             <CardContent className="flex flex-col items-center p-6 text-center">
-              <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-yellow font-heading text-2xl font-extrabold text-text-on-yellow">
-                {initials(user.display_name ?? user.username)}
-              </div>
+              {user.avatar_url && !avatarBroken ? (
+                <img
+                  src={user.avatar_url}
+                  alt={user.display_name ?? user.username}
+                  referrerPolicy="no-referrer"
+                  onError={() => setAvatarBroken(true)}
+                  className="h-20 w-20 rounded-2xl object-cover"
+                />
+              ) : (
+                <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-yellow font-heading text-2xl font-extrabold text-text-on-yellow">
+                  {initials(user.display_name ?? user.username)}
+                </div>
+              )}
               <h2 className="mt-4 font-heading text-xl font-bold text-text">
                 {user.display_name ?? user.username}
               </h2>
@@ -188,6 +204,12 @@ function ProfileContent() {
                 <Badge variant="green">
                   <ShieldCheck className="h-3 w-3" aria-hidden />@{user.username}
                 </Badge>
+                {user.discord_id ? (
+                  <Badge variant="outline" aria-label={t.discordLinked}>
+                    <DiscordIcon className="h-3 w-3" />
+                    {user.discord_username ?? t.discordLinked}
+                  </Badge>
+                ) : null}
               </div>
               <p className="mt-4 text-xs text-text-subtle">
                 {t.memberSince}

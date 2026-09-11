@@ -185,6 +185,9 @@ export function MessagePane({ thread, className, compact, hideHeader }: MessageP
     counterparty?.avatar_url && /^https?:\/\//i.test(counterparty.avatar_url)
       ? counterparty.avatar_url
       : null;
+  // Link avatar Discord có thể đã chết (đổi ảnh trên Discord) -> về icon mặc định.
+  const [avatarBroken, setAvatarBroken] = useState(false);
+  useEffect(() => setAvatarBroken(false), [counterpartyAvatar]);
   // "⚡ Phản hồi: vài giây · 🕓 Hoạt động 3 giờ trước" (bỏ phần hoạt động khi
   // chưa có hồ sơ người đối diện, vd "Đội hỗ trợ").
   const orderSubtitle = counterparty
@@ -316,10 +319,12 @@ export function MessagePane({ thread, className, compact, hideHeader }: MessageP
           )}
         >
           {isOrderThread ? (
-            counterpartyAvatar ? (
+            counterpartyAvatar && !avatarBroken ? (
               <img
                 src={counterpartyAvatar}
                 alt={counterpartyName}
+                referrerPolicy="no-referrer"
+                onError={() => setAvatarBroken(true)}
                 className="h-9 w-9 shrink-0 rounded-full object-cover"
               />
             ) : (

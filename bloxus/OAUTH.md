@@ -36,6 +36,9 @@ Supabase Dashboard → **Authentication** → **URL Configuration**:
    `https://xikeydfwdavqttagrtsj.supabase.co/auth/v1/callback`
 4. Supabase Dashboard → **Authentication → Sign In / Providers → Discord**:
    bật **Enable**, dán Client ID + Secret → Save.
+5. Supabase Dashboard → **SQL Editor** → chạy `supabase/40-discord-profile.sql` (1 lần).
+   Từ đó mỗi lần đăng nhập Discord, hồ sơ tự lấy **ảnh đại diện**, **username** và
+   **ID Discord**. Tên hiển thị và ô liên hệ khách đã tự sửa thì không bị ghi đè.
 
 ## 3. Email quên mật khẩu
 
