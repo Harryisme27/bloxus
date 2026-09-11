@@ -65,7 +65,7 @@ function GameIcon({ category, className }: { category: CategoryRow; className?: 
   );
 }
 
-export function NavbarSearch({ className }: { className?: string }) {
+export function NavbarSearch({ className, autoFocus }: { className?: string; autoFocus?: boolean }) {
   const t = usePick(STR);
   const s = useT();
   const navigate = useNavigate();
@@ -170,6 +170,7 @@ export function NavbarSearch({ className }: { className?: string }) {
         <input
           type="text"
           role="searchbox"
+          autoFocus={autoFocus}
           aria-label={t.searchAria}
           placeholder={s.nav.searchPlaceholder}
           value={q}
