@@ -184,12 +184,12 @@ export function GamesMenu() {
               ) : popular.length === 0 ? (
                 <p className="text-sm text-text-muted">{t.empty}</p>
               ) : (
-                <div data-popular className="grid grid-cols-2 gap-3">
+                <div data-popular className="grid grid-cols-2 gap-3.5">
                   {popular.map((g) => (
                     <Link
                       key={g.id}
                       to={`/games/${g.slug}`}
-                      className="group flex min-h-[80px] items-center gap-3.5 rounded-2xl border border-white/[0.06] bg-surface-2/70 p-3.5 transition-all duration-200 ease-out hover:-्लेilho_translate-y-0.5 hover:border-yellow/45 hover:bg-surface-2 hover:shadow-[0_14px_32px_-20px_rgba(124,195,90,0.75)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-yellow"
+                      className="group flex min-h-[80px] items-center gap-3.5 rounded-2xl border border-white/[0.06] bg-surface-2/70 p-3.5 transition-all duration-200 ease-out hover:-translate-y-0.5 hover:border-yellow/45 hover:bg-surface-2 hover:shadow-[0_14px_32px_-20px_rgba(124,195,90,0.75)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-yellow"
                     >
                       <GameIcon game={g} className="h-12 w-12 rounded-2xl ring-1 ring-white/10 transition-transform duration-200 group-hover:scale-[1.04]" />
                       <span className="truncate font-heading text-sm font-bold text-text/95 transition-colors group-hover:text-text">{g.name}</span>
@@ -225,7 +225,7 @@ export function GamesMenu() {
                       className="group flex items-center gap-3.5 rounded-2xl px-3 py-2.5 transition-all duration-200 hover:bg-surface-2/80 focus-visible:bg-surface-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-yellow/70"
                     >
                       <GameIcon game={g} className="h-10 w-10 rounded-xl ring-1 ring-white/[0.08] transition-transform duration-200 group-hover:scale-105" />
-                      <span className="truncate font-heading text-sm font-bold text-text">{g.name}</span>
+                      <span className="truncate font-heading text-sm font-bold text-text/95 transition-colors group-hover:text-text">{g.name}</span>
                     </Link>
                   ))
                 )}
