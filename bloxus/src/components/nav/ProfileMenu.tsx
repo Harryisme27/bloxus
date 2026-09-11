@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { formatPrice } from "@/lib/format";
+import { CurrencyToggle } from "@/components/CurrencyToggle";
 import { useAuthStore } from "@/store/authStore";
 import { cn } from "@/lib/utils";
 import { usePick } from "@/i18n";
@@ -38,6 +39,7 @@ const STR = {
     help: "Trợ giúp",
     contact: "Liên hệ",
     workArea: "Khu làm việc",
+    currency: "Tiền tệ",
     logout: "Đăng xuất",
     roleAdmin: "Admin",
     roleManager: "Quản lý",
@@ -52,6 +54,7 @@ const STR = {
     help: "Help",
     contact: "Contact",
     workArea: "Work area",
+    currency: "Currency",
     logout: "Log out",
     roleAdmin: "Admin",
     roleManager: "Manager",
@@ -160,7 +163,8 @@ export function ProfileMenu() {
         )}
       >
         <Avatar name={name} avatarUrl={user.avatar_url} />
-        <span className="hidden max-w-[10rem] truncate text-sm font-semibold md:block">{name}</span>
+        {/* Tên chỉ hiện khi đủ chỗ (>=1440px); nhỏ hơn chỉ còn avatar để thanh menu không tràn. */}
+        <span className="hidden max-w-[10rem] truncate text-sm font-semibold min-[1440px]:block">{name}</span>
         <ChevronDown
           className={cn("h-4 w-4 text-text-muted transition-transform", open && "rotate-180")}
           aria-hidden="true"
@@ -200,7 +204,14 @@ export function ProfileMenu() {
               <MenuItem key={item.to} {...item} onSelect={() => setOpen(false)} />
             ))}
             {isStaff ? (
-              <MenuItem to="/work" label={t.workArea} icon={Briefcase} onSelect={() => setOpen(false)} />
+              <>
+                <MenuItem to="/work" label={t.workArea} icon={Briefcase} onSelect={() => setOpen(false)} />
+                {/* Đổi USD/VND (chỉ staff) — chuyển từ thanh menu vào đây cho gọn. */}
+                <div className="flex items-center justify-between px-4 py-2">
+                  <span className="text-sm text-text-muted">{t.currency}</span>
+                  <CurrencyToggle />
+                </div>
+              </>
             ) : null}
           </MenuSection>
 

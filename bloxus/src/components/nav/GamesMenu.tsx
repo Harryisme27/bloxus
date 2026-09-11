@@ -17,7 +17,7 @@ import type { CategoryRow } from "@/types/db";
 
 /** Kiểu chữ chung cho các mục trong nhóm menu (dùng cả ở Navbar). */
 export const navPillItemClass =
-  "inline-flex items-center gap-2 whitespace-nowrap rounded-full px-3.5 py-2 font-heading text-[13px] font-extrabold uppercase tracking-[0.08em] text-text-muted transition-colors hover:text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-yellow";
+  "inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-3 py-2 font-heading text-[13px] font-extrabold uppercase tracking-[0.06em] text-text-muted transition-colors hover:text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-yellow";
 
 const STR = {
   vi: {

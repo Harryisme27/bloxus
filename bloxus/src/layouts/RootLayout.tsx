@@ -22,7 +22,8 @@ export function RootLayout() {
   // portal vẫn nằm trong cây React) nên mọi formatPrice() cập nhật ngay.
   const currency = useCurrencyStore((s) => s.currency);
 
-  // Khách (guest/customer) chỉ dùng EN + USD — VI/VND là đặc quyền của staff.
+  // Khách (guest/customer) luôn dùng USD — VND là đặc quyền của staff. Ngôn ngữ
+  // thì ai cũng tự chọn được (nút lá cờ trên thanh menu).
   // Chờ auth load xong mới ép, để không ghi đè lựa chọn của admin/Seller lúc refresh.
   const user = useAuthStore((s) => s.user);
   const authLoading = useAuthStore((s) => s.loading);
@@ -30,9 +31,13 @@ export function RootLayout() {
   const isStaff = isStaffRole(user?.role);
   useEffect(() => {
     if (authLoading || isStaff) return;
-    if (lang !== "en") useLangStore.getState().setLang("en");
     if (currency !== "usd") useCurrencyStore.getState().setCurrency("usd");
-  }, [authLoading, isStaff, lang, currency]);
+  }, [authLoading, isStaff, currency]);
+
+  // Cho trình duyệt + trình đọc màn hình biết trang đang dùng ngôn ngữ nào.
+  useEffect(() => {
+    document.documentElement.lang = lang;
+  }, [lang]);
 
   return (
     <div className="flex min-h-screen flex-col bg-bg text-text">

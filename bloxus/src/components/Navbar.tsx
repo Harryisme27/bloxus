@@ -1,9 +1,13 @@
-// Thanh menu kiểu bloxmart: logo | nhóm menu dạng viên thuốc (Select games ▾,
-// Proofs LIVE, Tutorial, FAQ, Discord) | tìm sản phẩm, giỏ, Sign in, Sign up now.
+// Thanh menu kiểu bloxmart: logo + chữ BLOXUS | nhóm menu dạng viên thuốc (Select
+// games ▾, Proofs LIVE, Tutorial, FAQ, Discord) | ngôn ngữ, giỏ, Sign in, Sign up now.
 // Đã đăng nhập thì thay Sign in/Sign up bằng chat, chuông, menu hồ sơ.
-// Màn hình < xl: mục thiếu chỗ nằm trong menu hamburger.
+// Theo độ rộng (đo thực tế cả tiếng Anh + tiếng Việt, cả khi đã đăng nhập):
+//   lg  (>=1024): Select games, Proofs, Sign up now + menu ba gạch
+//   xl  (>=1280): + Discord, Sign in
+//   >=1440     : + Tutorial, Hỏi đáp, tên cạnh avatar; ẩn menu ba gạch
+// Nút Work area + đổi tiền tệ của staff nằm trong menu hồ sơ cho gọn.
 import { isStaffRole } from "@/lib/roles";
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
 import {
   ShoppingCart,
@@ -13,7 +17,6 @@ import {
   MessageCircle,
   Bell,
   LogOut,
-  Search,
   ShieldCheck,
   BookOpen,
   HelpCircle,
@@ -21,10 +24,9 @@ import {
 } from "lucide-react";
 import { PageContainer } from "@/components/PageContainer";
 import { Button } from "@/components/ui/button";
-import { LanguageToggle } from "@/components/LanguageToggle";
 import { CurrencyToggle } from "@/components/CurrencyToggle";
 import { ChatIconLink } from "@/components/nav/ChatIconLink";
-import { NavbarSearch } from "@/components/nav/NavbarSearch";
+import { LanguageMenu } from "@/components/nav/LanguageMenu";
 import { NotificationBell } from "@/components/nav/NotificationBell";
 import { ProfileMenu } from "@/components/nav/ProfileMenu";
 import { GamesMenu, navPillItemClass } from "@/components/nav/GamesMenu";
@@ -43,30 +45,26 @@ const STR = {
     closeMenu: "Đóng menu",
     openMenu: "Mở menu",
     notifications: "Thông báo",
-    languageLabel: "Ngôn ngữ",
     currencyLabel: "Tiền tệ",
     tutorial: "Hướng dẫn",
+    faqShort: "Hỏi đáp",
     discord: "Discord",
     live: "Live",
     signIn: "Đăng nhập",
     signUpNow: "Đăng ký ngay",
-    searchItems: "Tìm sản phẩm",
-    closeSearch: "Đóng tìm kiếm",
   },
   en: {
     homeAria: "Bloxus - Home",
     closeMenu: "Close menu",
     openMenu: "Open menu",
     notifications: "Notifications",
-    languageLabel: "Language",
     currencyLabel: "Currency",
     tutorial: "Tutorial",
+    faqShort: "FAQ",
     discord: "Discord",
     live: "Live",
     signIn: "Sign in",
     signUpNow: "Sign up now",
-    searchItems: "Search items",
-    closeSearch: "Close search",
   },
 };
 
@@ -88,8 +86,6 @@ export function Navbar() {
   const navigate = useNavigate();
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [searchOpen, setSearchOpen] = useState(false);
-  const searchRef = useRef<HTMLDivElement>(null);
   const cartCount = useCartStore((state) => state.items.reduce((sum, line) => sum + line.quantity, 0));
   const user = useAuthStore((state) => state.user);
   const logout = useAuthStore((state) => state.logout);
@@ -99,27 +95,10 @@ export function Navbar() {
   // Keep last_seen fresh while the app is open (Agent D owns the hook impl).
   useHeartbeat();
 
-  // Đổi trang -> đóng ô tìm + menu mobile.
+  // Đổi trang -> đóng menu mobile.
   useEffect(() => {
-    setSearchOpen(false);
     setMobileOpen(false);
   }, [location.pathname]);
-
-  useEffect(() => {
-    if (!searchOpen) return;
-    function onPointerDown(e: PointerEvent) {
-      if (!searchRef.current?.contains(e.target as Node)) setSearchOpen(false);
-    }
-    function onKey(e: KeyboardEvent) {
-      if (e.key === "Escape") setSearchOpen(false);
-    }
-    document.addEventListener("pointerdown", onPointerDown);
-    document.addEventListener("keydown", onKey);
-    return () => {
-      document.removeEventListener("pointerdown", onPointerDown);
-      document.removeEventListener("keydown", onKey);
-    };
-  }, [searchOpen]);
 
   const mobileLinks: { to: string; label: string; icon: ReactNode; live?: boolean }[] = [
     { to: "/games", label: s.nav.games, icon: <Gamepad2 className="h-4 w-4 text-yellow" aria-hidden /> },
@@ -141,10 +120,14 @@ export function Navbar() {
       className="sticky top-0 z-40 border-b border-border backdrop-blur-md"
       style={{ backgroundColor: "rgba(10, 17, 11, 0.85)" }}
     >
-      <PageContainer className="flex h-16 items-center justify-between gap-4">
+      <PageContainer className="flex h-16 max-w-[1600px] items-center justify-between gap-4">
         <div className="flex items-center gap-5">
-          <Link to="/" className="flex shrink-0 items-center" aria-label={t.homeAria}>
-            <img src="/logo-bloxus.png?v=2" alt="Bloxus" className="h-10 w-auto" />
+          <Link to="/" className="flex shrink-0 items-center gap-2.5" aria-label={t.homeAria}>
+            <img src="/logo-bloxus.png?v=2" alt="" className="h-10 w-10" />
+            {/* Chữ giống logo: BLOX trắng, US vàng chanh. */}
+            <span aria-hidden className="font-heading text-xl font-extrabold uppercase leading-none tracking-tight text-text">
+              Blox<span className="text-lemon">us</span>
+            </span>
           </Link>
 
           {/* Nhóm menu dạng viên thuốc */}
@@ -155,15 +138,15 @@ export function Navbar() {
               {s.nav.proofs}
               <LiveBadge label={t.live} />
             </NavLink>
-            <NavLink to="/tutorial" className={({ isActive }) => cn(pillLink({ isActive }), "hidden xl:inline-flex")}>
+            <NavLink to="/tutorial" className={({ isActive }) => cn(pillLink({ isActive }), "hidden min-[1440px]:inline-flex")}>
               <BookOpen className="h-4 w-4 text-lemon" aria-hidden />
               {t.tutorial}
             </NavLink>
-            <NavLink to="/faq" className={({ isActive }) => cn(pillLink({ isActive }), "hidden xl:inline-flex")}>
+            <NavLink to="/faq" className={({ isActive }) => cn(pillLink({ isActive }), "hidden min-[1440px]:inline-flex")}>
               <HelpCircle className="h-4 w-4 text-text-muted" aria-hidden />
-              {s.nav.faq}
+              {t.faqShort}
             </NavLink>
-            <a href={DISCORD_URL} target="_blank" rel="noreferrer" className={navPillItemClass}>
+            <a href={DISCORD_URL} target="_blank" rel="noreferrer" className={cn(navPillItemClass, "hidden xl:inline-flex")}>
               <DiscordIcon className="h-4 w-4" />
               {t.discord}
             </a>
@@ -171,32 +154,8 @@ export function Navbar() {
         </div>
 
         <div className="flex items-center gap-1.5">
-          {isStaff ? (
-            <Link to="/work" className="hidden xl:block">
-              <Button variant="gold" size="sm">
-                <Briefcase className="h-4 w-4" aria-hidden="true" />
-                {s.nav.work}
-              </Button>
-            </Link>
-          ) : null}
-
-          {/* Tìm sản phẩm: nút kính lúp mở ô tìm ngay dưới thanh menu. */}
-          <div ref={searchRef}>
-            <button
-              type="button"
-              className={cn(iconBtn, searchOpen && "bg-surface-2 text-text")}
-              aria-label={searchOpen ? t.closeSearch : t.searchItems}
-              aria-expanded={searchOpen}
-              onClick={() => setSearchOpen((v) => !v)}
-            >
-              <Search className="h-5 w-5" aria-hidden="true" />
-            </button>
-            {searchOpen ? (
-              <div className="absolute right-4 top-full z-50 mt-2 w-[min(440px,calc(100%-32px))] rounded-2xl border border-border-strong bg-surface p-3 shadow-2xl shadow-black/60">
-                <NavbarSearch autoFocus />
-              </div>
-            ) : null}
-          </div>
+          {/* Chọn ngôn ngữ (mọi người đều dùng được). */}
+          <LanguageMenu />
 
           {/* Chrome for logged-in users: chat, bell, cart, profile. */}
           {user ? <ChatIconLink /> : null}
@@ -219,7 +178,7 @@ export function Navbar() {
             <>
               <Link
                 to="/login"
-                className="hidden whitespace-nowrap rounded-lg px-3 py-2 font-heading text-[13px] font-extrabold uppercase tracking-[0.08em] text-text transition-colors hover:text-yellow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-yellow sm:inline-flex"
+                className="hidden whitespace-nowrap rounded-lg px-3 py-2 font-heading text-[13px] font-extrabold uppercase tracking-[0.08em] text-text transition-colors hover:text-yellow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-yellow xl:inline-flex"
               >
                 {t.signIn}
               </Link>
@@ -232,17 +191,10 @@ export function Navbar() {
             </>
           )}
 
-          {/* Khách chỉ dùng EN + USD; nút chuyển ngôn ngữ/tiền tệ chỉ dành cho staff. */}
-          {isStaff ? (
-            <>
-              <LanguageToggle className="hidden xl:inline-flex" />
-              <CurrencyToggle className="hidden xl:inline-flex" />
-            </>
-          ) : null}
 
           <button
             type="button"
-            className={cn(iconBtn, "xl:hidden")}
+            className={cn(iconBtn, "min-[1440px]:hidden")}
             aria-label={mobileOpen ? t.closeMenu : t.openMenu}
             aria-expanded={mobileOpen}
             onClick={() => setMobileOpen((open) => !open)}
@@ -253,7 +205,7 @@ export function Navbar() {
       </PageContainer>
 
       {mobileOpen ? (
-        <div className="border-t border-border bg-surface xl:hidden">
+        <div className="border-t border-border bg-surface min-[1440px]:hidden">
           <PageContainer className="flex flex-col gap-1 py-3">
             {mobileLinks.map((link) => (
               <NavLink
@@ -362,16 +314,10 @@ export function Navbar() {
                 </div>
               )}
               {isStaff ? (
-                <>
-                  <div className="flex items-center justify-between pt-1">
-                    <span className="text-sm font-medium text-text-muted">{t.languageLabel}</span>
-                    <LanguageToggle />
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium text-text-muted">{t.currencyLabel}</span>
-                    <CurrencyToggle />
-                  </div>
-                </>
+                <div className="flex items-center justify-between pt-1">
+                  <span className="text-sm font-medium text-text-muted">{t.currencyLabel}</span>
+                  <CurrencyToggle />
+                </div>
               ) : null}
             </div>
           </PageContainer>
