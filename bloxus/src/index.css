@@ -2,41 +2,51 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Bloxus brand palette — warm CITRUS identity (lemon-amber primary,
-   fresh leaf-green secondary) on a warm near-black. Dark theme is the
-   only/default theme. These CSS variables are the single source of truth;
-   they are wired into Tailwind's color scale in tailwind.config.ts, so
-   components should use Tailwind classes (bg-surface, text-muted,
-   border-strong, etc.) rather than referencing these variables directly. */
+/* Bloxus brand palette — lấy từ logo tròn Bloxus: nền xanh rừng đêm, màu chính
+   xanh lá của logo, vàng chanh của chữ "US" làm điểm nhấn, chữ màu kem.
+   Dark theme là theme duy nhất. Biến CSS ở đây là nguồn màu duy nhất, được nối
+   vào Tailwind trong tailwind.config.ts — component dùng class Tailwind
+   (bg-surface, text-muted, border-strong…) chứ không gọi biến trực tiếp.
+
+   LƯU Ý TÊN TOKEN: "yellow" là tên cũ của MÀU THƯƠNG HIỆU CHÍNH (nút bấm, viền
+   focus, chữ nổi bật). Giữ tên để khỏi sửa 400+ class, nhưng giá trị giờ là
+   XANH LÁ. Cần màu vàng thật (sao đánh giá, chữ nhấn giống "US" trong logo)
+   thì dùng token "lemon". */
 :root {
-  --color-bg: #100e09;
-  --color-bg-subtle: #141109;
-  --color-surface: #1a1710;
-  --color-surface-2: #241f14;
-  --color-surface-3: #2d2718;
+  --color-bg: #0a110b;
+  --color-bg-subtle: #0d160e;
+  --color-surface: #111c12;
+  --color-surface-2: #172618;
+  --color-surface-3: #1e301f;
 
-  --color-border: #2f2a1b;
-  --color-border-strong: #423a26;
+  --color-border: #213322;
+  --color-border-strong: #2e4730;
 
-  /* Secondary accent: fresh leaf green (success / verified / eco touches). */
-  --color-green: #6fbf44;
-  --color-green-hover: #7ecc53;
-  --color-green-press: #5ca838;
-  --color-green-soft: #16240e;
+  /* Phụ: xanh non sáng của logo (thành công / đã xác minh / nút phụ). */
+  --color-green: #a7d77a;
+  --color-green-hover: #b4dd7d;
+  --color-green-press: #93c867;
+  --color-green-soft: #22361a;
 
-  /* Primary brand accent: bright lemon-amber from the BLOXUS logo. */
-  --color-yellow: #f5b01e;
-  --color-yellow-hover: #ffc23d;
-  --color-yellow-soft: #2a2310;
-  --color-gold-deep: #db9a12;
+  /* Chính: xanh lá của logo, sáng hơn một chút cho dễ đọc trên nền tối. */
+  --color-yellow: #7cc35a;
+  --color-yellow-hover: #8fd16b;
+  --color-yellow-soft: #193a1b;
+  --color-gold-deep: #4f9a3f;
 
-  --color-text: #f7f5ec;
-  --color-text-muted: #b3ae9c;
-  --color-text-subtle: #857f6c;
-  --color-text-disabled: #5c574a;
+  /* Điểm nhấn: vàng chanh của chữ "US" trong logo. */
+  --color-lemon: #fad656;
+  --color-lemon-hover: #ffe46b;
+  --color-lemon-soft: #2e2a10;
 
-  --color-text-on-green: #0a1404;
-  --color-text-on-yellow: #1a1405;
+  --color-text: #f4f7ea;
+  --color-text-muted: #a9b8a0;
+  --color-text-subtle: #7b8c74;
+  --color-text-disabled: #536150;
+
+  --color-text-on-green: #0d1a08;
+  --color-text-on-yellow: #0b1a0c;
+  --color-text-on-lemon: #1f1a05;
 
   --color-success: #58c464;
   --color-danger: #e5484d;
@@ -213,7 +223,7 @@
   inset: 0;
   z-index: -1;
   transform: translateX(-100%);
-  background: linear-gradient(90deg, rgba(245, 176, 30, 0.22), rgba(245, 176, 30, 0.08));
+  background: linear-gradient(90deg, rgba(124, 195, 90, 0.22), rgba(124, 195, 90, 0.08));
   transition: transform 0.45s cubic-bezier(0.22, 1, 0.36, 1);
 }
 .um-slide-btn:hover .um-slide-fill,
@@ -304,7 +314,7 @@
    ========================================================================== */
 .um-sea {
   background:
-    radial-gradient(120% 90% at 50% 100%, rgba(245, 200, 66, 0.35) 0%, rgba(245, 176, 30, 0.12) 34%, transparent 60%),
+    radial-gradient(120% 90% at 50% 100%, rgba(245, 200, 66, 0.35) 0%, rgba(124, 195, 90, 0.12) 34%, transparent 60%),
     linear-gradient(to bottom, #0a1f33 0%, #0d3a4d 45%, #0e5e66 72%, #0f6f6b 100%);
 }
 

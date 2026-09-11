@@ -16,7 +16,7 @@ export interface GameCardProps {
   className?: string;
 }
 
-const DEFAULT_ACCENT = "#F5B01E";
+const DEFAULT_ACCENT = "#7CC35A";
 
 function initialsOf(name: string): string {
   return name

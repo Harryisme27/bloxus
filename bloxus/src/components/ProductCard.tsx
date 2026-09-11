@@ -125,7 +125,7 @@ export function ProductCard({ product, className }: ProductCardProps) {
         ) : !inStock ? (
           <span
             className="absolute right-2 top-2 rounded-full border border-border-strong px-2 py-0.5 text-[10px] font-semibold text-text-disabled"
-            style={{ backgroundColor: "rgba(16, 14, 9, 0.8)" }}
+            style={{ backgroundColor: "rgba(10, 17, 11, 0.8)" }}
           >
             {t.outOfStock}
           </span>

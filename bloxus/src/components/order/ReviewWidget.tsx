@@ -71,7 +71,7 @@ export function ReviewWidget({ orderId }: { orderId: string }) {
               {Array.from({ length: 5 }).map((_, i) => (
                 <Star
                   key={i}
-                  className={cn("h-4 w-4", i < existing.stars ? "fill-yellow text-yellow" : "text-text-subtle")}
+                  className={cn("h-4 w-4", i < existing.stars ? "fill-lemon text-lemon" : "text-text-subtle")}
                   aria-hidden
                 />
               ))}
@@ -114,7 +114,7 @@ export function ReviewWidget({ orderId }: { orderId: string }) {
                 <Star
                   className={cn(
                     "h-8 w-8 transition-colors",
-                    filled ? "fill-yellow text-yellow" : "text-text-subtle",
+                    filled ? "fill-lemon text-lemon" : "text-text-subtle",
                   )}
                   aria-hidden
                 />

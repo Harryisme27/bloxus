@@ -6,7 +6,7 @@ import { BRAND_NAME } from "@/lib/constants";
 
 export function AuthHeroScene() {
   return (
-    <div className="relative h-[480px] w-full overflow-hidden rounded-[28px] border border-border bg-[#12100a] shadow-2xl shadow-black/50">
+    <div className="relative h-[480px] w-full overflow-hidden rounded-[28px] border border-border bg-[#0a110b] shadow-2xl shadow-black/50">
       <video
         autoPlay
         loop

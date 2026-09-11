@@ -21,7 +21,7 @@ import { Toggle } from "./Toggle";
 import { slugify } from "./helpers";
 import { prepareImage, uploadSiteAsset } from "./uploads";
 
-const DEFAULT_ACCENT = "#f5b01e";
+const DEFAULT_ACCENT = "#7cc35a";
 
 const STR = {
   vi: {
@@ -41,7 +41,7 @@ const STR = {
     descriptionPlaceholder: "Mô tả chi tiết hiển thị ở đầu trang danh mục…",
     accentLabel: "Màu nhấn",
     accentAria: "Chọn màu nhấn",
-    accentPlaceholder: "#f5b01e (để trống = mặc định)",
+    accentPlaceholder: "#7cc35a (để trống = mặc định)",
     folderLabel: "Folder (nhóm game)",
     folderNone: "— Chưa xếp folder —",
     sectionsLabel: "Khu vực sản phẩm (phân cách bằng dấu phẩy, theo thứ tự hiển thị)",
@@ -84,7 +84,7 @@ const STR = {
     descriptionPlaceholder: "Detailed description shown at the top of the category page…",
     accentLabel: "Accent color",
     accentAria: "Pick accent color",
-    accentPlaceholder: "#f5b01e (leave empty = default)",
+    accentPlaceholder: "#7cc35a (leave empty = default)",
     folderLabel: "Folder (game group)",
     folderNone: "— No folder —",
     sectionsLabel: "Product sections (comma-separated, in display order)",

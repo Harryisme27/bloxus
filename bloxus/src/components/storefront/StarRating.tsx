@@ -23,7 +23,7 @@ export function StarRating({ stars, className, size = "sm" }: StarRatingProps) {
       {Array.from({ length: 5 }).map((_, i) => (
         <Star
           key={i}
-          className={cn(dim, i < stars ? "fill-yellow text-yellow" : "text-text-disabled")}
+          className={cn(dim, i < stars ? "fill-lemon text-lemon" : "text-text-disabled")}
           aria-hidden="true"
         />
       ))}

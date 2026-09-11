@@ -32,7 +32,7 @@ export function DiscordCTA() {
         <div
           aria-hidden="true"
           className="pointer-events-none absolute -right-16 -top-16 h-56 w-56 rounded-full blur-3xl"
-          style={{ backgroundColor: "rgba(245, 176, 30, 0.12)" }}
+          style={{ backgroundColor: "rgba(124, 195, 90, 0.12)" }}
         />
         <div className="relative flex flex-col items-center gap-6 text-center lg:flex-row lg:justify-between lg:text-left">
           <div className="max-w-xl">

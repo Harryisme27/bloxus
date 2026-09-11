@@ -110,7 +110,7 @@ const STR = {
   },
 };
 
-const DEFAULT_ACCENT = "#F5B01E";
+const DEFAULT_ACCENT = "#7CC35A";
 
 export function GameDetail() {
   const t = usePick(STR);

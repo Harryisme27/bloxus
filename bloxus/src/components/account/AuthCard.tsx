@@ -64,7 +64,7 @@ export function AuthCard({ title, subtitle, children, footer }: AuthCardProps) {
       {/* Ambient brand glow — purely decorative. */}
       <div
         aria-hidden
-        style={{ backgroundColor: "rgba(245, 176, 30, 0.08)" }}
+        style={{ backgroundColor: "rgba(124, 195, 90, 0.08)" }}
         className="pointer-events-none absolute left-1/2 top-0 h-72 w-72 -translate-x-1/2 rounded-full blur-3xl"
       />
 

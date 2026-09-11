@@ -28,7 +28,7 @@ export function NotFound() {
       <div className="relative">
         <div
           aria-hidden
-          style={{ backgroundColor: "rgba(245, 176, 30, 0.14)" }}
+          style={{ backgroundColor: "rgba(124, 195, 90, 0.14)" }}
           className="pointer-events-none absolute left-1/2 top-1/2 h-48 w-48 -translate-x-1/2 -translate-y-1/2 rounded-full blur-3xl"
         />
         <div className="relative">
@@ -36,7 +36,7 @@ export function NotFound() {
             src="/logo-bloxus.png?v=2"
             alt=""
             aria-hidden="true"
-            className="h-32 w-auto drop-shadow-[0_12px_40px_rgba(245,176,30,0.25)]"
+            className="h-32 w-auto drop-shadow-[0_12px_40px_rgba(124,195,90,0.25)]"
           />
         </div>
       </div>

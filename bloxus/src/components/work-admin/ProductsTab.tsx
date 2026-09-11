@@ -584,7 +584,7 @@ export function ProductsTab({ onCreate, onEdit }: ProductsTabProps) {
                         <Star
                           className={cn(
                             "h-4 w-4",
-                            product.is_featured ? "fill-yellow text-yellow" : "text-text-subtle",
+                            product.is_featured ? "fill-lemon text-lemon" : "text-text-subtle",
                           )}
                           aria-hidden
                         />

@@ -202,7 +202,7 @@ export function Tutorial() {
               className="pointer-events-none absolute inset-0 opacity-60"
               style={{
                 background:
-                  "radial-gradient(50% 60% at 50% 50%, rgba(245,176,30,0.12) 0%, transparent 70%)",
+                  "radial-gradient(50% 60% at 50% 50%, rgba(124,195,90,0.12) 0%, transparent 70%)",
               }}
               aria-hidden="true"
             />

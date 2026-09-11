@@ -73,7 +73,7 @@ export function Navbar() {
   return (
     <header
       className="sticky top-0 z-40 border-b border-border backdrop-blur-md"
-      style={{ backgroundColor: "rgba(26, 23, 16, 0.85)" }}
+      style={{ backgroundColor: "rgba(10, 17, 11, 0.85)" }}
     >
       <PageContainer className="flex h-16 items-center justify-between gap-4">
         <div className="flex items-center gap-6">

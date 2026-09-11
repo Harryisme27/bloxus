@@ -187,7 +187,7 @@ function DashboardContent() {
       <div className="relative overflow-hidden rounded-2xl border border-border bg-surface p-6 sm:p-8">
         <div
           aria-hidden
-          style={{ backgroundColor: "rgba(245, 176, 30, 0.09)" }}
+          style={{ backgroundColor: "rgba(124, 195, 90, 0.09)" }}
           className="pointer-events-none absolute -right-16 -top-16 h-56 w-56 rounded-full blur-3xl"
         />
         <div className="relative flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">

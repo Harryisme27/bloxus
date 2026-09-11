@@ -603,7 +603,7 @@ export function WorkProductEditor({ product, defaultCategoryId, onClose }: WorkP
                     <img src={url} alt="" className="aspect-square w-full object-cover" />
                     {index === 0 ? (
                       <Badge variant="gold" className="absolute left-2 top-2">
-                        <Star className="h-3 w-3 fill-yellow" aria-hidden />
+                        <Star className="h-3 w-3 fill-lemon" aria-hidden />
                         {t.coverBadge}
                       </Badge>
                     ) : (

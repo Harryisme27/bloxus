@@ -29,6 +29,12 @@ export default {
           hover: "var(--color-yellow-hover)",
           soft: "var(--color-yellow-soft)",
         },
+        // Vàng chanh của chữ "US" trong logo — dùng cho sao đánh giá, chữ nhấn.
+        lemon: {
+          DEFAULT: "var(--color-lemon)",
+          hover: "var(--color-lemon-hover)",
+          soft: "var(--color-lemon-soft)",
+        },
         "gold-deep": "var(--color-gold-deep)",
         text: {
           DEFAULT: "var(--color-text)",
@@ -37,6 +43,7 @@ export default {
           disabled: "var(--color-text-disabled)",
           "on-green": "var(--color-text-on-green)",
           "on-yellow": "var(--color-text-on-yellow)",
+          "on-lemon": "var(--color-text-on-lemon)",
         },
         success: "var(--color-success)",
         danger: {
@@ -51,11 +58,11 @@ export default {
         mono: ["JetBrains Mono", "ui-monospace", "monospace"],
       },
       boxShadow: {
-        // Primary brand glow: warm lemon-amber.
-        "glow-amber": "0 0 0 1px var(--color-yellow), 0 8px 24px -8px rgba(245, 176, 30, 0.16)",
-        // Secondary glow: fresh leaf green, kept for success-ish spots.
-        "glow-green": "0 0 0 1px var(--color-green), 0 8px 24px -8px rgba(111, 191, 68, 0.14)",
-        "glow-yellow": "0 0 0 1px var(--color-yellow), 0 8px 24px -8px rgba(245, 176, 30, 0.16)",
+        // Quầng sáng màu chính (xanh lá logo). Tên "amber" giữ lại cho khỏi sửa class.
+        "glow-amber": "0 0 0 1px var(--color-yellow), 0 8px 24px -8px rgba(124, 195, 90, 0.2)",
+        // Quầng sáng phụ: xanh non.
+        "glow-green": "0 0 0 1px var(--color-green), 0 8px 24px -8px rgba(167, 215, 122, 0.14)",
+        "glow-yellow": "0 0 0 1px var(--color-yellow), 0 8px 24px -8px rgba(124, 195, 90, 0.2)",
       },
       borderRadius: {
         xl: "0.875rem",

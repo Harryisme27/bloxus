@@ -151,7 +151,7 @@ export function About() {
           className="pointer-events-none absolute inset-0 opacity-60"
           style={{
             background:
-              "radial-gradient(60% 60% at 50% 0%, rgba(245,176,30,0.1) 0%, transparent 70%)",
+              "radial-gradient(60% 60% at 50% 0%, rgba(124,195,90,0.1) 0%, transparent 70%)",
           }}
           aria-hidden="true"
         />

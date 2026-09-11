@@ -678,7 +678,7 @@ export function CategoriesTab() {
                         <Star
                           className={cn(
                             "h-4 w-4",
-                            category.is_featured ? "fill-yellow text-yellow" : "text-text-subtle",
+                            category.is_featured ? "fill-lemon text-lemon" : "text-text-subtle",
                           )}
                           aria-hidden
                         />

@@ -144,7 +144,7 @@ const STR = {
   },
 };
 
-const DEFAULT_ACCENT = "#F5B01E";
+const DEFAULT_ACCENT = "#7CC35A";
 
 function initialsOf(name: string): string {
   return name
@@ -547,7 +547,7 @@ function ItemDetailContent({
               <Link
                 to={`/games/${categorySlug}`}
                 className="absolute bottom-4 left-4 rounded-full border border-border-strong px-3 py-1 text-xs font-semibold text-text-muted backdrop-blur transition-colors hover:text-yellow"
-                style={{ backgroundColor: "rgba(16, 14, 9, 0.8)" }}
+                style={{ backgroundColor: "rgba(10, 17, 11, 0.8)" }}
               >
                 {categoryName}
               </Link>

@@ -31,7 +31,7 @@ const STR = {
   },
 };
 
-/** Landing hero: BLOXUS logo, brand headline, dual CTAs, and a subtle grid + warm amber-glow motif. */
+/** Landing hero: BLOXUS logo, brand headline, dual CTAs, and a subtle grid + quầng sáng xanh lá. */
 export function HeroSection() {
   const t = usePick(STR);
   return (
@@ -49,16 +49,16 @@ export function HeroSection() {
             "radial-gradient(ellipse 80% 70% at 50% 30%, #000 40%, transparent 100%)",
         }}
       />
-      {/* Warm amber glow blooms */}
+      {/* Quầng sáng xanh lá */}
       <div
         aria-hidden="true"
         className="pointer-events-none absolute -left-24 -top-24 h-72 w-72 rounded-full blur-3xl"
-        style={{ backgroundColor: "rgba(245, 176, 30, 0.14)" }}
+        style={{ backgroundColor: "rgba(124, 195, 90, 0.14)" }}
       />
       <div
         aria-hidden="true"
         className="pointer-events-none absolute -right-16 top-32 h-64 w-64 rounded-full blur-3xl"
-        style={{ backgroundColor: "rgba(245, 176, 30, 0.08)" }}
+        style={{ backgroundColor: "rgba(124, 195, 90, 0.08)" }}
       />
 
       {/* Sân chơi coin lát chanh: tóm - kéo - ném được (vùng trống của hero). */}
@@ -69,12 +69,12 @@ export function HeroSection() {
           <img
             src="/logo-bloxus.png?v=2"
             alt="BLOXUS"
-            className="um-enter um-enter-1 um-float mb-6 h-28 w-auto drop-shadow-[0_12px_40px_rgba(245,176,30,0.35)] md:h-36"
+            className="um-enter um-enter-1 um-float mb-6 h-28 w-auto drop-shadow-[0_12px_40px_rgba(124,195,90,0.35)] md:h-36"
           />
 
           <h1 className="um-enter um-enter-2 font-heading text-4xl font-extrabold leading-[1.1] tracking-tight text-text sm:text-5xl">
             {t.headlineLead}{" "}
-            <span className="text-yellow">{t.headlineAccent}</span>
+            <span className="text-lemon">{t.headlineAccent}</span>
           </h1>
 
           <p className="um-enter um-enter-3 mt-5 max-w-2xl text-base text-text-muted sm:text-lg">

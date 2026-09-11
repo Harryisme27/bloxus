@@ -487,7 +487,7 @@ function OrderDetailContent() {
 
           {/* Payment instructions while pending */}
           {isPending ? (
-            <Card className="border-yellow/40" style={{ borderColor: "rgba(245,176,30,0.4)" }}>
+            <Card className="border-yellow/40" style={{ borderColor: "rgba(124,195,90,0.4)" }}>
               <CardHeader className="border-b border-border">
                 <CardTitle className="flex items-center gap-2 text-base">
                   {gwId === "momo" ? (
