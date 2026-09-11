@@ -17,7 +17,7 @@ const STR = {
   },
 };
 
-/** Gõ từng ký tự của tiêu đề, kèm con trỏ nhấp nháy (giữ nhấp nháy sau khi gõ xong). */
+/** Gõ từng ký tự của tiêu đề (không có con trỏ nhấp nháy). */
 function TypingTitle({ text }: { text: string }) {
   const [count, setCount] = useState(0);
 
@@ -42,7 +42,6 @@ function TypingTitle({ text }: { text: string }) {
   return (
     <span className="inline-flex items-baseline whitespace-pre-wrap" aria-label={text}>
       <span aria-hidden>{text.slice(0, count)}</span>
-      <span className="um-auth-caret" aria-hidden />
     </span>
   );
 }
