@@ -6,35 +6,21 @@
 //   xl  (>=1280): + Discord, Sign in
 //   >=1440     : + Hỏi đáp, tên cạnh avatar; ẩn menu ba gạch
 // Nút Work area + đổi tiền tệ của staff nằm trong menu hồ sơ cho gọn.
-import { isStaffRole } from "@/lib/roles";
-import { useEffect, useState, type ReactNode } from "react";
-import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
+import { useLayoutEffect, useRef, useState } from "react";
+import { Link, NavLink } from "react-router-dom";
 import {
   ShoppingCart,
-  Menu,
-  X,
-  Briefcase,
-  MessageCircle,
-  Bell,
-  LogOut,
   ShieldCheck,
   HelpCircle,
-  Gamepad2,
 } from "lucide-react";
 import { PageContainer } from "@/components/PageContainer";
-import { Button } from "@/components/ui/button";
-import { CurrencyToggle } from "@/components/CurrencyToggle";
 import { ChatIconLink } from "@/components/nav/ChatIconLink";
-import { LanguageMenu } from "@/components/nav/LanguageMenu";
 import { NotificationBell } from "@/components/nav/NotificationBell";
 import { ProfileMenu } from "@/components/nav/ProfileMenu";
 import { GamesMenu, navPillItemClass } from "@/components/nav/GamesMenu";
-import { DiscordIcon } from "@/components/account/SocialLoginButtons";
-import { useUnreadCount } from "@/components/nav/useUnreadCount";
 import { useHeartbeat } from "@/components/realtime/useHeartbeat";
 import { useCartStore } from "@/store/cartStore";
 import { useAuthStore } from "@/store/authStore";
-import { DISCORD_URL } from "@/lib/constants";
 import { useT, usePick } from "@/i18n";
 import { cn } from "@/lib/utils";
 
@@ -66,12 +52,12 @@ const STR = {
 };
 
 const iconBtn =
-  "relative flex h-10 w-10 items-center justify-center rounded-lg text-text-muted transition-colors hover:bg-surface-2 hover:text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-yellow";
+  "relative flex h-11 w-11 items-center justify-center rounded-xl text-text-muted transition-colors hover:bg-surface-2 hover:text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-yellow";
 
 function LiveBadge({ label }: { label: string }) {
   return (
-    <span className="inline-flex items-center gap-1 rounded-md border border-border-strong bg-green-soft px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-green">
-      <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-green" aria-hidden />
+    <span className="inline-flex items-center gap-1 rounded-md border border-border-strong bg-green-soft px-1.5 py-px text-[9px] font-bold uppercase tracking-wide text-green">
+      <span className="h-1 w-1 animate-pulse rounded-full bg-green" aria-hidden />
       {label}
     </span>
   );
@@ -80,81 +66,93 @@ function LiveBadge({ label }: { label: string }) {
 export function Navbar() {
   const s = useT();
   const t = usePick(STR);
-  const navigate = useNavigate();
-  const location = useLocation();
-  const [mobileOpen, setMobileOpen] = useState(false);
+  const [showSecondaryNav, setShowSecondaryNav] = useState(false);
+  const navRowRef = useRef<HTMLElement>(null);
+  const logoRef = useRef<HTMLAnchorElement>(null);
+  const searchSlotRef = useRef<HTMLDivElement>(null);
   const cartCount = useCartStore((state) => state.items.reduce((sum, line) => sum + line.quantity, 0));
   const user = useAuthStore((state) => state.user);
-  const logout = useAuthStore((state) => state.logout);
-  const isStaff = isStaffRole(user?.role);
-  const unread = useUnreadCount();
 
   // Keep last_seen fresh while the app is open (Agent D owns the hook impl).
   useHeartbeat();
 
-  // Đổi trang -> đóng menu mobile.
-  useEffect(() => {
-    setMobileOpen(false);
-  }, [location.pathname]);
+  // Browser zoom changes the CSS viewport width. Measure the real gap instead
+  // of guessing with a fixed breakpoint, so the secondary links only disappear
+  // when they would get too close to the centred search field.
+  useLayoutEffect(() => {
+    const updateSecondaryNav = () => {
+      const logoRect = logoRef.current?.getBoundingClientRect();
+      const searchRect = searchSlotRef.current?.getBoundingClientRect();
+      if (!logoRect || !searchRect || searchRect.width === 0) {
+        setShowSecondaryNav(false);
+        return;
+      }
 
-  const mobileLinks: { to: string; label: string; icon: ReactNode; live?: boolean }[] = [
-    { to: "/games", label: s.nav.games, icon: <Gamepad2 className="h-4 w-4 text-yellow" aria-hidden /> },
-    { to: "/proofs", label: s.nav.proofs, icon: <ShieldCheck className="h-4 w-4 text-green" aria-hidden />, live: true },
-    { to: "/faq", label: s.nav.faq, icon: <HelpCircle className="h-4 w-4 text-text-muted" aria-hidden /> },
-  ];
+      setShowSecondaryNav(searchRect.left - logoRect.right >= 240);
+    };
+
+    updateSecondaryNav();
+    const observer = new ResizeObserver(updateSecondaryNav);
+    if (navRowRef.current) observer.observe(navRowRef.current);
+    if (logoRef.current) observer.observe(logoRef.current);
+    if (searchSlotRef.current) observer.observe(searchSlotRef.current);
+    window.addEventListener("resize", updateSecondaryNav);
+
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("resize", updateSecondaryNav);
+    };
+  }, []);
 
   const pillLink = ({ isActive }: { isActive: boolean }) => cn(navPillItemClass, isActive && "text-text");
 
-  async function handleMobileLogout() {
-    setMobileOpen(false);
-    await logout();
-    navigate("/");
-  }
-
   return (
     <header
+      ref={navRowRef}
       className="sticky top-0 z-40 border-b border-border backdrop-blur-md"
       style={{ backgroundColor: "rgba(10, 17, 11, 0.85)" }}
     >
-      <PageContainer className="flex h-16 max-w-[1600px] items-center justify-between gap-4">
-        <div className="flex items-center gap-5">
-          <Link to="/" className="flex shrink-0 items-center gap-2.5" aria-label={t.homeAria}>
-            <img src="/logo-bloxus.png?v=2" alt="" className="h-10 w-10" />
+      <PageContainer className="relative grid h-[72px] max-w-none grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center px-2 min-[430px]:px-4 sm:px-5 lg:px-6 2xl:px-8">
+        <div className="flex min-w-0 items-center gap-5 justify-self-start 2xl:gap-6">
+          <Link ref={logoRef} to="/" className="group flex shrink-0 items-center gap-3" aria-label={t.homeAria}>
+            <img src="/logo-bloxus.png?v=2" alt="" className="h-10 w-10 transition-transform duration-300 group-hover:-rotate-6 group-hover:scale-105 min-[430px]:h-12 min-[430px]:w-12" />
             {/* Chữ giống logo: BLOX trắng, US vàng chanh. */}
-            <span aria-hidden className="font-heading text-xl font-extrabold uppercase leading-none tracking-tight text-text">
-              Blox<span className="text-lemon">us</span>
+            <span aria-hidden className="hidden font-heading text-[28px] font-extrabold uppercase leading-none tracking-[0.025em] drop-shadow-[0_2px_8px_rgba(0,0,0,0.35)] min-[430px]:block">
+              <span className="inline-block bg-gradient-to-b from-white via-[#f4f7ea] to-[#b8d6a6] bg-clip-text text-transparent transition-transform duration-300 group-hover:-translate-y-0.5">
+                Blox
+              </span>
+              <span className="relative ml-0.5 inline-block -rotate-2 text-lemon drop-shadow-[0_2px_8px_rgba(250,214,86,0.22)] transition-transform duration-300 group-hover:rotate-2 group-hover:scale-110">
+                us
+                <span className="absolute -right-1 -top-1 h-1.5 w-1.5 rounded-full bg-green shadow-[0_0_8px_rgba(124,195,90,0.85)]" />
+              </span>
             </span>
           </Link>
 
-          {/* Nhóm menu dạng viên thuốc */}
-          <nav className="hidden items-center gap-0.5 rounded-full border border-border bg-surface p-1 lg:flex">
-            <GamesMenu />
+          {/* Các liên kết phụ giữ gọn bên logo; ô tìm game nằm chính giữa navbar. */}
+          <nav className={cn("h-9 items-center gap-0.5 rounded-full border border-border bg-surface px-1", showSecondaryNav ? "flex" : "hidden")}>
             <NavLink to="/proofs" className={pillLink}>
-              <ShieldCheck className="h-4 w-4 text-green" aria-hidden />
+              <ShieldCheck className="h-3.5 w-3.5 text-green" aria-hidden />
               {s.nav.proofs}
               <LiveBadge label={t.live} />
             </NavLink>
             <NavLink to="/faq" className={({ isActive }) => cn(pillLink({ isActive }), "hidden min-[1440px]:inline-flex")}>
-              <HelpCircle className="h-4 w-4 text-text-muted" aria-hidden />
+              <HelpCircle className="h-3.5 w-3.5 text-text-muted" aria-hidden />
               {t.faqShort}
             </NavLink>
-            <a href={DISCORD_URL} target="_blank" rel="noreferrer" className={cn(navPillItemClass, "hidden xl:inline-flex")}>
-              <DiscordIcon className="h-4 w-4" />
-              {t.discord}
-            </a>
           </nav>
         </div>
 
-        <div className="flex items-center gap-1.5">
-          {/* Chọn ngôn ngữ (mọi người đều dùng được). */}
-          <LanguageMenu />
+        <div ref={searchSlotRef} className="hidden justify-self-center min-[1100px]:block">
+          <GamesMenu />
+        </div>
 
+        <div className="flex min-w-0 items-center gap-1 justify-self-end min-[430px]:gap-2">
           {/* Chrome for logged-in users: chat, bell, cart, profile. */}
           {user ? <ChatIconLink /> : null}
           {user ? <NotificationBell /> : null}
 
           <Link to="/cart" className={iconBtn} aria-label={s.nav.cart}>
-            <ShoppingCart className="h-5 w-5" aria-hidden="true" />
+            <ShoppingCart className="h-[22px] w-[22px]" aria-hidden="true" />
             {cartCount > 0 ? (
               <span className="tabular-nums-mono absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-yellow px-1 text-[11px] font-bold text-text-on-yellow">
                 {cartCount > 99 ? "99+" : cartCount}
@@ -182,139 +180,8 @@ export function Navbar() {
               </Link>
             </>
           )}
-
-
-          <button
-            type="button"
-            className={cn(iconBtn, "min-[1440px]:hidden")}
-            aria-label={mobileOpen ? t.closeMenu : t.openMenu}
-            aria-expanded={mobileOpen}
-            onClick={() => setMobileOpen((open) => !open)}
-          >
-            {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-          </button>
         </div>
       </PageContainer>
-
-      {mobileOpen ? (
-        <div className="border-t border-border bg-surface min-[1440px]:hidden">
-          <PageContainer className="flex flex-col gap-1 py-3">
-            {mobileLinks.map((link) => (
-              <NavLink
-                key={link.to}
-                to={link.to}
-                onClick={() => setMobileOpen(false)}
-                className={({ isActive }) =>
-                  cn(
-                    "flex items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm font-semibold text-text-muted transition-colors hover:bg-surface-2 hover:text-text",
-                    isActive && "bg-surface-2 text-text",
-                  )
-                }
-              >
-                {link.icon}
-                {link.label}
-                {link.live ? <LiveBadge label={t.live} /> : null}
-              </NavLink>
-            ))}
-            <a
-              href={DISCORD_URL}
-              target="_blank"
-              rel="noreferrer"
-              className="flex items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm font-semibold text-text-muted transition-colors hover:bg-surface-2 hover:text-text"
-            >
-              <DiscordIcon className="h-4 w-4" />
-              {t.discord}
-            </a>
-
-            {user ? (
-              <>
-                <NavLink
-                  to="/messages"
-                  onClick={() => setMobileOpen(false)}
-                  className={({ isActive }) =>
-                    cn(
-                      "flex items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm font-semibold text-text-muted transition-colors hover:bg-surface-2 hover:text-text",
-                      isActive && "bg-surface-2 text-text",
-                    )
-                  }
-                >
-                  <MessageCircle className="h-4 w-4" aria-hidden="true" />
-                  {s.nav.messages}
-                </NavLink>
-
-                {/* Compact notifications entry — jumps to the order chat surface. */}
-                <Link
-                  to="/messages"
-                  onClick={() => setMobileOpen(false)}
-                  className="flex items-center justify-between rounded-lg px-3 py-2.5 text-sm font-semibold text-text-muted transition-colors hover:bg-surface-2 hover:text-text"
-                >
-                  <span className="flex items-center gap-2.5">
-                    <Bell className="h-4 w-4" aria-hidden="true" />
-                    {t.notifications}
-                  </span>
-                  {unread > 0 ? (
-                    <span className="tabular-nums-mono flex h-5 min-w-5 items-center justify-center rounded-full bg-yellow px-1 text-[11px] font-bold text-text-on-yellow">
-                      {unread > 99 ? "99+" : unread}
-                    </span>
-                  ) : null}
-                </Link>
-              </>
-            ) : null}
-
-            <div className="mt-2 flex flex-col gap-2 border-t border-border pt-3">
-              {isStaff ? (
-                <Link to="/work" onClick={() => setMobileOpen(false)}>
-                  <Button variant="gold" size="sm" className="w-full">
-                    <Briefcase className="h-4 w-4" aria-hidden="true" />
-                    {s.nav.work}
-                  </Button>
-                </Link>
-              ) : null}
-              {user ? (
-                <>
-                  <Link to="/profile" onClick={() => setMobileOpen(false)}>
-                    <Button variant="secondary" size="sm" className="w-full">
-                      {user.display_name ?? user.username}
-                    </Button>
-                  </Link>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="w-full text-danger"
-                    onClick={handleMobileLogout}
-                  >
-                    <LogOut className="h-4 w-4" aria-hidden="true" />
-                    {s.nav.logout}
-                  </Button>
-                </>
-              ) : (
-                <div className="grid grid-cols-2 gap-2">
-                  <Link
-                    to="/login"
-                    onClick={() => setMobileOpen(false)}
-                    className="flex h-11 items-center justify-center rounded-xl border border-border-strong font-heading text-[13px] font-extrabold uppercase tracking-[0.08em] text-text transition-colors hover:bg-surface-2"
-                  >
-                    {t.signIn}
-                  </Link>
-                  <Link
-                    to="/register"
-                    onClick={() => setMobileOpen(false)}
-                    className="flex h-11 items-center justify-center rounded-xl bg-text font-heading text-[13px] font-extrabold uppercase tracking-[0.08em] text-bg transition-colors hover:bg-white"
-                  >
-                    {t.signUpNow}
-                  </Link>
-                </div>
-              )}
-              {isStaff ? (
-                <div className="flex items-center justify-between pt-1">
-                  <span className="text-sm font-medium text-text-muted">{t.currencyLabel}</span>
-                  <CurrencyToggle />
-                </div>
-              ) : null}
-            </div>
-          </PageContainer>
-        </div>
-      ) : null}
     </header>
   );
 }

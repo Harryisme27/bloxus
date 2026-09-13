@@ -136,7 +136,7 @@ export function NotificationBell() {
   const hasUnread = rows.some((r) => !r.read_at);
 
   return (
-    <div ref={containerRef} className="relative">
+    <div ref={containerRef} className="relative hidden min-[520px]:block">
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
@@ -144,11 +144,11 @@ export function NotificationBell() {
         aria-haspopup="menu"
         aria-expanded={open}
         className={cn(
-          "relative flex h-10 w-10 items-center justify-center rounded-lg text-text-muted transition-colors hover:bg-surface-2 hover:text-text",
+          "relative flex h-11 w-11 items-center justify-center rounded-xl text-text-muted transition-colors hover:bg-surface-2 hover:text-text",
           open && "bg-surface-2 text-text",
         )}
       >
-        <Bell className="h-5 w-5" aria-hidden="true" />
+        <Bell className="h-[22px] w-[22px]" aria-hidden="true" />
         {unread > 0 ? (
           <span className="tabular-nums-mono absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-yellow px-1 text-[11px] font-bold text-text-on-yellow">
             {unread > 99 ? "99+" : unread}

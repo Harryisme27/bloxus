@@ -1,13 +1,13 @@
-# Cloudflare Pages — HTTP headers cho mọi response.
+# Cloudflare Pages — HTTP headers cho mọi response (dev deployment).
 # (Tài liệu: dòng path, các dòng header thụt 2 dấu cách bên dưới.)
 
 /*
   X-Frame-Options: DENY
   X-Content-Type-Options: nosniff
   Referrer-Policy: strict-origin-when-cross-origin
-  Permissions-Policy: geolocation=(), microphone=(), camera=(), payment=()
+  Permissions-Policy: geolocation=(), microphone=(), camera=(), payment=(self "https://js.stripe.com")
   Cross-Origin-Opener-Policy: same-origin
-  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' https://challenges.cloudflare.com https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://xikeydfwdavqttagrtsj.supabase.co https://cdn.discordapp.com; font-src 'self' data:; connect-src 'self' https://challenges.cloudflare.com https://static.cloudflareinsights.com https://cloudflareinsights.com https://xikeydfwdavqttagrtsj.supabase.co wss://xikeydfwdavqttagrtsj.supabase.co; frame-src https://challenges.cloudflare.com; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'; upgrade-insecure-requests
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' https://challenges.cloudflare.com https://static.cloudflareinsights.com https://js.stripe.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: blob: https://xikeydfwdavqttagrtsj.supabase.co https://cdn.discordapp.com https://*.stripe.com; font-src 'self' data: https://fonts.gstatic.com; connect-src 'self' https://challenges.cloudflare.com https://static.cloudflareinsights.com https://cloudflareinsights.com https://xikeydfwdavqttagrtsj.supabase.co wss://xikeydfwdavqttagrtsj.supabase.co https://api.stripe.com https://r.stripe.com; frame-src https://challenges.cloudflare.com https://js.stripe.com https://hooks.stripe.com; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'; upgrade-insecure-requests
 
 # Asset có hash (Vite) — cache vĩnh viễn, an toàn vì tên đổi khi nội dung đổi.
 /assets/*

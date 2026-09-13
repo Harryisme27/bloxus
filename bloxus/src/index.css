@@ -13,25 +13,27 @@
    XANH LÁ. Cần màu vàng thật (sao đánh giá, chữ nhấn giống "US" trong logo)
    thì dùng token "lemon". */
 :root {
-  --color-bg: #0a110b;
-  --color-bg-subtle: #0d160e;
-  --color-surface: #111c12;
-  --color-surface-2: #172618;
-  --color-surface-3: #1e301f;
+  /* Neutral charcoal base keeps long account and checkout pages calm. Green
+     is reserved for actions/statuses instead of tinting every large area. */
+  --color-bg: #0c0d10;
+  --color-bg-subtle: #111218;
+  --color-surface: #17181f;
+  --color-surface-2: #1e2029;
+  --color-surface-3: #262934;
 
-  --color-border: #213322;
-  --color-border-strong: #2e4730;
+  --color-border: #292c36;
+  --color-border-strong: #3a3e4b;
 
   /* Phụ: xanh non sáng của logo (thành công / đã xác minh / nút phụ). */
   --color-green: #a7d77a;
   --color-green-hover: #b4dd7d;
   --color-green-press: #93c867;
-  --color-green-soft: #22361a;
+  --color-green-soft: #1d3020;
 
   /* Chính: xanh lá của logo, sáng hơn một chút cho dễ đọc trên nền tối. */
   --color-yellow: #7cc35a;
   --color-yellow-hover: #8fd16b;
-  --color-yellow-soft: #193a1b;
+  --color-yellow-soft: #19321d;
   --color-gold-deep: #4f9a3f;
 
   /* Điểm nhấn: vàng chanh của chữ "US" trong logo. */
@@ -65,9 +67,13 @@
     @apply scroll-smooth;
   }
 
-  body {
+  body,
+  button,
+  input,
+  select,
+  textarea {
     @apply bg-bg text-text antialiased;
-    font-family: Arial, Helvetica, sans-serif;
+    font-family: "Baloo 2", Arial, sans-serif;
   }
 
   h1,
@@ -79,12 +85,19 @@
     @apply font-heading font-bold text-text;
   }
 
-  /* Numbers, order ids, prices in tables etc. should use JetBrains Mono with
-     tabular figures so digits align. Apply `font-mono` (Tailwind utility,
-     already mapped to JetBrains Mono) plus this class where needed. */
+  /* Keep the same friendly Baloo 2 face for numbers and order IDs. Tabular
+     figures preserve alignment without introducing a visibly different font. */
   .tabular-nums-mono {
-    font-family: "JetBrains Mono", ui-monospace, monospace;
+    font-family: "Baloo 2", Arial, sans-serif;
     font-variant-numeric: tabular-nums;
+  }
+
+  /* Order codes need friendly, clearly distinguishable I/1 and O/0 glyphs. */
+  .order-code {
+    font-family: "Baloo 2", Arial, sans-serif;
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum" 1, "zero" 0;
+    letter-spacing: 0.035em;
   }
 
   ::selection {

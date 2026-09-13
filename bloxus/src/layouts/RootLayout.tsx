@@ -1,4 +1,3 @@
-import { isStaffRole } from "@/lib/roles";
 import { useEffect } from "react";
 import { Outlet, useLocation } from "react-router-dom";
 import { Navbar } from "@/components/Navbar";
@@ -7,7 +6,6 @@ import { ChatWidget } from "@/components/ChatWidget";
 import { RecentDeliveryToast } from "@/components/RecentDeliveryToast";
 import { useCurrencyStore } from "@/store/currencyStore";
 import { useLangStore } from "@/i18n";
-import { useAuthStore } from "@/store/authStore";
 
 /** Shared shell for every route: sticky navbar, page outlet, footer, and the
  * floating chat widget. sonner's <Toaster/> is mounted once in main.tsx
@@ -22,22 +20,16 @@ export function RootLayout() {
   // portal vẫn nằm trong cây React) nên mọi formatPrice() cập nhật ngay.
   const currency = useCurrencyStore((s) => s.currency);
 
-  // Khách (guest/customer) luôn dùng USD — VND là đặc quyền của staff. Ngôn ngữ
-  // thì ai cũng tự chọn được (nút lá cờ trên thanh menu).
-  // Chờ auth load xong mới ép, để không ghi đè lựa chọn của admin/Seller lúc refresh.
-  const user = useAuthStore((s) => s.user);
-  const authLoading = useAuthStore((s) => s.loading);
   const lang = useLangStore((s) => s.lang);
-  const isStaff = isStaffRole(user?.role);
   useEffect(() => {
-    if (authLoading || isStaff) return;
     if (currency !== "usd") useCurrencyStore.getState().setCurrency("usd");
-  }, [authLoading, isStaff, currency]);
+    if (lang !== "en") useLangStore.getState().setLang("en");
+  }, [currency, lang]);
 
   // Cho trình duyệt + trình đọc màn hình biết trang đang dùng ngôn ngữ nào.
   useEffect(() => {
-    document.documentElement.lang = lang;
-  }, [lang]);
+    document.documentElement.lang = "en";
+  }, []);
 
   return (
     <div className="flex min-h-screen flex-col bg-bg text-text">

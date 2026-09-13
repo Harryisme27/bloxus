@@ -1,6 +1,6 @@
-// Edge Function: tạo phiên Stripe Checkout cho một đơn hàng.
-// Khách (đã đăng nhập) gọi với { order_id } -> trả về { url } của trang
-// checkout.stripe.com để frontend chuyển hướng.
+// Edge Function: tạo PaymentIntent cho một đơn hàng.
+// Luôn trả clientSecret để Stripe Elements thanh toán ngay trong Bloxus;
+// endpoint này không tạo URL checkout.stripe.com.
 //
 // Secrets cần đặt (supabase secrets set ...):
 //   STRIPE_SECRET_KEY  = sk_live_... (hoặc sk_test_... khi thử)
@@ -72,7 +72,6 @@ Deno.serve(async (req) => {
       return json(400, { error: "Đơn không ở trạng thái chờ thanh toán" });
     }
 
-    const site = (Deno.env.get("SITE_URL") ?? req.headers.get("origin") ?? "").replace(/\/$/, "");
     const items = (order.order_items ?? []) as Array<{
       name: string;
       unit_price: number;
@@ -87,45 +86,20 @@ Deno.serve(async (req) => {
     const feeCents =
       Math.round(subtotalCents * PROCESSING_FEE_PERCENT) + PROCESSING_FEE_FIXED_CENTS;
 
-    const session = await stripe.checkout.sessions.create({
-      mode: "payment",
-      line_items: [
-        ...items.map((it) => ({
-          price_data: {
-            currency: "usd",
-            product_data: { name: it.name },
-            unit_amount: vndToUsdCents(it.unit_price),
-          },
-          quantity: it.quantity,
-        })),
-        // Phí = 0 thì bỏ hẳn dòng "Processing fee" khỏi trang thanh toán.
-        ...(feeCents > 0
-          ? [
-              {
-                price_data: {
-                  currency: "usd",
-                  product_data: {
-                    name: "Processing fee",
-                    description: "Covers secure payment processing for this order.",
-                  },
-                  unit_amount: feeCents,
-                },
-                quantity: 1,
-              },
-            ]
-          : []),
-      ],
-      customer_email: userData.user.email ?? undefined,
-      client_reference_id: order.id,
-      metadata: { order_id: order.id, order_code: order.order_code },
-      payment_intent_data: {
+    // Bloxus only uses Stripe Elements. Never create or return a hosted
+    // checkout.stripe.com URL from this endpoint.
+    const paymentIntent = await stripe.paymentIntents.create(
+      {
+        amount: subtotalCents + feeCents,
+        currency: "usd",
+        payment_method_types: ["card"],
+        receipt_email: userData.user.email ?? undefined,
         metadata: { order_id: order.id, order_code: order.order_code },
+        description: `Bloxus order ${order.order_code}`,
       },
-      success_url: `${site}/orders/${order.id}?stripe=success`,
-      cancel_url: `${site}/orders/${order.id}?stripe=cancel`,
-    });
-
-    return json(200, { url: session.url });
+      { idempotencyKey: `bloxus-elements-${order.id}` },
+    );
+    return json(200, { clientSecret: paymentIntent.client_secret });
   } catch (e) {
     console.error("create-checkout-session error:", e);
     return json(500, { error: e instanceof Error ? e.message : "Internal error" });

@@ -377,19 +377,19 @@ export function GameDetail() {
             background: `radial-gradient(circle at 15% 20%, ${accent}40, transparent 55%)`,
           }}
         />
-        <PageContainer className="relative py-10 sm:py-14">
+        <PageContainer className="relative py-5 sm:py-7">
           <Breadcrumbs
-            className="mb-6"
+            className="mb-3"
             items={[
               { label: t.home, to: "/" },
               { label: t.games, to: "/games" },
               { label: category.name },
             ]}
           />
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
             <div className="max-w-2xl">
               <span
-                className="inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold"
+                className="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[11px] font-semibold"
                 style={{
                   borderColor: `${accent}66`,
                   color: accent,
@@ -399,14 +399,14 @@ export function GameDetail() {
                 <Layers className="h-3.5 w-3.5" aria-hidden="true" />
                 {products.length} {t.products}
               </span>
-              <h1 className="mt-3 font-heading text-3xl font-extrabold text-text sm:text-4xl lg:text-5xl">
+              <h1 className="mt-2 font-heading text-3xl font-extrabold leading-tight text-text sm:text-4xl">
                 {category.name}
               </h1>
               {category.tagline ? (
-                <p className="mt-2 text-base font-medium text-text-muted">{category.tagline}</p>
+                <p className="mt-1 text-sm font-medium text-text-muted sm:text-base">{category.tagline}</p>
               ) : null}
               {category.description ? (
-                <p className="mt-3 max-w-2xl text-sm leading-relaxed text-text-muted">
+                <p className="mt-2 max-w-2xl text-sm leading-6 text-text-muted">
                   {category.description}
                 </p>
               ) : null}
@@ -417,8 +417,8 @@ export function GameDetail() {
 
       {/* Game bar dính dưới navbar: avatar + tên game bên trái, tab loại sản
           phẩm (Vật phẩm / Tài khoản / Dịch vụ) bên phải. */}
-      <div className="sticky top-16 z-30 border-b border-border bg-bg/95 backdrop-blur">
-        <PageContainer className="relative flex h-14 items-center gap-4">
+      <div className="sticky top-[72px] z-30 border-b border-border bg-bg/95 backdrop-blur">
+        <PageContainer className="relative flex h-12 items-center gap-4">
           <div className="flex min-w-0 items-center gap-2.5">
             {category.icon_url ? (
               <img
@@ -451,7 +451,7 @@ export function GameDetail() {
                   onClick={() => setKind(tab.value)}
                   aria-pressed={active}
                   className={cn(
-                    "border-b-2 px-2.5 py-4 text-sm font-semibold transition-colors sm:px-3",
+                    "border-b-2 px-2.5 py-3 text-sm font-semibold transition-colors sm:px-3",
                     active ? "text-text" : "border-transparent text-text-muted hover:text-text",
                   )}
                   style={active ? { borderColor: accent } : undefined}
@@ -464,9 +464,9 @@ export function GameDetail() {
         </PageContainer>
       </div>
 
-      <PageContainer className="py-8 sm:py-10">
+      <PageContainer className="py-5 sm:py-6">
         <ItemFilters
-          className="mb-6"
+          className="mb-5"
           search={search}
           onSearchChange={setSearch}
           section={section}

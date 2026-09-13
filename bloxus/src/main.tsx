@@ -5,19 +5,18 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "sonner";
 
 // Self-hosted fonts (see fontsource packages in package.json). Weights match
-// the brand spec: headings = Baloo 2 600/700/800 (latin + vietnamese subsets),
-// body/UI = Be Vietnam Pro 400/500/600, numbers/order-ids = JetBrains Mono.
+// One font across headings, body text, form controls, prices, and order codes.
+// Loading both subsets prevents fallback glyphs from changing the appearance.
+import "@fontsource/baloo-2/latin-400.css";
+import "@fontsource/baloo-2/latin-500.css";
 import "@fontsource/baloo-2/latin-600.css";
 import "@fontsource/baloo-2/latin-700.css";
 import "@fontsource/baloo-2/latin-800.css";
+import "@fontsource/baloo-2/vietnamese-400.css";
+import "@fontsource/baloo-2/vietnamese-500.css";
 import "@fontsource/baloo-2/vietnamese-600.css";
 import "@fontsource/baloo-2/vietnamese-700.css";
 import "@fontsource/baloo-2/vietnamese-800.css";
-import "@fontsource/be-vietnam-pro/400.css";
-import "@fontsource/be-vietnam-pro/500.css";
-import "@fontsource/be-vietnam-pro/600.css";
-import "@fontsource/jetbrains-mono/400.css";
-import "@fontsource/jetbrains-mono/500.css";
 
 import "./index.css";
 import { router } from "./App";

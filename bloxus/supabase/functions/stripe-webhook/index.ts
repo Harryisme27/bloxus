@@ -16,6 +16,18 @@ const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") ?? "", {
 // Verify chữ ký bằng SubtleCrypto (bắt buộc trong môi trường Deno/Edge).
 const cryptoProvider = Stripe.createSubtleCryptoProvider();
 
+async function confirmOrder(orderId: string, reference: string): Promise<string | null> {
+  const admin = createClient(
+    Deno.env.get("SUPABASE_URL")!,
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+  );
+  const { error } = await admin.rpc("system_confirm_payment", {
+    p_order_id: orderId,
+    p_ref: `stripe:${reference}`,
+  });
+  return error?.message ?? null;
+}
+
 Deno.serve(async (req) => {
   if (req.method !== "POST") return new Response("Method not allowed", { status: 405 });
 
@@ -52,18 +64,23 @@ Deno.serve(async (req) => {
       return new Response("ok (no order_id)", { status: 200 });
     }
 
-    const admin = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
-    );
     const ref = typeof session.payment_intent === "string" ? session.payment_intent : session.id;
-    const { error } = await admin.rpc("system_confirm_payment", {
-      p_order_id: orderId,
-      p_ref: `stripe:${ref}`,
-    });
+    const error = await confirmOrder(orderId, ref);
     if (error) {
-      console.error("system_confirm_payment failed:", error.message);
+      console.error("system_confirm_payment failed:", error);
       // Trả 500 để Stripe retry (đơn chưa được đánh dấu paid).
+      return new Response("confirm failed", { status: 500 });
+    }
+  }
+
+  // Stripe Elements dùng PaymentIntent thay cho Checkout Session.
+  if (event.type === "payment_intent.succeeded") {
+    const intent = event.data.object as Stripe.PaymentIntent;
+    const orderId = intent.metadata?.order_id;
+    if (!orderId) return new Response("ok (no order_id)", { status: 200 });
+    const error = await confirmOrder(orderId, intent.id);
+    if (error) {
+      console.error("system_confirm_payment failed:", error);
       return new Response("confirm failed", { status: 500 });
     }
   }

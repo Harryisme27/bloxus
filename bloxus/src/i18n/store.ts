@@ -17,13 +17,16 @@ interface LangState {
 
 export const useLangStore = create<LangState>()(
   persist(
-    (set, get) => ({
-      // Mặc định tiếng Anh (đổi được bằng nút VI/EN, lựa chọn được ghi nhớ).
+    (set) => ({
+      // English-only storefront for the current release.
       lang: "en",
-      setLang: (lang) => set({ lang }),
-      toggle: () => set({ lang: get().lang === "vi" ? "en" : "vi" }),
+      setLang: () => set({ lang: "en" }),
+      toggle: () => set({ lang: "en" }),
     }),
-    { name: "bloxus-lang" },
+    {
+      name: "bloxus-lang",
+      merge: (_persisted, current) => ({ ...current, lang: "en" }),
+    },
   ),
 );
 

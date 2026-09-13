@@ -525,7 +525,7 @@ function ItemDetailContent({
             }}
           >
             {imageUrl ? (
-              <img src={imageUrl} alt={product.name} className="h-full w-full object-cover" />
+              <img src={imageUrl} alt={product.name} className="h-full w-full object-contain" />
             ) : (
               <>
                 <div
@@ -674,7 +674,7 @@ function ItemDetailContent({
             <div className="flex flex-col gap-2 sm:flex-row">
               <Button
                 type="button"
-                variant="primary"
+                variant="secondary"
                 size="lg"
                 className="flex-1"
                 disabled={!canBuy}
@@ -685,7 +685,7 @@ function ItemDetailContent({
               </Button>
               <Button
                 type="button"
-                variant="gold"
+                variant="purchase"
                 size="lg"
                 className="flex-1"
                 disabled={!canBuy}

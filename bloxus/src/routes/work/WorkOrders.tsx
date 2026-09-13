@@ -118,9 +118,6 @@ export function WorkOrders() {
     <div className="space-y-6">
       <header>
         <h1 className="font-heading text-3xl font-bold text-text">{t.title}</h1>
-        <p className="mt-1 text-sm text-text-muted">
-          {isAdminOrManager(user?.role) ? t.subtitleAdmin : t.subtitleCtv}
-        </p>
       </header>
 
       {!isSupabaseConfigured ? (
@@ -435,7 +432,7 @@ function OrdersTable({ isAdmin, userId }: { isAdmin: boolean; userId: string }) 
                   <td className="px-4 py-3">
                     <Link
                       to={`/work/orders/${order.id}`}
-                      className="font-mono font-bold text-text hover:text-yellow"
+                      className="order-code font-semibold text-text hover:text-yellow"
                     >
                       {order.order_code}
                     </Link>

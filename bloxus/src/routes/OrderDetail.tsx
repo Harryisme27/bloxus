@@ -1,6 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useParams, useSearchParams, Link } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { loadStripe } from "@stripe/stripe-js";
 import {
   AlertTriangle,
   ArrowLeft,
@@ -8,6 +9,7 @@ import {
   Check,
   CheckCircle2,
   Copy,
+  CreditCard,
   Landmark,
   PackageCheck,
   ReceiptText,
@@ -28,6 +30,7 @@ import { WorkOrderStatusBadge } from "@/components/work/orderStatusMeta";
 import { CancelRequestDialog } from "@/components/order/CancelRequestDialog";
 import { DeliveryProofGallery } from "@/components/order/DeliveryProofGallery";
 import { OrderActions } from "@/components/order/OrderActions";
+import { StripeInlineCheckout } from "@/components/commerce/StripeInlineCheckout";
 import { ReviewWidget } from "@/components/order/ReviewWidget";
 import { finalizeCancel, getOrder, listOrderEvents, markPaymentSent } from "@/lib/db/orders";
 import { getSettings, getPublicGateways } from "@/lib/db/settings";
@@ -167,8 +170,8 @@ const STR = {
     gwNotConfigured: "The shop hasn't configured this gateway — please discuss via chat.",
     stripePayBtn: "Pay by card / Apple Pay",
     stripePayHint:
-      "You'll be redirected to a secure checkout page (charged in USD, plus a 5% + $0.30 card processing fee shown clearly before you pay). The order confirms automatically once paid.",
-    stripePayBusy: "Creating checkout session…",
+      "Pay securely by card or Apple Pay without leaving Bloxus. The total is charged in USD and includes the processing fee shown below.",
+    stripePayBusy: "Loading secure payment form...",
     stripeCancelled: "Payment cancelled — you can retry anytime.",
     stripeFeeLabel: "Processing fee",
     stripeTotalLabel: "Total charged",
@@ -197,6 +200,7 @@ function OrderDetailContent() {
   const { id = "" } = useParams<{ id: string }>();
   const queryClient = useQueryClient();
   const [cancelOpen, setCancelOpen] = useState(false);
+  const [stripeClientSecret, setStripeClientSecret] = useState<string | null>(null);
   const [searchParams, setSearchParams] = useSearchParams();
 
   const orderQuery = useQuery({
@@ -220,6 +224,15 @@ function OrderDetailContent() {
     queryFn: getPublicGateways,
     enabled: isSupabaseConfigured,
   });
+  const configuredStripeKey = String(gatewaysQuery.data?.stripe?.publishable_key ?? "").trim();
+  const localStripeKey = String(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY ?? "").trim();
+  const stripePublishableKey = configuredStripeKey.startsWith("pk_")
+    ? configuredStripeKey
+    : localStripeKey;
+  const stripePromise = useMemo(
+    () => (stripePublishableKey.startsWith("pk_") ? loadStripe(stripePublishableKey) : null),
+    [stripePublishableKey],
+  );
 
   const invalidateOrder = () => {
     void queryClient.invalidateQueries({ queryKey: ["order", id] });
@@ -237,12 +250,12 @@ function OrderDetailContent() {
     onError: (err) => toast.error(err instanceof Error ? err.message : "Error"),
   });
 
-  // Thanh toán thẻ: gọi Edge Function tạo phiên Stripe Checkout rồi chuyển hướng.
+  // Tạo PaymentIntent rồi nhúng Stripe Elements ngay trong trang đơn hàng.
   const stripeMutation = useMutation({
     mutationFn: async () => {
       const sb = requireSupabase();
       const { data, error } = await sb.functions.invoke("create-checkout-session", {
-        body: { order_id: id },
+        body: { order_id: id, elements: true },
       });
       if (error) {
         // FunctionsHttpError giấu body — móc message thật từ response của function.
@@ -253,13 +266,13 @@ function OrderDetailContent() {
         }
         throw new Error(error.message);
       }
-      const url = (data as { url?: string } | null)?.url;
-      if (!url) throw new Error((data as { error?: string } | null)?.error ?? "No checkout URL");
-      return url;
+      const clientSecret = (data as { clientSecret?: string } | null)?.clientSecret;
+      if (!clientSecret) {
+        throw new Error((data as { error?: string } | null)?.error ?? "No payment client secret");
+      }
+      return clientSecret;
     },
-    onSuccess: (url) => {
-      window.location.assign(url);
-    },
+    onSuccess: (clientSecret) => setStripeClientSecret(clientSecret),
     onError: (err) => toast.error(err instanceof Error ? err.message : "Error"),
   });
 
@@ -487,8 +500,8 @@ function OrderDetailContent() {
 
           {/* Payment instructions while pending */}
           {isPending ? (
-            <Card className="border-yellow/40" style={{ borderColor: "rgba(124,195,90,0.4)" }}>
-              <CardHeader className="border-b border-border">
+            <Card className="overflow-hidden border-[#363a45] bg-[#17191f] shadow-[0_18px_45px_-32px_rgba(0,0,0,0.9)]">
+              <CardHeader className="border-b border-[#2c3039] bg-[#1b1d24]">
                 <CardTitle className="flex items-center gap-2 text-base">
                   {gwId === "momo" ? (
                     <Wallet className="h-4 w-4 text-yellow" aria-hidden />
@@ -498,7 +511,7 @@ function OrderDetailContent() {
                   {t.payInstrTitle}
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-3 pt-4 text-sm">
+              <CardContent className="space-y-3 bg-[#15171c] pt-4 text-sm">
                 {/* Hướng dẫn "ghi mã đơn vào nội dung CK" chỉ dành cho CK tay —
                     Stripe tự xác nhận nên không hiện. */}
                 {gwId !== "stripe" ? (
@@ -530,14 +543,37 @@ function OrderDetailContent() {
                 ) : gwId === "stripe" ? (
                   <>
                     <p className="text-xs text-text-muted">{t.stripePayHint}</p>
-                    <Button
-                      size="sm"
-                      className="w-full"
-                      disabled={stripeMutation.isPending}
-                      onClick={() => stripeMutation.mutate()}
-                    >
-                      {stripeMutation.isPending ? t.stripePayBusy : t.stripePayBtn}
-                    </Button>
+                    {stripeClientSecret && stripePromise ? (
+                      <div className="rounded-2xl border border-[#343844] bg-[#13151a] p-3 sm:p-4">
+                        <StripeInlineCheckout
+                          stripePromise={stripePromise}
+                          clientSecret={stripeClientSecret}
+                          orderId={order.id}
+                          total={order.total + stripeFee}
+                          onComplete={() => {
+                            toast.success("Payment submitted successfully.");
+                            setSearchParams({ stripe: "success" }, { replace: true });
+                            invalidateOrder();
+                          }}
+                        />
+                      </div>
+                    ) : (
+                      <Button
+                        size="sm"
+                        className="w-full"
+                        disabled={stripeMutation.isPending}
+                        onClick={() => {
+                          if (!stripePromise) {
+                            toast.error("Stripe publishable key is missing. Check the payment settings.");
+                            return;
+                          }
+                          stripeMutation.mutate();
+                        }}
+                      >
+                        <CreditCard className="h-4 w-4" aria-hidden />
+                        {stripeMutation.isPending ? t.stripePayBusy : t.stripePayBtn}
+                      </Button>
+                    )}
                   </>
                 ) : gwId === "paypal" ? (
                   <>
@@ -736,7 +772,7 @@ function PayRow({
 }) {
   const t = usePick(STR);
   return (
-    <div className="flex items-center justify-between gap-3 rounded-lg border border-border bg-surface-2 px-3 py-2">
+    <div className="flex items-center justify-between gap-3 rounded-xl border border-[#343844] bg-[#22252d] px-4 py-3">
       <div className="min-w-0">
         <p className="text-xs text-text-subtle">{label}</p>
         <p

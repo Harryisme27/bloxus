@@ -24,7 +24,6 @@ import {
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { formatPrice } from "@/lib/format";
-import { CurrencyToggle } from "@/components/CurrencyToggle";
 import { useAuthStore } from "@/store/authStore";
 import { cn } from "@/lib/utils";
 import { usePick } from "@/i18n";
@@ -158,15 +157,15 @@ export function ProfileMenu() {
         aria-haspopup="menu"
         aria-expanded={open}
         className={cn(
-          "flex h-10 items-center gap-2 rounded-lg border border-border-strong bg-transparent px-2 pr-2.5 text-text transition-colors hover:bg-surface-2 active:bg-surface-3",
+          "flex h-12 items-center gap-2.5 rounded-xl border border-border-strong bg-transparent px-2.5 pr-3.5 text-text transition-colors hover:bg-surface-2 active:bg-surface-3",
           open && "bg-surface-2",
         )}
       >
         <Avatar name={name} avatarUrl={user.avatar_url} />
         {/* Tên chỉ hiện khi đủ chỗ (>=1440px); nhỏ hơn chỉ còn avatar để thanh menu không tràn. */}
-        <span className="hidden max-w-[10rem] truncate text-sm font-semibold min-[1440px]:block">{name}</span>
+        <span className="hidden max-w-[11rem] truncate text-base font-bold min-[1440px]:block">{name}</span>
         <ChevronDown
-          className={cn("h-4 w-4 text-text-muted transition-transform", open && "rotate-180")}
+          className={cn("h-[18px] w-[18px] text-text-muted transition-transform", open && "rotate-180")}
           aria-hidden="true"
         />
       </button>
@@ -203,16 +202,7 @@ export function ProfileMenu() {
             {primaryLinks.map((item) => (
               <MenuItem key={item.to} {...item} onSelect={() => setOpen(false)} />
             ))}
-            {isStaff ? (
-              <>
-                <MenuItem to="/work" label={t.workArea} icon={Briefcase} onSelect={() => setOpen(false)} />
-                {/* Đổi USD/VND (chỉ staff) — chuyển từ thanh menu vào đây cho gọn. */}
-                <div className="flex items-center justify-between px-4 py-2">
-                  <span className="text-sm text-text-muted">{t.currency}</span>
-                  <CurrencyToggle />
-                </div>
-              </>
-            ) : null}
+            {isStaff ? <MenuItem to="/work" label={t.workArea} icon={Briefcase} onSelect={() => setOpen(false)} /> : null}
           </MenuSection>
 
           <MenuSection>
@@ -270,7 +260,7 @@ function Avatar({
   avatarUrl: string | null;
   size?: "md" | "lg";
 }) {
-  const dim = size === "lg" ? "h-10 w-10 text-sm" : "h-7 w-7 text-xs";
+  const dim = size === "lg" ? "h-10 w-10 text-sm" : "h-8 w-8 text-xs";
   // Link avatar Discord chết khi người dùng đổi ảnh trên Discord (tới lần đăng
   // nhập sau mới cập nhật) -> lỗi tải thì quay về chữ cái đầu.
   const [broken, setBroken] = useState(false);

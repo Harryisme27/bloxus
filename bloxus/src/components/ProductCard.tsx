@@ -101,17 +101,17 @@ export function ProductCard({ product, className }: ProductCardProps) {
       to={`/item/${product.id}`}
       className={cn(
         "group flex flex-col overflow-hidden rounded-xl border border-border bg-surface transition-all duration-200",
-        "hover:-translate-y-1 hover:border-yellow hover:shadow-glow-amber",
+        "hover:-translate-y-1 hover:border-green/70 hover:shadow-glow-green",
         className,
       )}
     >
-      <div className="relative flex h-32 items-center justify-center overflow-hidden bg-surface-2">
+      <div className="relative flex h-40 items-center justify-center overflow-hidden bg-[radial-gradient(circle_at_50%_42%,#203923_0%,#172618_58%,#111c12_100%)] sm:h-44">
         {imageUrl ? (
           <img
             src={imageUrl}
             alt={product.name}
             loading="lazy"
-            className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+            className="h-full w-full object-contain transition-transform duration-300 group-hover:scale-[1.03]"
           />
         ) : (
           <span className="font-heading text-2xl font-extrabold text-text-subtle">
@@ -164,7 +164,7 @@ export function ProductCard({ product, className }: ProductCardProps) {
             <Button
               type="button"
               size="sm"
-              variant="primary"
+              variant="purchase"
               className="w-full"
               disabled={!inStock}
               onClick={handleBuyNow}

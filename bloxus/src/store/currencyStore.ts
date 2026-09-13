@@ -17,11 +17,14 @@ interface CurrencyState {
 
 export const useCurrencyStore = create<CurrencyState>()(
   persist(
-    (set, get) => ({
+    (set) => ({
       currency: "usd",
-      setCurrency: (currency) => set({ currency }),
-      toggle: () => set({ currency: get().currency === "usd" ? "vnd" : "usd" }),
+      setCurrency: () => set({ currency: "usd" }),
+      toggle: () => set({ currency: "usd" }),
     }),
-    { name: "bloxus-currency" },
+    {
+      name: "bloxus-currency",
+      merge: (_persisted, current) => ({ ...current, currency: "usd" }),
+    },
   ),
 );

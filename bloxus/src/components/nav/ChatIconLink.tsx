@@ -20,9 +20,9 @@ export function ChatIconLink() {
     <Link
       to="/messages"
       aria-label={t.messages}
-      className="relative flex h-10 w-10 items-center justify-center rounded-lg text-text-muted transition-colors hover:bg-surface-2 hover:text-text"
+      className="relative hidden h-11 w-11 items-center justify-center rounded-xl text-text-muted transition-colors hover:bg-surface-2 hover:text-text min-[520px]:flex"
     >
-      <MessageCircle className="h-5 w-5" aria-hidden="true" />
+      <MessageCircle className="h-[22px] w-[22px]" aria-hidden="true" />
       {hasUnread ? (
         <span
           className="absolute right-2 top-2 h-2 w-2 rounded-full bg-yellow ring-2 ring-bg"

@@ -53,9 +53,9 @@ export default {
         warning: "var(--color-warning)",
       },
       fontFamily: {
-        heading: ["Arial", "Helvetica", "sans-serif"],
-        body: ["Arial", "Helvetica", "sans-serif"],
-        mono: ["JetBrains Mono", "ui-monospace", "monospace"],
+        heading: ["Baloo 2", "Arial", "sans-serif"],
+        body: ["Baloo 2", "Arial", "sans-serif"],
+        mono: ["Baloo 2", "Arial", "sans-serif"],
       },
       boxShadow: {
         // Quầng sáng màu chính (xanh lá logo). Tên "amber" giữ lại cho khỏi sửa class.

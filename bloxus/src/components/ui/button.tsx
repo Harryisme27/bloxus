@@ -9,6 +9,7 @@ export const buttonVariants = cva(
     variants: {
       variant: {
         primary: "bg-yellow text-text-on-yellow hover:bg-yellow-hover active:brightness-95",
+        purchase: "bg-lemon text-text-on-lemon shadow-[0_10px_24px_-16px_rgba(250,214,86,0.85)] hover:bg-lemon-hover active:brightness-95",
         secondary:
           "border border-border-strong bg-transparent text-text hover:bg-surface-2 active:bg-surface-3",
         // Repointed to the leaf-green fill so both brand fills stay available.

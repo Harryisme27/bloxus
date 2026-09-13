@@ -372,7 +372,7 @@ function OrderDetailView({
           <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border bg-surface p-5">
             <div>
               <div className="flex items-center gap-2">
-                <h1 className="font-mono text-2xl font-bold text-text">{order.order_code}</h1>
+                <h1 className="order-code text-2xl font-semibold text-text">{order.order_code}</h1>
                 <CopyButton value={order.order_code} label={t.copyOrderCode} />
                 <WorkOrderStatusBadge status={displayStatus} />
               </div>
